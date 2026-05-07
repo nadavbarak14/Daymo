@@ -14,6 +14,8 @@ export async function captureCommand(
   const { artifactsDir } = await capture({
     demoFile,
     artifactsBase: flags.out,
+    onlyScene,
+    bundleDir: flags.bundle ? path.resolve(flags.bundle) : undefined,
   });
   console.log(`daymo: bundle in ${artifactsDir}`);
 }

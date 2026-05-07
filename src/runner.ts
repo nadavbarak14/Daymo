@@ -13,6 +13,10 @@ export interface CaptureOpts {
   demoFile: string;
   /** Output directory base. Default: ./artifacts */
   artifactsBase?: string;
+  /** 0-based scene index to re-shoot. Per-scene mode only. Requires bundleDir. */
+  onlyScene?: number;
+  /** Existing bundle to update (per-scene mode only). Required when onlyScene is set. */
+  bundleDir?: string;
 }
 
 export interface ComposeFromBundleOpts {
@@ -112,16 +116,111 @@ async function capturePerScene(
   await fs.writeFile(paths.capture.events, JSON.stringify(allEvents, null, 2));
 }
 
+async function captureSingleSceneIntoBundle(
+  opts: CaptureOpts,
+  ast: DemoAst,
+  paths: ArtifactPaths,
+): Promise<void> {
+  const sceneIndex = opts.onlyScene!;
+  if (sceneIndex < 0 || sceneIndex >= ast.scenes.length) {
+    throw new Error(`--scene ${sceneIndex} out of range (demo has ${ast.scenes.length} scenes)`);
+  }
+  const baseDir = path.dirname(path.resolve(opts.demoFile));
+  const scene = ast.scenes[sceneIndex];
+  const sceneDir = path.join(
+    paths.capture.scenesDir,
+    `${String(sceneIndex).padStart(2, "0")}-${slugify(scene.title)}`,
+  );
+  // Wipe any existing artifacts in this scene's dir.
+  await fs.rm(sceneDir, { recursive: true, force: true });
+  await fs.mkdir(sceneDir, { recursive: true });
+
+  const overrides = scene.sceneConfig ?? {};
+  const ctrl = await Controller.start({
+    url: overrides.url ?? ast.frontmatter.url,
+    viewport: ast.frontmatter.viewport,
+    mocks: overrides.mocks ?? ast.frontmatter.mocks,
+    storageStatePath: overrides.auth?.storageState
+      ? path.resolve(baseDir, overrides.auth.storageState)
+      : ast.frontmatter.auth?.storageState
+        ? path.resolve(baseDir, ast.frontmatter.auth.storageState)
+        : undefined,
+    artifactsDir: sceneDir,
+  });
+  try {
+    await ctrl.runScene(scene);
+  } finally {
+    await ctrl.stop();
+  }
+}
+
+async function rebuildUnifiedEventsLog(
+  ast: DemoAst,
+  paths: ArtifactPaths,
+): Promise<void> {
+  const allEvents: RunnerEvent[] = [];
+  let timeOffsetMs = 0;
+  for (let i = 0; i < ast.scenes.length; i++) {
+    const scene = ast.scenes[i];
+    const sceneDir = path.join(
+      paths.capture.scenesDir,
+      `${String(i).padStart(2, "0")}-${slugify(scene.title)}`,
+    );
+    const eventsPath = path.join(sceneDir, "events.json");
+    let sceneEvents: RunnerEvent[];
+    try {
+      sceneEvents = JSON.parse(await fs.readFile(eventsPath, "utf8"));
+    } catch (e) {
+      throw new Error(
+        `--scene re-shoot: scene ${i} has no events.json at ${eventsPath} (was the bundle captured in per-scene mode?): ${(e as Error).message}`,
+      );
+    }
+    const sceneEventsCopy = sceneEvents.map((ev) => ({ ...ev, t: (ev as any).t + timeOffsetMs }));
+    allEvents.push(...sceneEventsCopy as RunnerEvent[]);
+    const sceneEnd = sceneEventsCopy.find((e) => e.kind === "scene_end");
+    timeOffsetMs = sceneEnd ? (sceneEnd as any).t : timeOffsetMs;
+  }
+  await fs.writeFile(paths.capture.events, JSON.stringify(allEvents, null, 2));
+}
+
 export async function capture(opts: CaptureOpts): Promise<{ artifactsDir: string; ast: DemoAst }> {
   const source = await fs.readFile(opts.demoFile, "utf8");
   const ast = parse(source);
 
+  const captureMode: CaptureMode = ast.frontmatter.captureMode ?? "continuous";
+
+  // Re-shoot path
+  if (opts.onlyScene !== undefined) {
+    if (captureMode !== "per-scene") {
+      throw new Error(`--scene re-shoot requires captureMode: per-scene in the .demo file`);
+    }
+    if (!opts.bundleDir) {
+      throw new Error(`--scene re-shoot requires --bundle <dir> pointing to an existing bundle`);
+    }
+    const artifactsDir = path.resolve(opts.bundleDir);
+    const paths = buildArtifactPaths(artifactsDir);
+    await fs.mkdir(paths.capture.scenesDir, { recursive: true });
+    await captureSingleSceneIntoBundle(opts, ast, paths);
+    await rebuildUnifiedEventsLog(ast, paths);
+    // Rebuild manifest
+    const events = JSON.parse(await fs.readFile(paths.capture.events, "utf8")) as RunnerEvent[];
+    const m = buildManifest({
+      demoFile: path.resolve(opts.demoFile),
+      captureMode,
+      viewport: ast.frontmatter.viewport ?? { width: 1440, height: 900 },
+      scenes: ast.scenes,
+      events,
+    });
+    await writeManifest(paths.capture.dir, m);
+    return { artifactsDir, ast };
+  }
+
+  // Standard fresh capture path (existing logic)
   const id = crypto.randomBytes(4).toString("hex");
   const artifactsDir = path.resolve(opts.artifactsBase ?? "./artifacts", id);
   const paths = buildArtifactPaths(artifactsDir);
   await fs.mkdir(paths.capture.dir, { recursive: true });
 
-  const captureMode: CaptureMode = ast.frontmatter.captureMode ?? "continuous";
   if (captureMode === "per-scene") {
     await capturePerScene(opts, ast, paths);
   } else {
