@@ -79,10 +79,25 @@ export class Controller {
           warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),
           error: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "error", args }),
         };
-        await runSceneBlock(
-          { code: scene.playwrightCode.code, sourceLine: scene.playwrightCode.sourceLine, sceneTitle: scene.title },
-          { page: this.page, fx, console },
-        );
+        const beforeLen = this.events.length;
+        try {
+          await runSceneBlock(
+            { code: scene.playwrightCode.code, sourceLine: scene.playwrightCode.sourceLine, sceneTitle: scene.title },
+            { page: this.page, fx, console },
+          );
+        } finally {
+          for (let i = beforeLen; i < this.events.length; i++) {
+            const ev = this.events[i] as any;
+            if (
+              ev.kind === "fast_forward_start" ||
+              ev.kind === "fast_forward_end" ||
+              ev.kind === "skip_start" ||
+              ev.kind === "skip_end"
+            ) {
+              ev.sceneIndex = scene.sourceLine;
+            }
+          }
+        }
       }
       for (const directive of scene.overlays) {
         const bbox = directive.target

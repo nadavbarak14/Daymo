@@ -144,4 +144,41 @@ describe("Controller", () => {
     expect(errorEvent.message).toMatch(/intentional failure/);
     expect(errorEvent.sceneIndex).toBe(1);
   });
+
+  it("stamps sceneIndex on fast_forward and skip markers", async () => {
+    const ctrl = await Controller.start({
+      url: serverUrl,
+      mocks: [{ source: "inline", routes: { "GET /api/me": { name: "Alex" }, "GET /api/projects": [] } }],
+      artifactsDir,
+    });
+    const SCENE_LINE = 42;
+    try {
+      await ctrl.runScene({
+        sourceLine: SCENE_LINE,
+        title: "fx markers",
+        prose: "",
+        playwrightCode: {
+          code: `
+          await fx.fastForward(async () => { await page.waitForTimeout(50); }, 4);
+          await fx.skip(async () => { await page.waitForTimeout(50); });
+        `,
+          sourceLine: 50,
+        },
+        overlays: [],
+      });
+    } finally {
+      await ctrl.stop();
+    }
+    const events = JSON.parse(await fs.readFile(path.join(artifactsDir, "events.json"), "utf8"));
+    const ff_start = events.find((e: any) => e.kind === "fast_forward_start");
+    const ff_end   = events.find((e: any) => e.kind === "fast_forward_end");
+    const sk_start = events.find((e: any) => e.kind === "skip_start");
+    const sk_end   = events.find((e: any) => e.kind === "skip_end");
+    expect(ff_start).toBeDefined();
+    expect(ff_start.sceneIndex).toBe(SCENE_LINE);
+    expect(ff_end.sceneIndex).toBe(SCENE_LINE);
+    expect(sk_start.sceneIndex).toBe(SCENE_LINE);
+    expect(sk_end.sceneIndex).toBe(SCENE_LINE);
+    expect(ff_start.factor).toBe(4);
+  });
 });
