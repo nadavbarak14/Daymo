@@ -1,5 +1,6 @@
 // src/compositor.ts
 import path from "node:path";
+import fs from "node:fs/promises";
 import { execa } from "execa";
 import type { ArtifactPaths, DemoAst, TransitionConfig } from "./types.js";
 import type { Manifest, ManifestSceneEntry } from "./manifest.js";
@@ -101,6 +102,14 @@ function emitSceneFilter(
     const startS = localSec(s.startMs);
     const endS   = localSec(s.endMs);
     if (s.kind === "real") {
+      // In per-scene mode the clip already starts at t=0 and covers only this scene;
+      // skip the trim when the sub-segment starts at local time 0 to avoid a no-op filter.
+      if (startS === "0.000" && perScene) {
+        return {
+          lines: [`${inputLabel}setpts=PTS-STARTPTS${normScene}${outLabel}`],
+          durationMs: s.endMs - s.startMs,
+        };
+      }
       return {
         lines: [`${inputLabel}trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${outLabel}`],
         durationMs: s.endMs - s.startMs,
@@ -308,6 +317,10 @@ export async function compose(opts: ComposeOpts): Promise<string> {
   const introCfg = resolveIntroConfig(opts.ast.frontmatter, fm.intro);
   const outroCfg = resolveOutroConfig(opts.ast.frontmatter, fm.outro);
 
+  // Resolve logo paths against the .demo file's directory.
+  if (introCfg?.logo) introCfg.logo = path.resolve(opts.baseDir, introCfg.logo);
+  if (outroCfg?.logo) outroCfg.logo = path.resolve(opts.baseDir, outroCfg.logo);
+
   const slatePaths: { intro: string | null; outro: string | null } = { intro: null, outro: null };
 
   if (introCfg) {
@@ -335,6 +348,10 @@ export async function compose(opts: ComposeOpts): Promise<string> {
       outro: outroCfg ? { durationMs: outroCfg.durationMs } : undefined,
     },
   });
+  await fs.writeFile(
+    opts.paths.composeLog,
+    `# ffmpeg invocation\nffmpeg ${argv.map((a) => /\s/.test(a) ? `'${a}'` : a).join(" ")}\n`,
+  );
   await execa("ffmpeg", argv);
   return opts.paths.output;
 }
