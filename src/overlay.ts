@@ -41,7 +41,11 @@ export const OVERLAY_INIT_SCRIPT = String.raw`
   // Highlight — toggle a class on the target with an injected stylesheet.
   const style = document.createElement("style");
   style.textContent = ".__daymo-highlight { outline: 3px solid #ff5b5b !important; outline-offset: 2px !important; transition: outline 0.2s ease !important; }";
-  document.head.appendChild(style);
+  function attachStyle() {
+    if (document.head) document.head.appendChild(style);
+    else document.addEventListener("DOMContentLoaded", () => document.head && document.head.appendChild(style));
+  }
+  attachStyle();
 
   // Callout layer — bubbles with arrows.
   const callouts = document.createElement("div");
