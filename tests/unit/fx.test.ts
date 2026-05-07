@@ -116,3 +116,75 @@ describe("fx.zoom", () => {
     expect(events.find((e) => e.kind === "fx" && e.method === "zoom")).toBeDefined();
   });
 });
+
+describe("fx.fastForward", () => {
+  it("emits start + end markers around the callback", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    let now = 1000;
+    const fx = createFx(page, events, () => now);
+    await fx.fastForward(async () => { now += 500; }, 4);
+    const kinds = events.map(e => e.kind);
+    expect(kinds).toContain("fast_forward_start");
+    expect(kinds).toContain("fast_forward_end");
+    const start = events.find(e => e.kind === "fast_forward_start") as any;
+    expect(start.factor).toBe(4);
+  });
+
+  it("emits end marker even when the callback throws", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(
+      fx.fastForward(async () => { throw new Error("boom"); }, 2),
+    ).rejects.toThrow("boom");
+    const kinds = events.map(e => e.kind);
+    expect(kinds).toEqual(["fast_forward_start", "fast_forward_end"]);
+  });
+
+  it("defaults factor to 3", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.fastForward(async () => { /* noop */ });
+    const start = events.find(e => e.kind === "fast_forward_start") as any;
+    expect(start.factor).toBe(3);
+  });
+
+  it("clamps factor to upper bound 16", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.fastForward(async () => {}, 100);
+    const start = events.find(e => e.kind === "fast_forward_start") as any;
+    expect(start.factor).toBe(16);
+  });
+
+  it("clamps factor to lower bound 1.5", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.fastForward(async () => {}, 0.5);
+    const start = events.find(e => e.kind === "fast_forward_start") as any;
+    expect(start.factor).toBe(1.5);
+  });
+
+  it("returns the callback's resolved value", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    const result = await fx.fastForward(async () => "done");
+    expect(result).toBe("done");
+  });
+
+  it("emits sceneIndex: -1 in markers (controller back-fills)", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.fastForward(async () => {});
+    const start = events.find(e => e.kind === "fast_forward_start") as any;
+    const end = events.find(e => e.kind === "fast_forward_end") as any;
+    expect(start.sceneIndex).toBe(-1);
+    expect(end.sceneIndex).toBe(-1);
+  });
+});

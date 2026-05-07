@@ -18,6 +18,10 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
     return bbox;
   }
 
+  const FF_MIN = 1.5;
+  const FF_MAX = 16;
+  let activeMarker: "fast_forward" | "skip" | null = null;
+
   return {
     async cursorTo(selector, opts) {
       emit("cursorTo", [selector, opts]);
@@ -74,9 +78,19 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
       );
     },
 
-    // stub for v0.2 — implemented in Task 6
-    async fastForward(fn, factor = 1) {
-      throw new Error("fastForward not yet implemented");
+    async fastForward<T>(fn: () => Promise<T>, factor = 3): Promise<T> {
+      if (activeMarker) {
+        throw new Error(`fx.fastForward cannot be nested inside fx.${activeMarker}`);
+      }
+      const clamped = Math.max(FF_MIN, Math.min(FF_MAX, factor));
+      events.push({ kind: "fast_forward_start", t: clock(), sceneIndex: -1, factor: clamped });
+      activeMarker = "fast_forward";
+      try {
+        return await fn();
+      } finally {
+        events.push({ kind: "fast_forward_end", t: clock(), sceneIndex: -1 });
+        activeMarker = null;
+      }
     },
 
     // stub for v0.2 — implemented in Task 7
