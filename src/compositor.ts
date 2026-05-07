@@ -1,7 +1,7 @@
 // src/compositor.ts
 import { execa } from "execa";
 import type { ArtifactPaths, DemoAst, TransitionConfig } from "./types.js";
-import type { Manifest } from "./manifest.js";
+import type { Manifest, ManifestSceneEntry } from "./manifest.js";
 import { buildTransitionFilter } from "./transitions.js";
 import { parseDurationMs } from "./parser.js";
 import { resolveIntroConfig, resolveOutroConfig, renderSlate } from "./slates.js";
@@ -28,6 +28,85 @@ function resolveSceneTransition(ast: DemoAst, sceneIndex: number): TransitionCon
 function defaultTransition(ast: DemoAst): TransitionConfig {
   const fm = ast.frontmatter as any;
   return { type: fm.defaultTransition ?? "crossfade", durationMs: parseDurationMs(fm.transitionDuration, 500) };
+}
+
+type SubSegment =
+  | { kind: "real"; startMs: number; endMs: number }
+  | { kind: "ff";   startMs: number; endMs: number; factor: number }
+  | { kind: "skip"; startMs: number; endMs: number };
+
+function buildSubSegments(scene: ManifestSceneEntry, allMarkers: Manifest["markers"]): SubSegment[] {
+  const sceneMarkers = allMarkers
+    .filter((m) => m.sceneIndex === scene.index)
+    .slice()
+    .sort((a, b) => a.tStartMs - b.tStartMs);
+  const segs: SubSegment[] = [];
+  let cursor = scene.tStartMs;
+  for (const m of sceneMarkers) {
+    if (m.tStartMs > cursor) segs.push({ kind: "real", startMs: cursor, endMs: m.tStartMs });
+    if (m.kind === "fast_forward") segs.push({ kind: "ff", startMs: m.tStartMs, endMs: m.tEndMs, factor: m.factor });
+    else                            segs.push({ kind: "skip", startMs: m.tStartMs, endMs: m.tEndMs });
+    cursor = m.tEndMs;
+  }
+  if (cursor < scene.tEndMs) segs.push({ kind: "real", startMs: cursor, endMs: scene.tEndMs });
+  return segs;
+}
+
+/**
+ * Emit the filter expressions that produce a single labelled video stream for one scene,
+ * applying any fast_forward/skip markers within the scene. Returns the stream label
+ * and the resulting (post-marker) duration in ms.
+ */
+function emitSceneFilter(
+  scene: ManifestSceneEntry,
+  markers: Manifest["markers"],
+  outLabel: string,
+  normScene: string,
+): { lines: string[]; durationMs: number } {
+  const subs = buildSubSegments(scene, markers).filter((s) => s.kind !== "skip");
+  const stem = outLabel.slice(1, -1);   // "[s0]" -> "s0"
+  if (subs.length === 0) {
+    // Scene was entirely skipped — emit a 1-frame black placeholder.
+    return {
+      lines: [`color=c=black:s=2x2:d=0.001${outLabel}`],
+      durationMs: 0,
+    };
+  }
+  if (subs.length === 1) {
+    const s = subs[0];
+    const startS = (s.startMs / 1000).toFixed(3);
+    const endS   = (s.endMs   / 1000).toFixed(3);
+    if (s.kind === "real") {
+      return {
+        lines: [`[0:v]trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${outLabel}`],
+        durationMs: s.endMs - s.startMs,
+      };
+    }
+    // single fast_forward sub
+    return {
+      lines: [`[0:v]trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${outLabel}`],
+      durationMs: (s.endMs - s.startMs) / s.factor,
+    };
+  }
+
+  const lines: string[] = [];
+  const subLabels: string[] = [];
+  let total = 0;
+  subs.forEach((s, idx) => {
+    const lbl = `[${stem}_${idx}]`;
+    const startS = (s.startMs / 1000).toFixed(3);
+    const endS   = (s.endMs   / 1000).toFixed(3);
+    if (s.kind === "real") {
+      lines.push(`[0:v]trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${lbl}`);
+      total += s.endMs - s.startMs;
+    } else {
+      lines.push(`[0:v]trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${lbl}`);
+      total += (s.endMs - s.startMs) / s.factor;
+    }
+    subLabels.push(lbl);
+  });
+  lines.push(`${subLabels.join("")}concat=n=${subLabels.length}:v=1:a=0${outLabel}`);
+  return { lines, durationMs: total };
 }
 
 /**
@@ -68,11 +147,10 @@ function buildVideoFilterGraph(
   }
 
   manifest.scenes.forEach((s, i) => {
-    const startS = (s.tStartMs / 1000).toFixed(3);
-    const endS   = (s.tEndMs   / 1000).toFixed(3);
-    const lbl    = `[s${i}]`;
-    segments.push(`[0:v]trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${lbl}`);
-    steps.push({ label: lbl, durationMs: s.tEndMs - s.tStartMs, isScene: true, sceneIndex: i });
+    const lbl = `[s${i}]`;
+    const r = emitSceneFilter(s, manifest.markers, lbl, normScene);
+    segments.push(...r.lines);
+    steps.push({ label: lbl, durationMs: r.durationMs, isScene: true, sceneIndex: i });
   });
 
   if (outroInput >= 0) {

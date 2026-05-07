@@ -280,3 +280,74 @@ describe("buildFfmpegArgs (slates)", () => {
     expect(inputs[3]).toBe("art/outro.mp4");
   });
 });
+
+describe("buildFfmpegArgs (markers)", () => {
+  it("applies setpts=(PTS-STARTPTS)/factor to a fast_forward sub-segment", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 6000 }],
+      markers: [
+        { kind: "fast_forward", sceneIndex: 0, tStartMs: 1000, tEndMs: 4000, factor: 3 },
+      ],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    // Three sub-segments around the marker (0..1, 1..4, 4..6) and a setpts-divide on the middle.
+    expect(fc).toMatch(/trim=start=0(\.0+)?:end=1(\.0+)?/);
+    expect(fc).toMatch(/trim=start=1(\.0+)?:end=4(\.0+)?/);
+    expect(fc).toMatch(/trim=start=4(\.0+)?:end=6(\.0+)?/);
+    expect(fc).toMatch(/setpts=\(PTS-STARTPTS\)\/3/);
+  });
+
+  it("drops a skip sub-segment entirely", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 6000 }],
+      markers: [{ kind: "skip", sceneIndex: 0, tStartMs: 2000, tEndMs: 5000 }],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    expect(fc).toMatch(/trim=start=0(\.0+)?:end=2(\.0+)?/);
+    expect(fc).toMatch(/trim=start=5(\.0+)?:end=6(\.0+)?/);
+    expect(fc).not.toMatch(/trim=start=2(\.0+)?:end=5(\.0+)?/);
+  });
+
+  it("a scene with no markers still emits a single trim (no concat)", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 5000 }],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    // Single trim, no inner concat for the scene segment.
+    expect(fc).toMatch(/trim=start=0(\.0+)?:end=5(\.0+)?/);
+    // The compositor may add a fps/settb normalization when slates are present, but
+    // for this all-disabled-slates case there should be no inner [s0_*]concat=n=… subgraph.
+    expect(fc).not.toMatch(/\[s0_\d+\]/);
+  });
+});
