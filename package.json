@@ -3,9 +3,17 @@
   "version": "0.1.0",
   "description": "Turn a .demo markdown file into a polished demo video",
   "type": "module",
-  "bin": { "daymo": "./dist/cli.js" },
-  "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=20.10" },
+  "bin": {
+    "daymo": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.10"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -16,7 +24,8 @@
     "cac": "^6.7.14",
     "execa": "^9.5.2",
     "gray-matter": "^4.0.3",
-    "playwright": "^1.49.1"
+    "playwright": "^1.49.1",
+    "yaml": "^2.8.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
