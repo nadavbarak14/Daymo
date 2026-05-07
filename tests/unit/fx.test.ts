@@ -188,3 +188,88 @@ describe("fx.fastForward", () => {
     expect(end.sceneIndex).toBe(-1);
   });
 });
+
+describe("fx.skip", () => {
+  it("emits skip_start and skip_end around the callback", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.skip(async () => {});
+    expect(events.map(e => e.kind)).toEqual(["skip_start", "skip_end"]);
+  });
+
+  it("emits skip_end on throw", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(fx.skip(async () => { throw new Error("x"); })).rejects.toThrow();
+    expect(events.map(e => e.kind)).toEqual(["skip_start", "skip_end"]);
+  });
+
+  it("emits sceneIndex: -1 in markers (controller back-fills)", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.skip(async () => {});
+    const start = events.find(e => e.kind === "skip_start") as any;
+    const end = events.find(e => e.kind === "skip_end") as any;
+    expect(start.sceneIndex).toBe(-1);
+    expect(end.sceneIndex).toBe(-1);
+  });
+
+  it("returns the callback's resolved value", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    const result = await fx.skip(async () => 42);
+    expect(result).toBe(42);
+  });
+});
+
+describe("fx marker nesting", () => {
+  it("rejects fastForward inside fastForward", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(
+      fx.fastForward(async () => { await fx.fastForward(async () => {}); }),
+    ).rejects.toThrow(/cannot be nested/i);
+  });
+
+  it("rejects skip inside fastForward", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(
+      fx.fastForward(async () => { await fx.skip(async () => {}); }),
+    ).rejects.toThrow(/cannot be nested/i);
+  });
+
+  it("rejects fastForward inside skip", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(
+      fx.skip(async () => { await fx.fastForward(async () => {}); }),
+    ).rejects.toThrow(/cannot be nested/i);
+  });
+
+  it("rejects skip inside skip", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await expect(
+      fx.skip(async () => { await fx.skip(async () => {}); }),
+    ).rejects.toThrow(/cannot be nested/i);
+  });
+
+  it("releases the lock after a successful call so subsequent calls work", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.fastForward(async () => {});
+    await fx.skip(async () => {});           // should not throw
+    expect(events.filter(e => e.kind === "fast_forward_start")).toHaveLength(1);
+    expect(events.filter(e => e.kind === "skip_start")).toHaveLength(1);
+  });
+});

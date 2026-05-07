@@ -93,9 +93,18 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
       }
     },
 
-    // stub for v0.2 — implemented in Task 7
-    async skip(fn) {
-      throw new Error("skip not yet implemented");
+    async skip<T>(fn: () => Promise<T>): Promise<T> {
+      if (activeMarker) {
+        throw new Error(`fx.skip cannot be nested inside fx.${activeMarker}`);
+      }
+      events.push({ kind: "skip_start", t: clock(), sceneIndex: -1 });
+      activeMarker = "skip";
+      try {
+        return await fn();
+      } finally {
+        events.push({ kind: "skip_end", t: clock(), sceneIndex: -1 });
+        activeMarker = null;
+      }
     },
   };
 }
