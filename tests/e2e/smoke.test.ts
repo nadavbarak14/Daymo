@@ -69,4 +69,22 @@ describe("E2E smoke", () => {
     const types = streams.map((s) => s.codec_type);
     expect(types).toEqual(["video"]);
   }, 60_000);
+
+  it("renders a v0.2 demo with transitions, slates, fastForward, and skip", async () => {
+    const tpl = await fs.readFile(
+      path.resolve("tests/fixtures/demos/v02-features.demo"), "utf8",
+    );
+    const demoPath = path.join(workDir, "v02-features.demo");
+    await fs.writeFile(
+      demoPath,
+      tpl.replace("__WILL_BE_REPLACED__", serverUrl),
+    );
+    const { mp4Path } = await render({ demoFile: demoPath, artifactsBase: workDir });
+    const stat = await fs.stat(mp4Path);
+    expect(stat.size).toBeGreaterThan(10_000);
+    // The mp4 should have video stream; no music in this fixture so no audio.
+    const streams = await probeStreams(mp4Path);
+    const types = streams.map((s) => s.codec_type);
+    expect(types).toContain("video");
+  }, 180_000);
 });

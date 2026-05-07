@@ -129,7 +129,18 @@ function emitSceneFilter(
     }
     subLabels.push(lbl);
   });
-  lines.push(`${subLabels.join("")}concat=n=${subLabels.length}:v=1:a=0${outLabel}`);
+  // When normScene includes settb=1/1000, apply it after concat too, because
+  // the concat filter resets the timebase (xfade requires all inputs to share the same tb).
+  // normScene has a leading comma (e.g. ",fps=fps=25,settb=1/1000") meant for inline use,
+  // so strip the leading comma when starting a new filter chain segment from a label.
+  const normSceneFilters = normScene ? normScene.replace(/^,/, "") : "";
+  if (normSceneFilters) {
+    const concatTmp = `[${stem}_cat]`;
+    lines.push(`${subLabels.join("")}concat=n=${subLabels.length}:v=1:a=0${concatTmp}`);
+    lines.push(`${concatTmp}${normSceneFilters}${outLabel}`);
+  } else {
+    lines.push(`${subLabels.join("")}concat=n=${subLabels.length}:v=1:a=0${outLabel}`);
+  }
   return { lines, durationMs: total };
 }
 
@@ -166,10 +177,12 @@ function buildVideoFilterGraph(
 
   // When slates are present we need all streams on the same timebase (xfade requires it).
   // The webm scenes have timebase 1/1000 after trim; h264 slates use 1/12800.
-  // Normalise everything to 25 fps / 1/1000 tb only when slates are in use.
+  // Normalise everything to 1/1000 tb only when slates are in use.
+  // We do NOT add fps=fps=25 here: both slates and page captures are already 25fps,
+  // so re-running the fps filter would waste time with a full frame-rate conversion pass.
   const hasSlates = introInput >= 0 || outroInput >= 0;
-  const normScene = hasSlates ? ",fps=fps=25,settb=1/1000" : "";
-  const normSlate = "fps=fps=25,settb=1/1000,";
+  const normScene = hasSlates ? ",settb=1/1000" : "";
+  const normSlate = "settb=1/1000,";
 
   if (introInput >= 0) {
     segments.push(`[${introInput}:v]${normSlate}setpts=PTS-STARTPTS[intro]`);

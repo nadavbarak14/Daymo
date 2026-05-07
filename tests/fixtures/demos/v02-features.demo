@@ -1,0 +1,40 @@
+---
+title: Daymo v0.2 smoke
+description: Exercises transitions, slates, fastForward, and skip.
+url: __WILL_BE_REPLACED__
+viewport: { width: 800, height: 600 }
+defaultTransition: crossfade
+transitionDuration: 0.5s
+intro:
+  duration: 1s
+  accent: "#3b82f6"
+outro:
+  duration: 1s
+mocks:
+  - source: inline
+    routes:
+      "GET /api/me": { "name": "Alex" }
+      "GET /api/projects": []
+---
+
+# first scene
+
+short prose here
+
+```playwright
+await page.waitForSelector("body");
+```
+
+---
+
+# second scene
+
+```transition
+type: dip-to-black
+duration: 0.6s
+```
+
+```playwright
+await fx.fastForward(async () => { await page.waitForTimeout(200); }, 4);
+await fx.skip(async () => { await page.waitForTimeout(100); });
+```
