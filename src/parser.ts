@@ -1,7 +1,7 @@
 // src/parser.ts
 import matter from "gray-matter";
 import { parse as parseYaml } from "yaml";
-import type { CaptureMode, DemoAst, Frontmatter, OverlayDirective, Scene, SceneOverrides, TransitionConfig, TransitionType } from "./types.js";
+import type { CaptureMode, DemoAst, Frontmatter, OverlayDirective, Scene, SceneOverrides, SlateConfig, TransitionConfig, TransitionType } from "./types.js";
 
 export const VALID_TRANSITIONS = [
   "crossfade",
@@ -30,6 +30,30 @@ export function parseDurationMs(s: string | number | undefined | null, defaultMs
   const n = Number(m[1]);
   if (!Number.isFinite(n)) throw new Error(`invalid duration "${s}"`);
   return m[2] === "ms" ? n : n * 1000;
+}
+
+const DEFAULT_SLATE_BG = "#0a0a0a";
+const DEFAULT_SLATE_ACCENT = "#3b82f6";
+
+function normalizeSlate(
+  raw: unknown,
+  defaultDurationMs: number,
+): SlateConfig | false | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === false) return false;
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error(`intro/outro must be an object or false`);
+  }
+  const r = raw as Record<string, unknown>;
+  return {
+    durationMs: parseDurationMs(typeof r.duration === "string" || typeof r.duration === "number" ? r.duration as any : undefined, defaultDurationMs),
+    background: typeof r.background === "string" ? r.background : DEFAULT_SLATE_BG,
+    accent: typeof r.accent === "string" ? r.accent : DEFAULT_SLATE_ACCENT,
+    logo: typeof r.logo === "string" ? r.logo : undefined,
+    title: typeof r.title === "string" ? r.title : undefined,
+    subtitle: typeof r.subtitle === "string" ? r.subtitle : undefined,
+    text: typeof r.text === "string" ? r.text : undefined,
+  };
 }
 
 export function parse(source: string): DemoAst {
@@ -61,6 +85,9 @@ export function parse(source: string): DemoAst {
       `unknown captureMode "${frontmatter.captureMode}" — must be one of ${VALID_CAPTURE_MODES.join(", ")}`,
     );
   }
+
+  frontmatter.intro = normalizeSlate(frontmatter.intro, 2500);
+  frontmatter.outro = normalizeSlate(frontmatter.outro, 2000);
 
   const captureMode: CaptureMode = frontmatter.captureMode ?? "continuous";
 

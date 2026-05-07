@@ -332,3 +332,79 @@ url: http://y/
 `)).toThrow(/more than one scene-config/);
   });
 });
+
+describe("parser v0.2 slate overrides", () => {
+  it("reads an intro override object with custom values", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+intro:
+  duration: 3s
+  accent: "#3b82f6"
+  logo: ./logo.svg
+---
+
+# s
+p
+`);
+    expect(ast.frontmatter.intro).toEqual({
+      durationMs: 3000,
+      background: "#0a0a0a",
+      accent: "#3b82f6",
+      logo: "./logo.svg",
+    });
+  });
+
+  it("reads outro: false as disabled", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+outro: false
+---
+
+# s
+p
+`);
+    expect(ast.frontmatter.outro).toBe(false);
+  });
+
+  it("leaves intro undefined when not specified", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+---
+
+# s
+p
+`);
+    expect(ast.frontmatter.intro).toBeUndefined();
+    expect(ast.frontmatter.outro).toBeUndefined();
+  });
+
+  it("uses default duration 2.5s for intro / 2s for outro when no duration given", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+intro: {}
+outro: {}
+---
+
+# s
+p
+`);
+    expect((ast.frontmatter.intro as any).durationMs).toBe(2500);
+    expect((ast.frontmatter.outro as any).durationMs).toBe(2000);
+  });
+
+  it("rejects intro: 'truthy-string'", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+intro: yes
+---
+
+# s
+p
+`)).toThrow(/intro\/outro/);
+  });
+});
