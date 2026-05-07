@@ -3,6 +3,9 @@ title: Smoke
 description: Two-scene fixture used by the E2E smoke test.
 url: __WILL_BE_REPLACED__
 viewport: { width: 800, height: 600 }
+defaultTransition: none
+intro: false
+outro: false
 __MUSIC_LINE__
 mocks:
   - source: inline
