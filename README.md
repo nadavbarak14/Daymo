@@ -28,8 +28,10 @@ Run `npx daymo doctor` to verify all of the above.
 ## Commands
 
 ```
-daymo render <file>     Execute the demo and produce output.mp4
-daymo doctor            Verify Playwright and ffmpeg are configured
+daymo render <file>              Execute the demo and produce output.mp4
+daymo capture <file>             Capture page video + events into a bundle (see v0.2 below)
+daymo compose <bundle> [<file>]  Compose output.mp4 from a bundle (see v0.2 below)
+daymo doctor                     Verify Playwright and ffmpeg are configured
 ```
 
 Outputs land in `./artifacts/<id>/`. The final mp4 is `output.mp4`; the raw page video and events log are kept beside it for re-rendering or debugging.

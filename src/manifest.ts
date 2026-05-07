@@ -66,9 +66,13 @@ export function buildManifest(args: BuildManifestArgs): Manifest {
 
   for (const ev of args.events) {
     if (ev.kind === "fast_forward_start") {
+      const i = sourceLineToIndex.get(ev.sceneIndex);
+      if (i === undefined) {
+        throw new Error(`fast_forward marker references unknown scene sourceLine ${ev.sceneIndex}`);
+      }
       pendingFf = {
         tStart: ev.t,
-        sceneIndex: sourceLineToIndex.get(ev.sceneIndex) ?? 0,
+        sceneIndex: i,
         factor: ev.factor,
       };
     } else if (ev.kind === "fast_forward_end" && pendingFf) {
@@ -81,9 +85,13 @@ export function buildManifest(args: BuildManifestArgs): Manifest {
       });
       pendingFf = null;
     } else if (ev.kind === "skip_start") {
+      const i = sourceLineToIndex.get(ev.sceneIndex);
+      if (i === undefined) {
+        throw new Error(`skip marker references unknown scene sourceLine ${ev.sceneIndex}`);
+      }
       pendingSkip = {
         tStart: ev.t,
-        sceneIndex: sourceLineToIndex.get(ev.sceneIndex) ?? 0,
+        sceneIndex: i,
       };
     } else if (ev.kind === "skip_end" && pendingSkip) {
       markers.push({

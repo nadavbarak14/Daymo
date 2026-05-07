@@ -418,7 +418,7 @@ describe("buildFfmpegArgs (per-scene mode)", () => {
     });
     const fc = argv[argv.indexOf("-filter_complex") + 1];
     // Per-scene mode: each scene is its OWN input, no [0:v]trim=...
-    expect(fc).not.toMatch(/\[0:v\]trim=start=0:end=3/);
+    expect(fc).not.toMatch(/\[0:v\]trim=start=0\.000:end=3\.000/);
     expect(fc).toMatch(/\[0:v\].*setpts=PTS-STARTPTS\[s0\]/);
     expect(fc).toMatch(/\[1:v\].*setpts=PTS-STARTPTS\[s1\]/);
   });

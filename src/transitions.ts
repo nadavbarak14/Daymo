@@ -34,7 +34,9 @@ export function buildTransitionFilter(args: BuildTransitionArgs): BuildTransitio
   }
   const name = XFADE_NAME[transition.type];
   const durationS = (transition.durationMs / 1000).toFixed(3);
-  const offsetS = ((clipADurationMs - transition.durationMs) / 1000).toFixed(3);
+  const rawOffsetMs = clipADurationMs - transition.durationMs;
+  const offsetMs = Math.max(0, rawOffsetMs);
+  const offsetS = (offsetMs / 1000).toFixed(3);
   const total = clipBDurationMs !== undefined
     ? clipADurationMs + clipBDurationMs - transition.durationMs
     : clipADurationMs;
