@@ -69,3 +69,50 @@ describe("fx.typeWithDelay", () => {
     expect(events.find((e) => e.kind === "fx" && e.method === "typeWithDelay")).toBeDefined();
   });
 });
+
+describe("fx.pause", () => {
+  it("waits the given seconds and emits an event", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.pause(0.1);
+    expect((page.waitForTimeout as any).mock.calls[0][0]).toBe(100);
+    expect(events.find((e) => e.kind === "fx" && e.method === "pause")).toBeDefined();
+  });
+});
+
+describe("fx.highlight", () => {
+  it("calls __daymo.highlight on the target and emits an event", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.highlight("button", 1.5);
+    const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
+    expect(calls.some((c: string) => c.includes("__daymo.highlight"))).toBe(true);
+    expect(events.find((e) => e.kind === "fx" && e.method === "highlight")).toBeDefined();
+  });
+});
+
+describe("fx.callout", () => {
+  it("calls __daymo.callout and emits an event with target metadata", async () => {
+    const { page } = makeFakePage({ x: 0, y: 0, width: 10, height: 10 });
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.callout("Hi", "h1", 2);
+    const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
+    expect(calls.some((c: string) => c.includes("__daymo.callout"))).toBe(true);
+    expect(events.find((e) => e.kind === "fx" && e.method === "callout")).toBeDefined();
+  });
+});
+
+describe("fx.zoom", () => {
+  it("calls __daymo.zoom and emits an event", async () => {
+    const { page } = makeFakePage();
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 0);
+    await fx.zoom("section.hero", 1.5, 1);
+    const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
+    expect(calls.some((c: string) => c.includes("__daymo.zoom"))).toBe(true);
+    expect(events.find((e) => e.kind === "fx" && e.method === "zoom")).toBeDefined();
+  });
+});

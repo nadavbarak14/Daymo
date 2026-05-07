@@ -38,9 +38,40 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
       await page.locator(selector).pressSequentially(text, { delay });
     },
 
-    async zoom() { throw new Error("zoom: not yet implemented"); },
-    async pause() { throw new Error("pause: not yet implemented"); },
-    async callout() { throw new Error("callout: not yet implemented"); },
-    async highlight() { throw new Error("highlight: not yet implemented"); },
+    async zoom(selector, factor = 1.5, duration = 0.5) {
+      emit("zoom", [selector, factor, duration]);
+      const durationMs = duration * 1000;
+      await page.evaluate(
+        ({ selector, factor, durationMs }) =>
+          (window as any).__daymo.zoom(selector, factor, durationMs),
+        { selector, factor, durationMs },
+      );
+      await page.waitForTimeout(durationMs);
+    },
+
+    async pause(seconds) {
+      emit("pause", [seconds]);
+      await page.waitForTimeout(seconds * 1000);
+    },
+
+    async callout(text, target, duration = 2) {
+      emit("callout", [text, target, duration]);
+      const durationMs = duration * 1000;
+      await page.evaluate(
+        ({ text, target, durationMs }) =>
+          (window as any).__daymo.callout(text, target, durationMs),
+        { text, target, durationMs },
+      );
+    },
+
+    async highlight(selector, duration = 1) {
+      emit("highlight", [selector, duration]);
+      const durationMs = duration * 1000;
+      await page.evaluate(
+        ({ selector, durationMs }) =>
+          (window as any).__daymo.highlight(selector, durationMs),
+        { selector, durationMs },
+      );
+    },
   };
 }
