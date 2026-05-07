@@ -132,7 +132,7 @@ defaultTransition: spin
 
 # s
 p
-`)).toThrow(/defaultTransition/);
+`)).toThrow(/must be one of crossfade/);
   });
 
   it("rejects an unknown captureMode value", () => {
@@ -144,6 +144,6 @@ captureMode: weird
 
 # s
 p
-`)).toThrow(/captureMode/);
+`)).toThrow(/must be one of continuous, per-scene/);
   });
 });

@@ -27,7 +27,7 @@ export function parse(source: string): DemoAst {
 
   if (
     frontmatter.defaultTransition !== undefined &&
-    !VALID_TRANSITIONS.includes(frontmatter.defaultTransition as any)
+    !VALID_TRANSITIONS.includes(frontmatter.defaultTransition)
   ) {
     throw new Error(
       `unknown defaultTransition "${frontmatter.defaultTransition}" — must be one of ${VALID_TRANSITIONS.join(", ")}`,
@@ -36,7 +36,7 @@ export function parse(source: string): DemoAst {
 
   if (
     frontmatter.captureMode !== undefined &&
-    !VALID_CAPTURE_MODES.includes(frontmatter.captureMode as any)
+    !VALID_CAPTURE_MODES.includes(frontmatter.captureMode)
   ) {
     throw new Error(
       `unknown captureMode "${frontmatter.captureMode}" — must be one of ${VALID_CAPTURE_MODES.join(", ")}`,
