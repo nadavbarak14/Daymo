@@ -205,3 +205,78 @@ describe("buildFfmpegArgs (transitions)", () => {
     expect(fc).not.toContain("concat");
   });
 });
+
+describe("buildFfmpegArgs (slates)", () => {
+  it("includes intro and outro mp4 paths in the input list when slatePaths are provided", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 3000 }],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "T", description: "D", url: "x" } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: null,
+      slatePaths: { intro: "art/intro.mp4", outro: "art/outro.mp4" },
+      slateConfigs: { intro: { durationMs: 2500 }, outro: { durationMs: 2000 } },
+    });
+    expect(argv.join(" ")).toContain("art/intro.mp4");
+    expect(argv.join(" ")).toContain("art/outro.mp4");
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    // Two xfades: intro→scene0 and scene0→outro.
+    const xfadeMatches = fc.match(/xfade=/g) ?? [];
+    expect(xfadeMatches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("does not add intro/outro when slatePaths.intro/outro are null", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 3000 }],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "T", url: "x", intro: false, outro: false } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: null,
+      slatePaths: { intro: null, outro: null },
+    });
+    expect(argv.join(" ")).not.toContain("intro.mp4");
+    expect(argv.join(" ")).not.toContain("outro.mp4");
+  });
+
+  it("adds slates AFTER the music input in the -i list (so music is input 1)", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "continuous",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0, tEndMs: 3000 }],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "T", url: "x" } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: fakePaths("art/page.webm", "art/out.mp4"),
+      manifest: m, ast, musicSrc: "art/m.mp3",
+      slatePaths: { intro: "art/intro.mp4", outro: "art/outro.mp4" },
+      slateConfigs: { intro: { durationMs: 2500 }, outro: { durationMs: 2000 } },
+    });
+    // Find positions of -i flags
+    const inputs: string[] = [];
+    for (let i = 0; i < argv.length; i++) {
+      if (argv[i] === "-i") inputs.push(argv[i + 1]);
+    }
+    expect(inputs[0]).toBe("art/page.webm");
+    expect(inputs[1]).toBe("art/m.mp3");
+    expect(inputs[2]).toBe("art/intro.mp4");
+    expect(inputs[3]).toBe("art/outro.mp4");
+  });
+});
