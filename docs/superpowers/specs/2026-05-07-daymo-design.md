@@ -42,6 +42,7 @@ Explicitly **not** the audience: enterprise sales/marketing teams whose buyers d
 | v0.2 | HAR recorder mode — record a real session once, replay forever (friendlier for non-devs who can't author mocks) |
 | v0.2 | Chat-queryable how-to layer — RAG over the prose narration of demos in a library; embeddable widget |
 | v0.2 | Higher-quality post-video compositing — smooth pan/zoom, vector-quality text overlays |
+| v0.2 | Claude Code skill (`/demo create <prompt>`) shipped via the Claude Code marketplace, generates `.demo` files from a prompt |
 | v0.3 | Static-frame mode (slideshow of pre-captured screenshots) and component-only mode (Storybook-style isolated rendering) |
 | v0.3 | Hosted web UI for non-engineering users to author and render without a local CLI |
 
@@ -49,7 +50,7 @@ Explicitly **not** the audience: enterprise sales/marketing teams whose buyers d
 
 ```
 ┌─────────────────────┐       ┌──────────────────┐       ┌────────────────┐
-│  Claude Code / CLI  │──────▶│   .demo file     │──────▶│  Demo runner   │
+│  AI agent / human   │──────▶│   .demo file     │──────▶│  Demo runner   │
 │  (authoring)        │       │   (markdown)     │       │  (orchestrator)│
 └─────────────────────┘       └──────────────────┘       └───────┬────────┘
                                                                   │
@@ -64,8 +65,8 @@ Explicitly **not** the audience: enterprise sales/marketing teams whose buyers d
                              ▼                                                   ▼
                       ┌──────────────┐                                       output.mp4
                       │  Mock layer  │
-                      │  (inline /   │
-                      │  HAR-replay) │
+                      │  (v0.1:      │
+                      │   inline)    │
                       └──────────────┘
 ```
 
@@ -266,18 +267,21 @@ The compositor is a thin wrapper over ffmpeg. After capture:
    ```
 3. **Output** — `output.mp4` is the final deliverable. The artifacts directory keeps everything for re-rendering.
 
+Music is optional. When `music` is omitted from the frontmatter, the compositor drops the music input from the filter graph and uses the narration track directly as the audio. When narration is also disabled (`daymo preview`), the video is muxed without an audio track.
+
 ## MVP scope (v0.1)
 
-A CLI distributed as an npm package + a Claude Code skill.
+A CLI distributed as an npm package. Authoring is intentionally not bundled — the `.demo` format is documented in the README, and any AI agent (Claude Code, Cursor, etc.) writes the file from that spec. No `init` command, no template scaffolding.
 
 ### CLI commands
 
 ```
-daymo init                  Create an example .demo file in the current directory
 daymo render <file>         Execute the demo and produce output.mp4
 daymo preview <file>        Render at lower fidelity (no TTS, no music) for fast iteration
 daymo doctor                Verify Playwright, ffmpeg, and TTS API key are configured
 ```
+
+Canonical invocation is `npx daymo render <file>` — npm caches the package after the first run, so no explicit install is required. A global install (`npm install -g daymo`) is supported but optional.
 
 ### What ships
 
@@ -287,7 +291,7 @@ daymo doctor                Verify Playwright, ffmpeg, and TTS API key are confi
 - `fx` runtime (`cursorTo`, `typeWithDelay`, `zoom`, `pause`, `callout`, `highlight`)
 - Inline mock layer
 - ffmpeg-based audio compositor
-- Claude Code skill (slash command `/demo create <prompt>`) that reads the user's source code or target URL, generates a `.demo` file with appropriate scenes, Playwright actions, and inline mocks, then runs `daymo render` to produce the MP4
+- README with the format specification and a worked example `.demo` file (so humans and AI agents can author against it without an installed skill)
 
 ### Format details
 
@@ -305,6 +309,37 @@ daymo doctor                Verify Playwright, ffmpeg, and TTS API key are confi
 - Static / component rendering modes
 - Smooth pan/zoom, vector text overlays
 - Background music ducking under narration
+- `daymo init` / template scaffolding (the README is the template)
+- Claude Code skill or any other agent integration (deferred to v0.2 marketplace release)
+
+## Testing strategy
+
+Three tiers, biased toward fast feedback. Test runner: **vitest** (TS-native, fast, parallelizable, single dev dep).
+
+**Unit (vitest, fast):**
+
+- Parser — feed `.demo` strings, assert AST shape (frontmatter + scenes with prose / code / overlay blocks)
+- Scene executor — assert thrown errors get wrapped with the source line number from the markdown
+- `fx` runtime — mock `page`, assert each helper emits the expected event shape into the log
+- ffmpeg command builder — given an artifact directory, assert the argv is what we expect (ffmpeg is not invoked in unit tests)
+
+**Integration (vitest + real Playwright, medium):**
+
+- Mock layer — attach to a real `Page`, navigate to a fixture URL served by a test-only static file server, assert intercepted requests return the configured bodies / status / headers
+- Scene executor against real Playwright — run a small scene, assert `events.json` contains the expected `t_scene_start` / `t_scene_end` markers and the cursor / overlay events fired in the right order
+
+**End-to-end smoke (one test, gated):**
+
+- A 2-scene `.demo` runs against the static HTML fixture
+- TTS provider is mocked (returns a pre-canned MP3); music is a fixture file
+- Assertions: `output.mp4` exists, has a video stream and an audio stream (verified via `ffprobe`), duration is within ±0.5s of the expected total
+- **Not** asserted: pixel-perfect frames, animation smoothness, narration quality — these are manual eyeballing tasks
+
+**Explicitly out of CI:**
+
+- Real TTS API calls (mock the provider)
+- Visual diff of MP4 frames (brittle; not worth the maintenance cost)
+- Real network beyond localhost
 
 ## Risks and open questions
 
@@ -312,15 +347,15 @@ daymo doctor                Verify Playwright, ffmpeg, and TTS API key are confi
 2. **Selector brittleness.** `[data-testid=...]` selectors break when the codebase changes. The Claude Code authoring step should prefer accessible selectors (`getByRole`, `getByLabel`); the runner should give helpful errors with screenshots when a selector misses.
 3. **Auth flows.** Login flows that touch external IdPs (Auth0, Clerk, OAuth providers) are very hard to mock. v0.1 punts: the user logs in once manually and saves `storageState` to a file, then the demo loads from that. v0.2 considers a "login recorder" command that captures storageState from a real session.
 4. **Mock authoring burden.** Even inline mocks are tedious to write by hand. v0.1 leans entirely on Claude Code to generate plausible mocks from API spec / source code. v0.2's HAR recorder reduces this dramatically.
-5. **Distribution.** Even if it works, who installs it? Plan: open-source on GitHub, publish to npm, list in the Claude Code skill marketplace, write a small docs site with examples. Not a hosted product in v0.1, so distribution is dev-channel only.
+5. **Distribution.** Even if it works, who installs it? Plan: open-source on GitHub, publish to npm, lean on `npx daymo` so users don't need a global install, write a small docs site with the format spec and examples. The Claude Code skill (deferred to v0.2) will broaden distribution later via the marketplace. Not a hosted product in v0.1, so distribution is dev-channel only.
 6. **License of dependencies.** All v0.1 dependencies must be permissively licensed (MIT/Apache/BSD). Confirmed for Playwright (Apache 2.0), ffmpeg (LGPL when dynamically linked), Node, TS. **No Remotion** (commercial license restrictions).
 
 ## Definition of done for v0.1
 
-- A user can `npm install -g daymo`, run `daymo init`, edit the `.demo` file or have Claude Code regenerate it, and produce an MP4 of their real local frontend within five minutes.
+- A user can run `npx daymo render <file>` against a `.demo` file (authored by hand or by an AI agent given the format spec) and produce an MP4 of their real local frontend within five minutes — first run included, accounting for the one-time Playwright Chromium download.
 - The MP4 contains: real page footage, animated cursor, on-screen callouts, TTS narration, optional background music.
 - The pipeline is reproducible: same inputs produce visually-identical outputs (modulo TTS API non-determinism).
-- The example demo (the one shipped with `daymo init`) demonstrates a complete end-to-end flow including mocks.
+- The README contains a worked example `.demo` file demonstrating a complete end-to-end flow including mocks, suitable for both humans and AI agents to copy from.
 
 ## Next steps after this design is approved
 
