@@ -1,4 +1,5 @@
 // src/compositor.ts
+import path from "node:path";
 import { execa } from "execa";
 import type { ArtifactPaths, DemoAst, TransitionConfig } from "./types.js";
 import type { Manifest, ManifestSceneEntry } from "./manifest.js";
@@ -14,6 +15,12 @@ export interface BuildArgsOpts {
   musicVolume?: number;
   slatePaths?: { intro: string | null; outro: string | null };
   slateConfigs?: { intro?: { durationMs: number }; outro?: { durationMs: number } };
+}
+
+function perSceneInputPaths(scenesDir: string, m: Manifest): string[] {
+  return m.scenes.map((s) =>
+    path.join(scenesDir, `${String(s.index).padStart(2, "0")}-${s.slug}`, "page.webm"),
+  );
 }
 
 function resolveSceneTransition(ast: DemoAst, sceneIndex: number): TransitionConfig {
@@ -56,15 +63,32 @@ function buildSubSegments(scene: ManifestSceneEntry, allMarkers: Manifest["marke
  * Emit the filter expressions that produce a single labelled video stream for one scene,
  * applying any fast_forward/skip markers within the scene. Returns the stream label
  * and the resulting (post-marker) duration in ms.
+ *
+ * @param inputIndex  ffmpeg input index for this scene's video source
+ * @param perScene    true when the input IS the scene clip (per-scene capture mode);
+ *                    marker/segment timestamps are in the unified timeline and must be
+ *                    rebased to scene-local time by subtracting scene.tStartMs.
  */
 function emitSceneFilter(
   scene: ManifestSceneEntry,
   markers: Manifest["markers"],
   outLabel: string,
   normScene: string,
+  inputIndex: number,
+  perScene: boolean,
 ): { lines: string[]; durationMs: number } {
+  const inputLabel = `[${inputIndex}:v]`;
+  // In per-scene mode timestamps in the manifest are unified-timeline values;
+  // the actual clip starts at t=0, so we subtract scene.tStartMs to get clip-local time.
+  const baseMs = perScene ? scene.tStartMs : 0;
+
   const subs = buildSubSegments(scene, markers).filter((s) => s.kind !== "skip");
   const stem = outLabel.slice(1, -1);   // "[s0]" -> "s0"
+
+  function localSec(t: number): string {
+    return ((t - baseMs) / 1000).toFixed(3);
+  }
+
   if (subs.length === 0) {
     // Scene was entirely skipped — emit a 1-frame black placeholder.
     return {
@@ -74,17 +98,17 @@ function emitSceneFilter(
   }
   if (subs.length === 1) {
     const s = subs[0];
-    const startS = (s.startMs / 1000).toFixed(3);
-    const endS   = (s.endMs   / 1000).toFixed(3);
+    const startS = localSec(s.startMs);
+    const endS   = localSec(s.endMs);
     if (s.kind === "real") {
       return {
-        lines: [`[0:v]trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${outLabel}`],
+        lines: [`${inputLabel}trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${outLabel}`],
         durationMs: s.endMs - s.startMs,
       };
     }
     // single fast_forward sub
     return {
-      lines: [`[0:v]trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${outLabel}`],
+      lines: [`${inputLabel}trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${outLabel}`],
       durationMs: (s.endMs - s.startMs) / s.factor,
     };
   }
@@ -94,13 +118,13 @@ function emitSceneFilter(
   let total = 0;
   subs.forEach((s, idx) => {
     const lbl = `[${stem}_${idx}]`;
-    const startS = (s.startMs / 1000).toFixed(3);
-    const endS   = (s.endMs   / 1000).toFixed(3);
+    const startS = localSec(s.startMs);
+    const endS   = localSec(s.endMs);
     if (s.kind === "real") {
-      lines.push(`[0:v]trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${lbl}`);
+      lines.push(`${inputLabel}trim=start=${startS}:end=${endS},setpts=PTS-STARTPTS${normScene}${lbl}`);
       total += s.endMs - s.startMs;
     } else {
-      lines.push(`[0:v]trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${lbl}`);
+      lines.push(`${inputLabel}trim=start=${startS}:end=${endS},setpts=(PTS-STARTPTS)/${s.factor}${normScene}${lbl}`);
       total += (s.endMs - s.startMs) / s.factor;
     }
     subLabels.push(lbl);
@@ -110,8 +134,13 @@ function emitSceneFilter(
 }
 
 /**
- * Build the video portion of the filter graph for the scenes in continuous mode,
- * optionally prepending an intro slate and appending an outro slate.
+ * Build the video portion of the filter graph for the scenes, optionally prepending an
+ * intro slate and appending an outro slate.
+ *
+ * Input layout:
+ *   continuous: [0]=page.webm, [1]=music?, [N]=intro?, [N+1]=outro?
+ *   per-scene:  [0..S-1]=scene clips, [S]=music?, [S+1]=intro?, [S+2]=outro?
+ *
  * Returns the chained filter expressions (semicolon-separated), the final video
  * label to map, the total duration of the joined output, and the total number of
  * inputs consumed (so the caller knows what index to use for music etc.).
@@ -124,9 +153,10 @@ function buildVideoFilterGraph(
   hasMusic = false,
 ): { filter: string; vOut: string; durationMs: number; numInputs: number } {
   const segments: string[] = [];
+  const isPerScene = manifest.captureMode === "per-scene";
 
-  // Input layout: [0] page.webm, [1] music?, [N] intro?, [N+1] outro?
-  let nextInput = 1;
+  // Compute input indices for music / slates.
+  let nextInput = isPerScene ? manifest.scenes.length : 1;
   if (hasMusic) nextInput++;
   const introInput = slatePaths?.intro ? nextInput++ : -1;
   const outroInput = slatePaths?.outro ? nextInput++ : -1;
@@ -148,7 +178,10 @@ function buildVideoFilterGraph(
 
   manifest.scenes.forEach((s, i) => {
     const lbl = `[s${i}]`;
-    const r = emitSceneFilter(s, manifest.markers, lbl, normScene);
+    // In per-scene mode each scene has its own dedicated input; in continuous mode
+    // all scenes share input 0 (the single page.webm).
+    const inputIndex = isPerScene ? i : 0;
+    const r = emitSceneFilter(s, manifest.markers, lbl, normScene, inputIndex, isPerScene);
     segments.push(...r.lines);
     steps.push({ label: lbl, durationMs: r.durationMs, isScene: true, sceneIndex: i });
   });
@@ -195,7 +228,17 @@ function buildVideoFilterGraph(
 }
 
 export function buildFfmpegArgs(opts: BuildArgsOpts): string[] {
-  const argv: string[] = ["-y", "-fflags", "+bitexact", "-i", opts.paths.capture.rawVideo];
+  const argv: string[] = ["-y"];
+  const isPerScene = opts.manifest.captureMode === "per-scene";
+
+  if (isPerScene) {
+    // One dedicated input per scene clip.
+    const inputs = perSceneInputPaths(opts.paths.capture.scenesDir, opts.manifest);
+    for (const inp of inputs) argv.push("-fflags", "+bitexact", "-i", inp);
+  } else {
+    argv.push("-fflags", "+bitexact", "-i", opts.paths.capture.rawVideo);
+  }
+
   if (opts.musicSrc) argv.push("-fflags", "+bitexact", "-i", opts.musicSrc);
   if (opts.slatePaths?.intro) argv.push("-fflags", "+bitexact", "-i", opts.slatePaths.intro);
   if (opts.slatePaths?.outro) argv.push("-fflags", "+bitexact", "-i", opts.slatePaths.outro);
@@ -206,8 +249,10 @@ export function buildFfmpegArgs(opts: BuildArgsOpts): string[] {
   if (opts.musicSrc) {
     const vol = (opts.musicVolume ?? 0.4).toFixed(1);
     const totalS = (g.durationMs / 1000).toFixed(3);
+    // Music input index: after scene inputs (1 in continuous, scenes.length in per-scene).
+    const musicInputIdx = isPerScene ? opts.manifest.scenes.length : 1;
     if (filter) filter += ";";
-    filter += `[1:a]volume=${vol},atrim=end=${totalS}[m]`;
+    filter += `[${musicInputIdx}:a]volume=${vol},atrim=end=${totalS}[m]`;
   }
 
   if (filter) argv.push("-filter_complex", filter);

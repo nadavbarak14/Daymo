@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import path from "node:path";
 import { buildFfmpegArgs } from "../../src/compositor.js";
 import type { Manifest } from "../../src/manifest.js";
 import type { DemoAst } from "../../src/types.js";
@@ -349,5 +350,107 @@ describe("buildFfmpegArgs (markers)", () => {
     // The compositor may add a fps/settb normalization when slates are present, but
     // for this all-disabled-slates case there should be no inner [s0_*]concat=n=… subgraph.
     expect(fc).not.toMatch(/\[s0_\d+\]/);
+  });
+});
+
+describe("buildFfmpegArgs (per-scene mode)", () => {
+  it("uses one -i input per scene clip", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "per-scene",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [
+        { index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0,    tEndMs: 3000 },
+        { index: 1, title: "b", slug: "b", sourceLine: 2, tStartMs: 3000, tEndMs: 7000 },
+      ],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [
+        { sourceLine: 1, title: "a", prose: "", overlays: [] },
+        { sourceLine: 2, title: "b", prose: "", overlays: [] },
+      ],
+    };
+    const argv = buildFfmpegArgs({
+      paths: {
+        ...fakePaths("art/page.webm", "art/out.mp4"),
+        capture: {
+          ...fakePaths("art/page.webm", "art/out.mp4").capture,
+          scenesDir: "art/scenes",
+        },
+      },
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const inputs: string[] = [];
+    for (let i = 0; i < argv.length; i++) if (argv[i] === "-i") inputs.push(argv[i + 1]);
+    expect(inputs).toContain(path.join("art/scenes", "00-a", "page.webm"));
+    expect(inputs).toContain(path.join("art/scenes", "01-b", "page.webm"));
+    // The original page.webm is NOT used in per-scene mode.
+    expect(inputs).not.toContain("art/page.webm");
+  });
+
+  it("references the per-scene input streams in the filter graph (no trim)", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "per-scene",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [
+        { index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 0,    tEndMs: 3000 },
+        { index: 1, title: "b", slug: "b", sourceLine: 2, tStartMs: 3000, tEndMs: 7000 },
+      ],
+      markers: [],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [
+        { sourceLine: 1, title: "a", prose: "", overlays: [] },
+        { sourceLine: 2, title: "b", prose: "", overlays: [] },
+      ],
+    };
+    const argv = buildFfmpegArgs({
+      paths: {
+        ...fakePaths("art/page.webm", "art/out.mp4"),
+        capture: {
+          ...fakePaths("art/page.webm", "art/out.mp4").capture,
+          scenesDir: "art/scenes",
+        },
+      },
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    // Per-scene mode: each scene is its OWN input, no [0:v]trim=...
+    expect(fc).not.toMatch(/\[0:v\]trim=start=0:end=3/);
+    expect(fc).toMatch(/\[0:v\].*setpts=PTS-STARTPTS\[s0\]/);
+    expect(fc).toMatch(/\[1:v\].*setpts=PTS-STARTPTS\[s1\]/);
+  });
+
+  it("applies a fast_forward marker to the per-scene clip with scene-local time", () => {
+    const m: Manifest = {
+      version: 2, demoFile: "/x", captureMode: "per-scene",
+      viewport: { width: 1440, height: 900 }, createdAt: "x",
+      scenes: [{ index: 0, title: "a", slug: "a", sourceLine: 1, tStartMs: 1000, tEndMs: 7000 }],
+      // Marker is in unified-timeline time (1000 + 1000 = 2000ms after capture start).
+      // Scene-local time: 1000ms in (since scene starts at 1000), runs to 4000ms in (3000 ms after start).
+      markers: [{ kind: "fast_forward", sceneIndex: 0, tStartMs: 2000, tEndMs: 5000, factor: 3 }],
+    };
+    const ast: DemoAst = {
+      frontmatter: { title: "x", url: "x", intro: false, outro: false } as any,
+      scenes: [{ sourceLine: 1, title: "a", prose: "", overlays: [] }],
+    };
+    const argv = buildFfmpegArgs({
+      paths: {
+        ...fakePaths("art/page.webm", "art/out.mp4"),
+        capture: {
+          ...fakePaths("art/page.webm", "art/out.mp4").capture,
+          scenesDir: "art/scenes",
+        },
+      },
+      manifest: m, ast, musicSrc: null, slatePaths: { intro: null, outro: null },
+    });
+    const fc = argv[argv.indexOf("-filter_complex") + 1];
+    // Sub-segments in scene-local time: 0..1, 1..4, 4..6
+    expect(fc).toMatch(/trim=start=0(\.0+)?:end=1(\.0+)?/);
+    expect(fc).toMatch(/trim=start=1(\.0+)?:end=4(\.0+)?/);
+    expect(fc).toMatch(/trim=start=4(\.0+)?:end=6(\.0+)?/);
+    expect(fc).toMatch(/setpts=\(PTS-STARTPTS\)\/3/);
   });
 });
