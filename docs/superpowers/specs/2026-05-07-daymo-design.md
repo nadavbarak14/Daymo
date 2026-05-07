@@ -80,6 +80,8 @@ Five components, each with one job, decoupled by an artifact directory:
 
 The runner and compositor communicate **only through an artifact directory** on disk (`./artifacts/<demo-id>/`). This means capture and render can be debugged and re-run independently — if the video looks wrong, we don't re-run Playwright.
 
+Daymo never reads the frontend's source code. It only consumes the `url:` configured in the `.demo` frontmatter, which can point to a local dev server (`http://localhost:3000`), a staging environment, or a deployed production build. The frontend is a black box driven through the browser; mocks attach via Playwright route handlers regardless of origin.
+
 ## The `.demo` file format
 
 A `.demo` file is markdown with YAML frontmatter. Headings define scenes. Each scene contains prose narration, fenced code blocks for Playwright actions, and fenced directive blocks for overlays.
