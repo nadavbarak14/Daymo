@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { cac } from "cac";
 import { renderCommand } from "./commands/render.js";
+import { doctorCommand } from "./commands/doctor.js";
 
 const cli = cac("daymo");
 
@@ -9,6 +10,9 @@ cli.command("render <file>", "Execute the demo and produce output.mp4")
   .action((file: string, flags: { out: string }) =>
     renderCommand(file, { out: flags.out }),
   );
+
+cli.command("doctor", "Verify Playwright and ffmpeg are configured")
+  .action(() => doctorCommand());
 
 cli.help();
 cli.version("0.1.0");
