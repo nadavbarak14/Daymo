@@ -3,6 +3,16 @@ import matter from "gray-matter";
 import { parse as parseYaml } from "yaml";
 import type { DemoAst, Frontmatter, OverlayDirective, Scene } from "./types.js";
 
+export const VALID_TRANSITIONS = [
+  "crossfade",
+  "dip-to-black",
+  "slide-left",
+  "slide-right",
+  "none",
+] as const;
+
+export const VALID_CAPTURE_MODES = ["continuous", "per-scene"] as const;
+
 export function parse(source: string): DemoAst {
   let parsed: ReturnType<typeof matter>;
   try {
@@ -13,6 +23,24 @@ export function parse(source: string): DemoAst {
   const frontmatter = parsed.data as Frontmatter;
   if (!frontmatter.title || !frontmatter.url) {
     throw new Error("missing or incomplete frontmatter (need `title` and `url`)");
+  }
+
+  if (
+    frontmatter.defaultTransition !== undefined &&
+    !VALID_TRANSITIONS.includes(frontmatter.defaultTransition as any)
+  ) {
+    throw new Error(
+      `unknown defaultTransition "${frontmatter.defaultTransition}" — must be one of ${VALID_TRANSITIONS.join(", ")}`,
+    );
+  }
+
+  if (
+    frontmatter.captureMode !== undefined &&
+    !VALID_CAPTURE_MODES.includes(frontmatter.captureMode as any)
+  ) {
+    throw new Error(
+      `unknown captureMode "${frontmatter.captureMode}" — must be one of ${VALID_CAPTURE_MODES.join(", ")}`,
+    );
   }
 
   // Compute the line offset where post-frontmatter content begins.

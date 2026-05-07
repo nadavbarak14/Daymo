@@ -93,3 +93,57 @@ just prose with no heading
     expect(() => parse(bad)).toThrow(/heading/i);
   });
 });
+
+describe("parser v0.2 frontmatter", () => {
+  it("reads defaultTransition and transitionDuration", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+defaultTransition: dip-to-black
+transitionDuration: 0.8s
+---
+
+# scene
+prose
+`);
+    expect(ast.frontmatter.defaultTransition).toBe("dip-to-black");
+    expect(ast.frontmatter.transitionDuration).toBe("0.8s");
+  });
+
+  it("reads captureMode", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+captureMode: per-scene
+---
+
+# scene
+prose
+`);
+    expect(ast.frontmatter.captureMode).toBe("per-scene");
+  });
+
+  it("rejects an unknown defaultTransition value", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+defaultTransition: spin
+---
+
+# s
+p
+`)).toThrow(/defaultTransition/);
+  });
+
+  it("rejects an unknown captureMode value", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+captureMode: weird
+---
+
+# s
+p
+`)).toThrow(/captureMode/);
+  });
+});
