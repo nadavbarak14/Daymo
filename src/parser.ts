@@ -1,7 +1,7 @@
 // src/parser.ts
 import matter from "gray-matter";
 import { parse as parseYaml } from "yaml";
-import type { DemoAst, Frontmatter, OverlayDirective, Scene } from "./types.js";
+import type { DemoAst, Frontmatter, OverlayDirective, Scene, TransitionConfig, TransitionType } from "./types.js";
 
 export const VALID_TRANSITIONS = [
   "crossfade",
@@ -12,6 +12,14 @@ export const VALID_TRANSITIONS = [
 ] as const;
 
 export const VALID_CAPTURE_MODES = ["continuous", "per-scene"] as const;
+
+export function parseDurationMs(s: string | undefined, defaultMs: number): number {
+  if (!s) return defaultMs;
+  const m = /^([0-9.]+)\s*(ms|s)?$/.exec(s.trim());
+  if (!m) throw new Error(`invalid duration "${s}"`);
+  const n = Number(m[1]);
+  return m[2] === "ms" ? n : n * 1000;
+}
 
 export function parse(source: string): DemoAst {
   let parsed: ReturnType<typeof matter>;
@@ -111,6 +119,7 @@ function parseScene(chunk: string, baseLine: number): Scene {
   const proseLines: string[] = [];
   let playwrightCode: Scene["playwrightCode"];
   const overlays: OverlayDirective[] = [];
+  let transition: TransitionConfig | undefined;
 
   while (i < lines.length) {
     const fenceMatch = lines[i].match(/^```(\w+)?\s*$/);
@@ -135,6 +144,23 @@ function parseScene(chunk: string, baseLine: number): Scene {
           throw new Error(`overlay block at line ${fenceStartLine} missing \`type\``);
         }
         overlays.push(directive);
+      } else if (lang === "transition") {
+        const directive = parseYaml(body.join("\n")) as { type?: string; duration?: string };
+        if (!directive || typeof directive !== "object" || !directive.type) {
+          throw new Error(`transition block at line ${fenceStartLine} missing \`type\``);
+        }
+        if (!VALID_TRANSITIONS.includes(directive.type as TransitionType)) {
+          throw new Error(
+            `transition block at line ${fenceStartLine}: unknown type "${directive.type}" — must be one of ${VALID_TRANSITIONS.join(", ")}`,
+          );
+        }
+        if (transition) {
+          throw new Error(`scene "${title}" has more than one transition block`);
+        }
+        transition = {
+          type: directive.type as TransitionType,
+          durationMs: parseDurationMs(directive.duration, 500),
+        };
       }
     } else {
       proseLines.push(lines[i]);
@@ -148,5 +174,6 @@ function parseScene(chunk: string, baseLine: number): Scene {
     prose: proseLines.join("\n").trim(),
     playwrightCode,
     overlays,
+    transition,
   };
 }

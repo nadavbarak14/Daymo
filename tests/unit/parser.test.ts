@@ -147,3 +147,93 @@ p
 `)).toThrow(/must be one of continuous, per-scene/);
   });
 });
+
+describe("parser v0.2 transition block", () => {
+  it("parses a per-scene transition block", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+---
+
+# first
+
+\`\`\`playwright
+await page.goto("/");
+\`\`\`
+
+---
+
+# second
+
+\`\`\`transition
+type: dip-to-black
+duration: 0.8s
+\`\`\`
+
+prose
+`);
+    expect(ast.scenes[0].transition).toBeUndefined();
+    expect(ast.scenes[1].transition).toEqual({ type: "dip-to-black", durationMs: 800 });
+  });
+
+  it("uses default duration 0.5s when not specified", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+---
+
+# s
+
+\`\`\`transition
+type: crossfade
+\`\`\`
+`);
+    expect(ast.scenes[0].transition).toEqual({ type: "crossfade", durationMs: 500 });
+  });
+
+  it("rejects an unknown transition type inside a transition block", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+---
+
+# first
+
+\`\`\`transition
+type: spin
+\`\`\`
+`)).toThrow(/transition/i);
+  });
+
+  it("rejects a transition block with no type field", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+---
+
+# s
+
+\`\`\`transition
+duration: 0.5s
+\`\`\`
+`)).toThrow(/type/);
+  });
+
+  it("rejects two transition blocks in one scene", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+---
+
+# s
+
+\`\`\`transition
+type: crossfade
+\`\`\`
+
+\`\`\`transition
+type: none
+\`\`\`
+`)).toThrow(/more than one transition/);
+  });
+});
