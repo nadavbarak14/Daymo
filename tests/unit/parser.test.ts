@@ -267,3 +267,68 @@ type: none
 `)).toThrow(/more than one transition/);
   });
 });
+
+describe("parser v0.2 scene-config block", () => {
+  it("parses a scene-config block in per-scene mode", () => {
+    const ast = parse(`---
+title: x
+url: http://localhost
+captureMode: per-scene
+---
+
+# settings page
+
+\`\`\`scene-config
+url: http://localhost:3000/settings
+\`\`\`
+`);
+    expect(ast.scenes[0].sceneConfig).toEqual({ url: "http://localhost:3000/settings" });
+  });
+
+  it("rejects scene-config in continuous mode (default)", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+---
+
+# scene
+
+\`\`\`scene-config
+url: http://localhost:3000/x
+\`\`\`
+`)).toThrow(/scene-config.*per-scene/);
+  });
+
+  it("rejects an empty scene-config block", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+captureMode: per-scene
+---
+
+# s
+
+\`\`\`scene-config
+\`\`\`
+`)).toThrow(/scene-config.*empty/);
+  });
+
+  it("rejects two scene-config blocks in one scene", () => {
+    expect(() => parse(`---
+title: x
+url: http://localhost
+captureMode: per-scene
+---
+
+# s
+
+\`\`\`scene-config
+url: http://x/
+\`\`\`
+
+\`\`\`scene-config
+url: http://y/
+\`\`\`
+`)).toThrow(/more than one scene-config/);
+  });
+});

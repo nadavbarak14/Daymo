@@ -1,7 +1,7 @@
 // src/parser.ts
 import matter from "gray-matter";
 import { parse as parseYaml } from "yaml";
-import type { DemoAst, Frontmatter, OverlayDirective, Scene, TransitionConfig, TransitionType } from "./types.js";
+import type { CaptureMode, DemoAst, Frontmatter, OverlayDirective, Scene, SceneOverrides, TransitionConfig, TransitionType } from "./types.js";
 
 export const VALID_TRANSITIONS = [
   "crossfade",
@@ -62,6 +62,8 @@ export function parse(source: string): DemoAst {
     );
   }
 
+  const captureMode: CaptureMode = frontmatter.captureMode ?? "continuous";
+
   // Compute the line offset where post-frontmatter content begins.
   const allLines = source.split("\n");
   let contentStartLine = 0;
@@ -86,7 +88,7 @@ export function parse(source: string): DemoAst {
       runningOffset += chunkLines;
       continue;
     }
-    scenes.push(parseScene(chunk, runningOffset));
+    scenes.push(parseScene(chunk, runningOffset, captureMode));
     runningOffset += chunkLines;
   }
 
@@ -115,7 +117,7 @@ function splitOnFenceAwareDelimiter(content: string): string[] {
   return out.map((arr) => arr.join("\n"));
 }
 
-function parseScene(chunk: string, baseLine: number): Scene {
+function parseScene(chunk: string, baseLine: number, captureMode: CaptureMode): Scene {
   const lines = chunk.split("\n");
   let i = 0;
   while (i < lines.length && lines[i].trim() === "") i++;
@@ -131,9 +133,10 @@ function parseScene(chunk: string, baseLine: number): Scene {
   let playwrightCode: Scene["playwrightCode"];
   const overlays: OverlayDirective[] = [];
   let transition: TransitionConfig | undefined;
+  let sceneConfig: SceneOverrides | undefined;
 
   while (i < lines.length) {
-    const fenceMatch = lines[i].match(/^```(\w+)?\s*$/);
+    const fenceMatch = lines[i].match(/^```([\w-]+)?\s*$/);
     if (fenceMatch) {
       const lang = fenceMatch[1] ?? "";
       const fenceStartLine = baseLine + i + 1;
@@ -172,6 +175,20 @@ function parseScene(chunk: string, baseLine: number): Scene {
           type: directive.type as TransitionType,
           durationMs: parseDurationMs(directive.duration, 500),
         };
+      } else if (lang === "scene-config") {
+        if (captureMode !== "per-scene") {
+          throw new Error(
+            `scene-config block at line ${fenceStartLine} is only legal when captureMode: per-scene`,
+          );
+        }
+        const cfg = parseYaml(body.join("\n")) as SceneOverrides | null;
+        if (!cfg || typeof cfg !== "object") {
+          throw new Error(`scene-config block at line ${fenceStartLine} is empty`);
+        }
+        if (sceneConfig) {
+          throw new Error(`scene "${title}" has more than one scene-config block`);
+        }
+        sceneConfig = cfg;
       }
     } else {
       proseLines.push(lines[i]);
@@ -186,5 +203,6 @@ function parseScene(chunk: string, baseLine: number): Scene {
     playwrightCode,
     overlays,
     transition,
+    sceneConfig,
   };
 }
