@@ -5,8 +5,8 @@ import crypto from "node:crypto";
 import { parse } from "./parser.js";
 import { Controller } from "./controller.js";
 import { compose } from "./compositor.js";
-import { buildManifest, writeManifest, readManifest } from "./manifest.js";
-import type { ArtifactPaths, DemoAst, RunnerEvent } from "./types.js";
+import { buildManifest, writeManifest, readManifest, slugify } from "./manifest.js";
+import type { ArtifactPaths, CaptureMode, DemoAst, RunnerEvent } from "./types.js";
 
 export interface CaptureOpts {
   /** Absolute or cwd-relative path to a .demo file. */
@@ -36,16 +36,12 @@ function buildArtifactPaths(rootDir: string): ArtifactPaths {
   };
 }
 
-export async function capture(opts: CaptureOpts): Promise<{ artifactsDir: string; ast: DemoAst }> {
-  const source = await fs.readFile(opts.demoFile, "utf8");
-  const ast = parse(source);
+async function captureContinuous(
+  opts: CaptureOpts,
+  ast: DemoAst,
+  paths: ArtifactPaths,
+): Promise<void> {
   const baseDir = path.dirname(path.resolve(opts.demoFile));
-
-  const id = crypto.randomBytes(4).toString("hex");
-  const artifactsDir = path.resolve(opts.artifactsBase ?? "./artifacts", id);
-  const paths = buildArtifactPaths(artifactsDir);
-  await fs.mkdir(paths.capture.dir, { recursive: true });
-
   const ctrl = await Controller.start({
     url: ast.frontmatter.url,
     viewport: ast.frontmatter.viewport,
@@ -60,12 +56,84 @@ export async function capture(opts: CaptureOpts): Promise<{ artifactsDir: string
   } finally {
     await ctrl.stop();
   }
+}
 
+async function capturePerScene(
+  opts: CaptureOpts,
+  ast: DemoAst,
+  paths: ArtifactPaths,
+): Promise<void> {
+  const baseDir = path.dirname(path.resolve(opts.demoFile));
+  await fs.mkdir(paths.capture.scenesDir, { recursive: true });
+  const allEvents: RunnerEvent[] = [];
+  let timeOffsetMs = 0;
+
+  for (let i = 0; i < ast.scenes.length; i++) {
+    const scene = ast.scenes[i];
+    const sceneDir = path.join(
+      paths.capture.scenesDir,
+      `${String(i).padStart(2, "0")}-${slugify(scene.title)}`,
+    );
+    await fs.mkdir(sceneDir, { recursive: true });
+
+    const overrides = scene.sceneConfig ?? {};
+    const ctrl = await Controller.start({
+      url: overrides.url ?? ast.frontmatter.url,
+      viewport: ast.frontmatter.viewport,
+      mocks: overrides.mocks ?? ast.frontmatter.mocks,
+      storageStatePath: overrides.auth?.storageState
+        ? path.resolve(baseDir, overrides.auth.storageState)
+        : ast.frontmatter.auth?.storageState
+          ? path.resolve(baseDir, ast.frontmatter.auth.storageState)
+          : undefined,
+      artifactsDir: sceneDir,
+    });
+    try {
+      await ctrl.runScene(scene);
+    } finally {
+      await ctrl.stop();
+    }
+
+    // Read the scene's events.json (controller wrote it on stop).
+    const sceneEvents: RunnerEvent[] = JSON.parse(
+      await fs.readFile(path.join(sceneDir, "events.json"), "utf8"),
+    );
+
+    // Time-shift each event's t by timeOffsetMs so the unified timeline is contiguous.
+    for (const ev of sceneEvents) (ev as any).t = (ev as any).t + timeOffsetMs;
+    allEvents.push(...sceneEvents);
+
+    // Advance the offset to the end of this scene.
+    const sceneEnd = sceneEvents.find((e) => e.kind === "scene_end");
+    timeOffsetMs = sceneEnd ? (sceneEnd as any).t : timeOffsetMs;
+  }
+
+  // Write the unified events log at the bundle root.
+  await fs.writeFile(paths.capture.events, JSON.stringify(allEvents, null, 2));
+}
+
+export async function capture(opts: CaptureOpts): Promise<{ artifactsDir: string; ast: DemoAst }> {
+  const source = await fs.readFile(opts.demoFile, "utf8");
+  const ast = parse(source);
+
+  const id = crypto.randomBytes(4).toString("hex");
+  const artifactsDir = path.resolve(opts.artifactsBase ?? "./artifacts", id);
+  const paths = buildArtifactPaths(artifactsDir);
+  await fs.mkdir(paths.capture.dir, { recursive: true });
+
+  const captureMode: CaptureMode = ast.frontmatter.captureMode ?? "continuous";
+  if (captureMode === "per-scene") {
+    await capturePerScene(opts, ast, paths);
+  } else {
+    await captureContinuous(opts, ast, paths);
+  }
+
+  // Build the manifest from the (unified) events log.
   const eventsRaw = await fs.readFile(paths.capture.events, "utf8");
   const events = JSON.parse(eventsRaw) as RunnerEvent[];
   const m = buildManifest({
     demoFile: path.resolve(opts.demoFile),
-    captureMode: ast.frontmatter.captureMode ?? "continuous",
+    captureMode,
     viewport: ast.frontmatter.viewport ?? { width: 1440, height: 900 },
     scenes: ast.scenes,
     events,
