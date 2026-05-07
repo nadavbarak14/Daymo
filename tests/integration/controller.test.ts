@@ -90,4 +90,58 @@ describe("Controller", () => {
       await ctrl.stop();
     }
   });
+
+  it("renders a declarative callout overlay during the scene", async () => {
+    const ctrl = await Controller.start({
+      url: serverUrl,
+      mocks: [{ source: "inline", routes: { "GET /api/me": { name: "Alex" }, "GET /api/projects": [] } }],
+      artifactsDir,
+    });
+    try {
+      const page = ctrl.page;
+      const scenePromise = ctrl.runScene({
+        sourceLine: 1,
+        title: "Scene with overlay",
+        prose: "",
+        playwrightCode: { code: 'await page.waitForTimeout(300);', sourceLine: 2 },
+        overlays: [{ type: "callout", target: "h1", text: "Hello callout", duration: "2s" }],
+      });
+      // The overlay loop fires AFTER the playwrightCode block in runScene.
+      // We need to sample after the playwright block has finished but before the scene ends.
+      // Simpler: sample at the end of the scene after scenePromise resolves but before stop().
+      await scenePromise;
+      // Note: hideCaption fires at scene end, but the callout bubble has its own duration timer.
+      // The bubble should still be in the DOM (its remove() is deferred to setTimeout duration+250ms).
+      const bubbleCount = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("div"))
+          .filter((d) => d.textContent === "Hello callout").length,
+      );
+      expect(bubbleCount).toBeGreaterThan(0);
+    } finally {
+      await ctrl.stop();
+    }
+  });
+
+  it("emits an error event when a scene throws", async () => {
+    const ctrl = await Controller.start({
+      url: serverUrl,
+      mocks: [{ source: "inline", routes: { "GET /api/me": { name: "Alex" }, "GET /api/projects": [] } }],
+      artifactsDir,
+    });
+    await expect(
+      ctrl.runScene({
+        sourceLine: 1,
+        title: "Bad scene",
+        prose: "",
+        playwrightCode: { code: 'throw new Error("intentional failure");', sourceLine: 2 },
+        overlays: [],
+      }),
+    ).rejects.toThrow(/intentional failure/);
+    await ctrl.stop();
+    const events = JSON.parse(await fs.readFile(path.join(artifactsDir, "events.json"), "utf8"));
+    const errorEvent = events.find((e: any) => e.kind === "error");
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent.message).toMatch(/intentional failure/);
+    expect(errorEvent.sceneIndex).toBe(1);
+  });
 });

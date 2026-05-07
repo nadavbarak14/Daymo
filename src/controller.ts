@@ -16,6 +16,12 @@ export interface ControllerOpts {
   artifactsDir: string;
 }
 
+function parseDurationSeconds(s: string | undefined, defaultSec: number): number {
+  if (!s) return defaultSec;
+  const m = /^([0-9.]+)\s*s?$/.exec(s.trim());
+  return m ? Number(m[1]) : defaultSec;
+}
+
 export class Controller {
   private events: RunnerEvent[] = [];
   private startWall: number = 0;
@@ -59,35 +65,58 @@ export class Controller {
       title: scene.title,
       prose: scene.prose,
     });
-    if (scene.prose.trim()) {
-      await this.page.evaluate(
-        ({ title, prose }) => (window as any).__daymo.showCaption(title, prose),
-        { title: scene.title, prose: scene.prose },
-      );
+    try {
+      if (scene.prose.trim()) {
+        await this.page.evaluate(
+          ({ title, prose }) => (window as any).__daymo.showCaption(title, prose),
+          { title: scene.title, prose: scene.prose },
+        );
+      }
+      if (scene.playwrightCode) {
+        const fx = createFx(this.page, this.events, () => this.now());
+        const console = {
+          log: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "log", args }),
+          warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),
+          error: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "error", args }),
+        };
+        await runSceneBlock(
+          { code: scene.playwrightCode.code, sourceLine: scene.playwrightCode.sourceLine, sceneTitle: scene.title },
+          { page: this.page, fx, console },
+        );
+      }
+      for (const directive of scene.overlays) {
+        const bbox = directive.target
+          ? ((await this.page
+              .evaluate((s) => (window as any).__daymo.measure(s), directive.target)) as
+              | { x: number; y: number; width: number; height: number }
+              | null)
+          : null;
+        this.events.push({ kind: "overlay", t: this.now(), directive, bbox });
+        if (directive.type === "callout" && directive.text) {
+          const ms = parseDurationSeconds(directive.duration, 2) * 1000;
+          await this.page.evaluate(
+            ({ text, target, ms }) => (window as any).__daymo.callout(text, target, ms),
+            { text: directive.text, target: directive.target, ms },
+          );
+        } else if (directive.type === "highlight" && directive.target) {
+          const ms = parseDurationSeconds(directive.duration, 1) * 1000;
+          await this.page.evaluate(
+            ({ selector, ms }) => (window as any).__daymo.highlight(selector, ms),
+            { selector: directive.target, ms },
+          );
+        }
+      }
+      await this.page.evaluate(() => (window as any).__daymo.hideCaption());
+      this.events.push({ kind: "scene_end", t: this.now(), index: scene.sourceLine });
+    } catch (e) {
+      this.events.push({
+        kind: "error",
+        t: this.now(),
+        message: (e as Error).message,
+        sceneIndex: scene.sourceLine,
+      });
+      throw e;
     }
-    if (scene.playwrightCode) {
-      const fx = createFx(this.page, this.events, () => this.now());
-      const console = {
-        log: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "log", args }),
-        warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),
-        error: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "error", args }),
-      };
-      await runSceneBlock(
-        { code: scene.playwrightCode.code, sourceLine: scene.playwrightCode.sourceLine, sceneTitle: scene.title },
-        { page: this.page, fx, console },
-      );
-    }
-    for (const directive of scene.overlays) {
-      const bbox = directive.target
-        ? ((await this.page
-            .evaluate((s) => (window as any).__daymo.measure(s), directive.target)) as
-            | { x: number; y: number; width: number; height: number }
-            | null)
-        : null;
-      this.events.push({ kind: "overlay", t: this.now(), directive, bbox });
-    }
-    await this.page.evaluate(() => (window as any).__daymo.hideCaption());
-    this.events.push({ kind: "scene_end", t: this.now(), index: scene.sourceLine });
   }
 
   async stop(): Promise<void> {
