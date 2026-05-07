@@ -6,6 +6,12 @@ export interface Frontmatter {
   music?: string;
   mocks?: MockSourceConfig[];
   auth?: { storageState: string };
+  // v0.2:
+  defaultTransition?: TransitionType;
+  transitionDuration?: string;       // "0.5s"
+  intro?: SlateInput;
+  outro?: SlateInput;
+  captureMode?: CaptureMode;
 }
 
 export type MockSourceConfig =
@@ -31,6 +37,9 @@ export interface Scene {
   prose: string;
   playwrightCode?: { code: string; sourceLine: number };
   overlays: OverlayDirective[];
+  // v0.2:
+  transition?: TransitionConfig;     // overrides defaultTransition
+  sceneConfig?: SceneOverrides;      // legal only when captureMode: per-scene
 }
 
 export interface DemoAst {
@@ -45,7 +54,11 @@ export type RunnerEvent =
   | { kind: "fx"; t: number; method: string; args: unknown[] }
   | { kind: "overlay"; t: number; directive: OverlayDirective; bbox: BBox | null }
   | { kind: "log"; t: number; level: "log" | "warn" | "error"; args: unknown[] }
-  | { kind: "error"; t: number; message: string; sceneIndex: number };
+  | { kind: "error"; t: number; message: string; sceneIndex: number }
+  | { kind: "fast_forward_start"; t: number; sceneIndex: number; factor: number }
+  | { kind: "fast_forward_end"; t: number; sceneIndex: number }
+  | { kind: "skip_start"; t: number; sceneIndex: number }
+  | { kind: "skip_end"; t: number; sceneIndex: number };
 
 export interface BBox { x: number; y: number; width: number; height: number }
 
@@ -56,6 +69,9 @@ export interface DemoFx {
   pause(seconds: number): Promise<void>;
   callout(text: string, target?: string, duration?: number): Promise<void>;
   highlight(selector: string, duration?: number): Promise<void>;
+  // v0.2:
+  fastForward<T>(fn: () => Promise<T>, factor?: number): Promise<T>;
+  skip<T>(fn: () => Promise<T>): Promise<T>;
 }
 
 export interface ArtifactPaths {
@@ -63,4 +79,39 @@ export interface ArtifactPaths {
   rawVideo: string;       // raw_page.webm
   events: string;         // events.json
   output: string;         // output.mp4
+}
+
+// v0.2 types
+
+export type TransitionType =
+  | "crossfade"
+  | "dip-to-black"
+  | "slide-left"
+  | "slide-right"
+  | "none";
+
+export interface TransitionConfig {
+  type: TransitionType;
+  durationMs: number;
+}
+
+export type CaptureMode = "continuous" | "per-scene";
+
+export interface SlateConfig {
+  durationMs: number;
+  background: string;
+  accent: string;
+  logo?: string;          // absolute path resolved by runner from .demo basedir
+  title?: string;         // override of frontmatter title
+  subtitle?: string;      // override of frontmatter description (intro)
+  text?: string;          // outro footer text
+}
+
+/** `false` means "disabled". `undefined` means "use built-in default". */
+export type SlateInput = SlateConfig | false | undefined;
+
+export interface SceneOverrides {
+  url?: string;
+  mocks?: MockSourceConfig[];
+  auth?: { storageState: string };
 }

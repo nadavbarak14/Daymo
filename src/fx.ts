@@ -73,5 +73,15 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
         { selector, durationMs },
       );
     },
+
+    // stub for v0.2 — implemented in Task 6
+    async fastForward(fn, factor = 1) {
+      throw new Error("fastForward not yet implemented");
+    },
+
+    // stub for v0.2 — implemented in Task 7
+    async skip(fn) {
+      throw new Error("skip not yet implemented");
+    },
   };
 }
