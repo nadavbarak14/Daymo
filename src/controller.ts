@@ -138,11 +138,11 @@ export class Controller {
     await this.context.close();
     await this.browser.close();
     const files = await fs.readdir(this.opts.artifactsDir);
-    const webm = files.find((f) => f.endsWith(".webm") && f !== "raw_page.webm");
+    const webm = files.find((f) => f.endsWith(".webm") && f !== "page.webm");
     if (webm) {
       await fs.rename(
         path.join(this.opts.artifactsDir, webm),
-        path.join(this.opts.artifactsDir, "raw_page.webm"),
+        path.join(this.opts.artifactsDir, "page.webm"),
       );
     }
     await fs.writeFile(

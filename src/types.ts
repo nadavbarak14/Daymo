@@ -74,11 +74,19 @@ export interface DemoFx {
   skip<T>(fn: () => Promise<T>): Promise<T>;
 }
 
+export interface CaptureBundle {
+  dir: string;                     // artifacts/<id>/capture
+  manifest: string;                // .../capture.json
+  events: string;                  // .../events.json
+  rawVideo: string;                // .../page.webm
+  scenesDir: string;               // .../scenes (per-scene mode)
+}
+
 export interface ArtifactPaths {
-  dir: string;
-  rawVideo: string;       // raw_page.webm
-  events: string;         // events.json
-  output: string;         // output.mp4
+  dir: string;                     // artifacts/<id>
+  capture: CaptureBundle;
+  output: string;                  // .../output.mp4
+  composeLog: string;              // .../compose.log
 }
 
 // v0.2 types

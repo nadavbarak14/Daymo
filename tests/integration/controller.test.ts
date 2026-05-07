@@ -25,7 +25,7 @@ describe("Controller", () => {
     await fs.rm(artifactsDir, { recursive: true, force: true });
   });
 
-  it("captures raw_page.webm and emits scene_start/scene_end events", async () => {
+  it("captures page.webm and emits scene_start/scene_end events", async () => {
     const ctrl = await Controller.start({
       url: serverUrl,
       viewport: { width: 800, height: 600 },
@@ -47,7 +47,7 @@ describe("Controller", () => {
     const kinds = events.map((e: any) => e.kind);
     expect(kinds).toContain("scene_start");
     expect(kinds).toContain("scene_end");
-    const stat = await fs.stat(path.join(artifactsDir, "raw_page.webm"));
+    const stat = await fs.stat(path.join(artifactsDir, "page.webm"));
     expect(stat.size).toBeGreaterThan(0);
   });
 
