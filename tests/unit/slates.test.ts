@@ -1,6 +1,9 @@
 // tests/unit/slates.test.ts
 import { describe, it, expect } from "vitest";
-import { buildSlateHtml, resolveIntroConfig, resolveOutroConfig } from "../../src/slates.js";
+import { buildSlateHtml, resolveIntroConfig, resolveOutroConfig, renderSlate } from "../../src/slates.js";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs/promises";
 
 describe("resolveIntroConfig", () => {
   it("defaults to title + description from frontmatter", () => {
@@ -111,4 +114,33 @@ describe("buildSlateHtml", () => {
     });
     expect(html).toContain("file:///abs/path/logo.svg");
   });
+});
+
+describe("renderSlate (integration smoke)", () => {
+  it("produces a non-empty mp4 from a tiny slate", async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-slate-"));
+    try {
+      const out = await renderSlate({
+        slate: {
+          kind: "intro",
+          durationMs: 200,
+          background: "#000",
+          accent: "#fff",
+          title: "Hi",
+        },
+        viewport: { width: 320, height: 240 },
+        outDir: tmp,
+        filename: "intro.mp4",
+      });
+      const stat = await fs.stat(out);
+      expect(stat.size).toBeGreaterThan(0);
+      expect(out).toBe(path.join(tmp, "intro.mp4"));
+      // Intermediate webm should be cleaned up.
+      const remaining = await fs.readdir(tmp);
+      expect(remaining).not.toContain("intro.webm");
+      // The .html file is left behind on purpose for debugging — don't assert it's gone.
+    } finally {
+      await fs.rm(tmp, { recursive: true, force: true });
+    }
+  }, 30_000);
 });

@@ -1,5 +1,9 @@
 // src/slates.ts
 import type { Frontmatter, SlateConfig, SlateInput } from "./types.js";
+import { chromium } from "playwright";
+import { execa } from "execa";
+import path from "node:path";
+import fs from "node:fs/promises";
 
 export interface ResolvedSlate extends SlateConfig {
   kind: "intro" | "outro";
@@ -73,4 +77,58 @@ export function buildSlateHtml(s: ResolvedSlate): string {
     ${subtitleTag}
     ${footerTag}
   </div></body></html>`;
+}
+
+export interface RenderSlateArgs {
+  slate: ResolvedSlate;
+  viewport: { width: number; height: number };
+  outDir: string;        // capture dir; intermediate files land here
+  filename: string;      // e.g. "intro.mp4" or "outro.mp4"
+}
+
+/**
+ * Render a slate to an MP4 via headless Chromium + ffmpeg. Synchronous semantics
+ * from caller perspective; uses temporary HTML and webm files alongside the output mp4.
+ */
+export async function renderSlate(args: RenderSlateArgs): Promise<string> {
+  const { slate, viewport, outDir, filename } = args;
+  const stem = filename.replace(/\.mp4$/, "");
+  const htmlPath = path.join(outDir, `${stem}.html`);
+  const webmPath = path.join(outDir, `${stem}.webm`);
+  const mp4Path  = path.join(outDir, filename);
+
+  await fs.mkdir(outDir, { recursive: true });
+  await fs.writeFile(htmlPath, buildSlateHtml(slate));
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const ctx = await browser.newContext({
+      viewport,
+      recordVideo: { dir: outDir, size: viewport },
+    });
+    const page = await ctx.newPage();
+    await page.goto(`file://${htmlPath}`);
+    await page.waitForTimeout(slate.durationMs);
+    const v = page.video();
+    await ctx.close();
+    const recordedWebm = v ? await v.path() : "";
+    if (recordedWebm) await fs.rename(recordedWebm, webmPath);
+  } finally {
+    await browser.close();
+  }
+
+  await execa("ffmpeg", [
+    "-y",
+    "-fflags", "+bitexact",
+    "-i", webmPath,
+    "-t", (slate.durationMs / 1000).toFixed(3),
+    "-c:v", "libx264",
+    "-flags:v", "+bitexact",
+    "-an",
+    "-map_metadata", "-1",
+    mp4Path,
+  ]);
+  await fs.unlink(webmPath).catch(() => {});
+
+  return mp4Path;
 }
