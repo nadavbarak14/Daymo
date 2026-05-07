@@ -13,11 +13,22 @@ export const VALID_TRANSITIONS = [
 
 export const VALID_CAPTURE_MODES = ["continuous", "per-scene"] as const;
 
-export function parseDurationMs(s: string | undefined, defaultMs: number): number {
-  if (!s) return defaultMs;
-  const m = /^([0-9.]+)\s*(ms|s)?$/.exec(s.trim());
+/**
+ * Canonical duration helper for .demo fenced blocks. Accepts "0.5s",
+ * "500ms", or a bare number (treated as ms). Returns milliseconds.
+ * Tasks 5 (slates) and 18 (compositor) should import this rather
+ * than adding their own variants.
+ */
+export function parseDurationMs(s: string | number | undefined | null, defaultMs: number): number {
+  if (s === undefined || s === null || s === "") return defaultMs;
+  if (typeof s === "number") {
+    if (!Number.isFinite(s)) throw new Error(`invalid duration ${s}`);
+    return s;
+  }
+  const m = /^([0-9]+(?:\.[0-9]+)?)\s*(ms|s)?$/.exec(s.trim());
   if (!m) throw new Error(`invalid duration "${s}"`);
   const n = Number(m[1]);
+  if (!Number.isFinite(n)) throw new Error(`invalid duration "${s}"`);
   return m[2] === "ms" ? n : n * 1000;
 }
 

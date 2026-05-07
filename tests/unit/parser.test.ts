@@ -1,6 +1,6 @@
 // tests/unit/parser.test.ts
 import { describe, it, expect } from "vitest";
-import { parse } from "../../src/parser.js";
+import { parse, parseDurationMs } from "../../src/parser.js";
 
 const MINIMAL = `---
 title: My demo
@@ -32,6 +32,36 @@ Goodbye.
 await page.click("button");
 \`\`\`
 `;
+
+describe("parseDurationMs", () => {
+  it("accepts plain seconds", () => {
+    expect(parseDurationMs("0.5s", 999)).toBe(500);
+    expect(parseDurationMs("2s", 999)).toBe(2000);
+  });
+  it("accepts ms suffix", () => {
+    expect(parseDurationMs("500ms", 999)).toBe(500);
+  });
+  it("accepts plain numbers (with no unit) as seconds", () => {
+    expect(parseDurationMs("0.5", 999)).toBe(500);
+  });
+  it("accepts bare numeric input as ms", () => {
+    expect(parseDurationMs(800 as unknown as string, 999)).toBe(800);
+  });
+  it("returns default for undefined / null / empty", () => {
+    expect(parseDurationMs(undefined, 123)).toBe(123);
+    expect(parseDurationMs(null as unknown as string, 123)).toBe(123);
+    expect(parseDurationMs("", 123)).toBe(123);
+  });
+  it("throws on multi-dot input", () => {
+    expect(() => parseDurationMs("5.5.5s", 0)).toThrow(/invalid duration/);
+  });
+  it("throws on garbage", () => {
+    expect(() => parseDurationMs("nope", 0)).toThrow(/invalid duration/);
+  });
+  it("throws on infinite/NaN bare numbers", () => {
+    expect(() => parseDurationMs(NaN as unknown as number, 0)).toThrow(/invalid duration/);
+  });
+});
 
 describe("parser", () => {
   it("extracts frontmatter", () => {
@@ -202,7 +232,7 @@ url: http://localhost
 \`\`\`transition
 type: spin
 \`\`\`
-`)).toThrow(/transition/i);
+`)).toThrow(/unknown type/);
   });
 
   it("rejects a transition block with no type field", () => {
