@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Daymo sample app</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #111; }
+    h1 { margin-bottom: 8px; }
+    button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    button.primary { background: #2563eb; color: white; border-color: transparent; }
+    .project { padding: 12px; border: 1px solid #eee; border-radius: 6px; margin-bottom: 8px; }
+    dialog { padding: 24px; border: 0; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.2); min-width: 360px; }
+    input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Projects</h1>
+  <p id="greeting">Welcome.</p>
+  <div id="list" data-testid="project-list"></div>
+  <button data-testid="new-project-btn" class="primary">New Project</button>
+
+  <dialog data-testid="new-project-dialog">
+    <form method="dialog">
+      <h2>New project</h2>
+      <input data-testid="project-name-input" placeholder="Project name" />
+      <p>
+        <button value="cancel">Cancel</button>
+        <button value="create" class="primary" data-testid="create-btn">Create</button>
+      </p>
+    </form>
+  </dialog>
+
+  <script>
+    async function load() {
+      const me = await fetch("/api/me").then(r => r.json()).catch(() => ({ name: "Guest" }));
+      document.getElementById("greeting").textContent = "Welcome, " + me.name + ".";
+      const projects = await fetch("/api/projects").then(r => r.json()).catch(() => []);
+      document.getElementById("list").innerHTML = projects
+        .map(p => `<div class="project" data-testid="project-row">${p.name}</div>`)
+        .join("");
+    }
+    load();
+    const dialog = document.querySelector("dialog");
+    document.querySelector("[data-testid=new-project-btn]").addEventListener("click", () => dialog.showModal());
+  </script>
+</body>
+</html>
