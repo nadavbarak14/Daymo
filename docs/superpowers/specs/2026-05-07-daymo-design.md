@@ -5,7 +5,7 @@
 
 ## Goal
 
-Build a tool that turns a single human-readable file (`.demo` markdown) into a polished demo video. Authoring is AI-driven: the user prompts Claude Code (or any agent), which writes the file. The tool drives the user's real frontend through a real browser, captures interaction with cursor and overlays injected live, and produces an MP4 with TTS narration and music.
+Build a tool that turns a single human-readable file (`.demo` markdown) into a polished demo video. Authoring is AI-driven: the user prompts Claude Code (or any agent), which writes the file. The tool drives the user's real frontend through a real browser, captures interaction with cursor and overlays injected live, and produces an MP4 with on-screen captions and optional background music.
 
 The same file, the same output, regardless of whether the author is a developer (writing it themselves) or a non-developer (prompting Claude Code).
 
@@ -26,7 +26,7 @@ Explicitly **not** the audience: enterprise sales/marketing teams whose buyers d
 - **Agent-first authoring.** Existing demo tools (Arcade, Storylane, Supademo) are recording-first: capture clicks, edit in a SaaS UI. Daymo is the opposite — describe the demo, an agent generates a portable file. This sidesteps the "click-and-edit" UX entirely. Possible now because LLMs in 2026 author Playwright code and structured markdown reliably.
 - **Portable, version-controlled file format.** A `.demo` file lives in a git repo (or anywhere). It's diff-able, AI-editable, and renders as readable docs on GitHub. No backend lock-in.
 - **Real frontend, mocked backend.** The demo *is* the real running app, just with the network mocked. Demos look exactly like production because they are production. Backend can be broken, half-built, or absent.
-- **Tractable to ship.** v0.1 is ~500 LoC of pipeline glue over mature dependencies (Playwright, ffmpeg, an off-the-shelf TTS API). No novel research. Weeks not months to a working MVP.
+- **Tractable to ship.** v0.1 is ~400 LoC of pipeline glue over mature dependencies (Playwright, ffmpeg). No novel research. Weeks not months to a working MVP.
 
 ## Non-goals
 
@@ -76,13 +76,13 @@ Five components, each with one job, decoupled by an artifact directory:
 2. **Demo runner** — parses the file, orchestrates everything else, writes artifacts to disk
 3. **Playwright controller** — launches a Chromium instance, applies auth state, sets up mocks, executes scene actions in a sandbox, records raw page video + event log
 4. **Mock layer** — pluggable mock sources behind a single interface (v0.1: inline mocks only)
-5. **Compositor** — reads the artifact directory, generates TTS narration, mixes with music, encodes final MP4 with ffmpeg
+5. **Compositor** — reads the artifact directory, optionally mixes a music track, encodes the final MP4 with ffmpeg
 
 The runner and compositor communicate **only through an artifact directory** on disk (`./artifacts/<demo-id>/`). This means capture and render can be debugged and re-run independently — if the video looks wrong, we don't re-run Playwright.
 
 ## The `.demo` file format
 
-A `.demo` file is markdown with YAML frontmatter. Headings define scenes. Each scene contains prose narration, fenced code blocks for Playwright actions, and fenced directive blocks for overlays.
+A `.demo` file is markdown with YAML frontmatter. Headings define scenes. Each scene contains prose (rendered as on-screen captions), fenced code blocks for Playwright actions, and fenced directive blocks for overlays.
 
 ````markdown
 ---
@@ -90,7 +90,6 @@ title: Create your first project
 description: Walks a new user through creating their first project in Daymo.
 url: http://localhost:3000
 viewport: { width: 1440, height: 900 }
-voice: en-US-emma
 music: gentle-corporate.mp3
 mocks:
   - source: inline
@@ -133,9 +132,9 @@ await page.waitForSelector("[role='dialog']");
 
 | Element | Purpose |
 |---|---|
-| YAML frontmatter | Global config: starting URL, viewport, voice, music, mock sources, auth state |
-| `# Heading` | Scene title — the section name in the voiceover and a chunk title for future retrieval (v0.2 chat layer) |
-| Prose under heading | Two jobs: TTS reads it aloud as narration; embeddings index it for "how to" search later |
+| YAML frontmatter | Global config: starting URL, viewport, music, mock sources, auth state |
+| `# Heading` | Scene title — displayed as a banner at the top of the scene and a chunk title for future retrieval (v0.2 chat layer) |
+| Prose under heading | Two jobs: rendered as on-screen captions during the scene; embeddings index it for "how to" search later (v0.2) |
 | ` ```playwright ` block | Actions to execute. Standard Playwright `page` API plus an `fx` helper namespace for demo-specific operations |
 | ` ```overlay ` block | Declarative creative layer: callouts, highlights, dwells, zooms |
 | `---` | Scene break — visual breathing room and a parser delimiter |
@@ -186,7 +185,7 @@ Run order:
      c. Each `overlay` directive is emitted as an event with t_start, target bbox, params
      d. Mark t_scene_end
 8. Stop   capture          → save raw_page.webm
-9. Hand off to compositor with: raw_page.webm + events.json + scene narration text
+9. Hand off to compositor with: raw_page.webm + events.json (captions are already burned into the video by the in-browser caption banner)
 ```
 
 ### Sandbox: how Playwright code blocks are executed
@@ -243,31 +242,29 @@ The runner then issues commands via `page.evaluate(...)` to manipulate the injec
 | Cursor | In-browser (injected SVG) | Tracks DOM elements through scroll/layout shift |
 | Element highlight | In-browser (CSS outline) | Toggle a class on the target |
 | Callout text | In-browser (HTML overlay div) | v0.1: simple HTML; v0.2 considers post-video for higher quality |
+| Scene captions | In-browser (fixed banner div) | Each scene's prose appears as captions for the duration of the scene |
 | Zoom | In-browser (CSS transform) | v0.1: `transform: scale(1.5)`; v0.2: smooth pan/zoom in compositor |
-| Narration audio | Post-video (TTS + ffmpeg mix) | Browser can't generate TTS |
-| Music | Post-video (ffmpeg) | Mixed with narration |
+| Music | Post-video (ffmpeg) | Mixed at fixed volume; optional |
 
-Title cards and scene transitions are not in v0.1. If a demo needs an intro frame, the author writes a scene with prose narration, a `pause`, and a callout — no special title-card primitive needed.
+Title cards and scene transitions are not in v0.1. If a demo needs an intro frame, the author writes a scene with prose (which becomes the caption banner), a `pause`, and a callout — no special title-card primitive needed.
 
-## Audio compositing
+## Compositing
 
-The compositor is a thin wrapper over ffmpeg. After capture:
+The compositor is a thin wrapper over ffmpeg. After capture, it transcodes `raw_page.webm` to MP4 and optionally mixes in a music track:
 
-1. **Generate TTS** — for each scene, pass the prose narration to the configured TTS provider (OpenAI TTS, edge-tts, ElevenLabs). Output: one MP3 per scene, plus a concatenated full-narration track with silence padding to match scene timestamps from `events.json`.
-2. **Mix** — single ffmpeg invocation:
-   ```
-   ffmpeg
-     -i raw_page.webm
-     -i narration.mp3
-     -i music.mp3
-     -filter_complex "[1:a]volume=1.0[v];[2:a]volume=0.3[m];[v][m]amix=inputs=2[a]"
-     -map 0:v -map [a]
-     -c:v libx264 -c:a aac
-     output.mp4
-   ```
-3. **Output** — `output.mp4` is the final deliverable. The artifacts directory keeps everything for re-rendering.
+- **With music** — single ffmpeg invocation:
+  ```
+  ffmpeg -y -i raw_page.webm -i music.mp3 \
+    -filter_complex "[1:a]volume=0.4[m]" \
+    -map 0:v -map [m] \
+    -c:v libx264 -c:a aac output.mp4
+  ```
+- **Without music** — no audio in the output:
+  ```
+  ffmpeg -y -i raw_page.webm -map 0:v -an -c:v libx264 output.mp4
+  ```
 
-Music is optional. When `music` is omitted from the frontmatter, the compositor drops the music input from the filter graph and uses the narration track directly as the audio. When narration is also disabled (`daymo preview`), the video is muxed without an audio track.
+`output.mp4` is the final deliverable. The artifacts directory keeps `raw_page.webm` and `events.json` for re-rendering.
 
 ## MVP scope (v0.1)
 
@@ -277,8 +274,7 @@ A CLI distributed as an npm package. Authoring is intentionally not bundled — 
 
 ```
 daymo render <file>         Execute the demo and produce output.mp4
-daymo preview <file>        Render at lower fidelity (no TTS, no music) for fast iteration
-daymo doctor                Verify Playwright, ffmpeg, and TTS API key are configured
+daymo doctor                Verify Playwright and ffmpeg are configured
 ```
 
 Canonical invocation is `npx daymo render <file>` — npm caches the package after the first run, so no explicit install is required. A global install (`npm install -g daymo`) is supported but optional.
@@ -287,15 +283,15 @@ Canonical invocation is `npx daymo render <file>` — npm caches the package aft
 
 - `.demo` file format (markdown with frontmatter, scenes, Playwright + overlay blocks)
 - Demo runner (parse, sandbox, orchestrate)
-- Playwright controller (init script with overlay manager, capture loop)
+- Playwright controller (init script with overlay + caption manager, capture loop)
 - `fx` runtime (`cursorTo`, `typeWithDelay`, `zoom`, `pause`, `callout`, `highlight`)
+- In-browser scene captions (each scene's prose displayed as a banner for the scene's duration)
 - Inline mock layer
-- ffmpeg-based audio compositor
+- ffmpeg compositor (transcode + optional music mix)
 - README with the format specification and a worked example `.demo` file (so humans and AI agents can author against it without an installed skill)
 
 ### Format details
 
-- **`voice` values** follow the configured TTS provider's voice IDs. The default provider is OpenAI TTS (voices: `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`). Users can switch providers via env var (`DAYMO_TTS_PROVIDER=elevenlabs`) and use that provider's voice IDs. Voice naming is not normalized across providers in v0.1.
 - **`music` values** are user-provided file paths relative to the `.demo` file. Daymo does not bundle music. If a music license check is desired, that is the user's responsibility.
 - **Mock values** in inline mode accept JSON for the response body. Headers and status default to `200 OK` / `application/json`. Specifying status or custom headers requires the long-form object: `{ status: 404, body: { error: "not found" } }`.
 
@@ -308,7 +304,8 @@ Canonical invocation is `npx daymo render <file>` — npm caches the package aft
 - Hosted web UI
 - Static / component rendering modes
 - Smooth pan/zoom, vector text overlays
-- Background music ducking under narration
+- TTS narration (use on-screen captions instead; TTS deferred until needed)
+- `daymo preview` / fast-iteration command (no longer needed without TTS — render is fast enough)
 - `daymo init` / template scaffolding (the README is the template)
 - Claude Code skill or any other agent integration (deferred to v0.2 marketplace release)
 
@@ -330,20 +327,19 @@ Three tiers, biased toward fast feedback. Test runner: **vitest** (TS-native, fa
 
 **End-to-end smoke (one test, gated):**
 
-- A 2-scene `.demo` runs against the static HTML fixture
-- TTS provider is mocked (returns a pre-canned MP3); music is a fixture file
-- Assertions: `output.mp4` exists, has a video stream and an audio stream (verified via `ffprobe`), duration is within ±0.5s of the expected total
-- **Not** asserted: pixel-perfect frames, animation smoothness, narration quality — these are manual eyeballing tasks
+- A 2-scene `.demo` runs against the static HTML fixture; music is a short fixture file
+- Assertions: `output.mp4` exists, has a video stream and an audio stream (verified via `ffprobe`), video duration is within ±0.5s of the expected total
+- A second smoke variant with no `music` configured asserts `output.mp4` has a video stream and **no** audio stream
+- **Not** asserted: pixel-perfect frames, animation smoothness, caption styling — these are manual eyeballing tasks
 
 **Explicitly out of CI:**
 
-- Real TTS API calls (mock the provider)
 - Visual diff of MP4 frames (brittle; not worth the maintenance cost)
 - Real network beyond localhost
 
 ## Risks and open questions
 
-1. **TTS quality cliff.** Auto-generated narration that sounds robotic kills the demo. Mitigation: support multiple TTS providers; default to a high-quality one (OpenAI TTS or ElevenLabs); document trade-offs. Open: should we offer "narration off" mode for users to dub manually?
+1. **Caption legibility.** On-screen captions need to remain readable over arbitrary backgrounds (light pages, dark pages, busy hero images). Mitigation: a high-contrast banner (dark background, white text, drop shadow) at a fixed position; overrideable via CSS in a future release.
 2. **Selector brittleness.** `[data-testid=...]` selectors break when the codebase changes. The Claude Code authoring step should prefer accessible selectors (`getByRole`, `getByLabel`); the runner should give helpful errors with screenshots when a selector misses.
 3. **Auth flows.** Login flows that touch external IdPs (Auth0, Clerk, OAuth providers) are very hard to mock. v0.1 punts: the user logs in once manually and saves `storageState` to a file, then the demo loads from that. v0.2 considers a "login recorder" command that captures storageState from a real session.
 4. **Mock authoring burden.** Even inline mocks are tedious to write by hand. v0.1 leans entirely on Claude Code to generate plausible mocks from API spec / source code. v0.2's HAR recorder reduces this dramatically.
@@ -353,8 +349,8 @@ Three tiers, biased toward fast feedback. Test runner: **vitest** (TS-native, fa
 ## Definition of done for v0.1
 
 - A user can run `npx daymo render <file>` against a `.demo` file (authored by hand or by an AI agent given the format spec) and produce an MP4 of their real local frontend within five minutes — first run included, accounting for the one-time Playwright Chromium download.
-- The MP4 contains: real page footage, animated cursor, on-screen callouts, TTS narration, optional background music.
-- The pipeline is reproducible: same inputs produce visually-identical outputs (modulo TTS API non-determinism).
+- The MP4 contains: real page footage, animated cursor, on-screen callouts, on-screen scene captions (rendered from the prose under each heading), and optional background music.
+- The pipeline is reproducible: same inputs produce byte-identical outputs (no TTS, no other non-determinism).
 - The README contains a worked example `.demo` file demonstrating a complete end-to-end flow including mocks, suitable for both humans and AI agents to copy from.
 
 ## Next steps after this design is approved
