@@ -1,6 +1,7 @@
 import type { FocusEvent } from "react";
 import { useUi } from "../store";
 import { api } from "../lib/api";
+import { ComposerInline, DraftList } from "./Composer";
 
 export function Script() {
   const { state, selectedSceneIndex, patchScene } = useUi();
@@ -25,6 +26,8 @@ export function Script() {
       >
         {row.prose}
       </div>
+      <ComposerInline sceneIndex={selectedSceneIndex} target={{ kind: "caption" }} />
+      <DraftList sceneIndex={selectedSceneIndex} />
     </div>
   );
 }

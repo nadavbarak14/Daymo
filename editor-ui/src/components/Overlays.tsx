@@ -1,4 +1,5 @@
 import { useUi } from "../store";
+import { ComposerInline } from "./Composer";
 
 export function Overlays() {
   const { state, selectedSceneIndex } = useUi();
@@ -16,6 +17,7 @@ export function Overlays() {
           )}
           {o.text && <div>text: {o.text}</div>}
           {o.duration && <div>duration: {o.duration}</div>}
+          <ComposerInline sceneIndex={selectedSceneIndex} target={{ kind: "overlay", index: i }} />
         </div>
       ))}
     </div>
