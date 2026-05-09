@@ -1,5 +1,7 @@
 import type { Scene } from "../types.js";
 import type { EditorState, SceneRow, StateAction } from "./types.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 export interface InitialStateOpts {
   demoFile: string;
@@ -51,4 +53,51 @@ export function reduce(s: EditorState, a: StateAction): EditorState {
     default:
       return s;
   }
+}
+
+interface Persisted {
+  version: 1;
+  scenes: Array<{
+    sourceLine: number;
+    state: import("./types.js").SceneState;
+    webmPath?: string;
+    eventsPath?: string;
+    capturedAt?: number;
+  }>;
+}
+
+export async function saveState(file: string, s: EditorState): Promise<void> {
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  const data: Persisted = {
+    version: 1,
+    scenes: s.scenes.map((r) => ({
+      sourceLine: r.sourceLine,
+      state: r.state,
+      webmPath: r.webmPath,
+      eventsPath: r.eventsPath,
+      capturedAt: r.capturedAt,
+    })),
+  };
+  await fs.writeFile(file, JSON.stringify(data, null, 2));
+}
+
+export async function loadState(file: string, scenes: Scene[], demoFile: string): Promise<EditorState> {
+  let raw: string;
+  try { raw = await fs.readFile(file, "utf8"); }
+  catch { return initialState({ demoFile, scenes }); }
+  const data = JSON.parse(raw) as Persisted;
+  let s = initialState({ demoFile, scenes });
+  for (let i = 0; i < s.scenes.length; i++) {
+    const persisted = data.scenes.find((p) => p.sourceLine === s.scenes[i].sourceLine);
+    if (!persisted) continue;
+    if (persisted.state === "captured" || persisted.state === "approved") {
+      if (persisted.webmPath) {
+        s = reduce(s, { type: "capture-done", sceneIndex: i, webmPath: persisted.webmPath, eventsPath: persisted.eventsPath });
+      }
+    }
+    if (persisted.state === "approved") {
+      s = reduce(s, { type: "approve", sceneIndex: i, approved: true });
+    }
+  }
+  return s;
 }
