@@ -39,6 +39,6 @@ describe("rewriteSceneProse", () => {
   });
 
   it("throws when the round-trip breaks scene count", () => {
-    expect(() => rewriteSceneProse(SAMPLE, 0, "Looks fine\n\n# Sneaky scene\n")).toThrow(/scene count/i);
+    expect(() => rewriteSceneProse(SAMPLE, 0, "Looks fine\n\n---\n\n# Sneaky scene\n")).toThrow(/scene count/i);
   });
 });

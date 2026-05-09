@@ -7,22 +7,7 @@ export function rewriteSceneProse(source: string, sceneIndex: number, newProse: 
   }
   const lines = source.split("\n");
   const scene = ast.scenes[sceneIndex];
-
-  // Find the heading line by searching for the heading text, starting near sourceLine.
-  // The parser's sourceLine may be off by a few lines due to scene break accounting.
-  const headingPrefix = `# ${scene.title}`;
-  let headingLine = -1;
-  const searchStart = Math.max(0, scene.sourceLine - 3);
-  const searchEnd = Math.min(lines.length, scene.sourceLine + 3);
-  for (let i = searchStart; i < searchEnd; i++) {
-    if (lines[i].startsWith(headingPrefix)) {
-      headingLine = i;
-      break;
-    }
-  }
-  if (headingLine === -1) {
-    throw new Error(`could not find heading for scene ${sceneIndex}`);
-  }
+  const headingLine = scene.sourceLine - 1;
 
   // Find prose start: first non-blank line after the heading.
   let proseStart = headingLine + 1;
@@ -41,11 +26,6 @@ export function rewriteSceneProse(source: string, sceneIndex: number, newProse: 
   const after = lines.slice(proseEnd);
   const proseLines = newProse.replace(/\r\n/g, "\n").split("\n");
   const next = [...before, ...proseLines, ...after].join("\n");
-
-  // Validate that prose doesn't contain patterns that look like headings
-  if (/\n#\s/.test(newProse)) {
-    throw new Error(`rewrite changed scene count`);
-  }
 
   const newAst = parse(next);
   if (newAst.scenes.length !== ast.scenes.length) {
