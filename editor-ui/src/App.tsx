@@ -5,6 +5,7 @@ import { api } from "./lib/api";
 import { Rail } from "./components/Rail";
 import { Preview } from "./components/Preview";
 import { SceneTabs } from "./components/Tabs";
+import { ReviewBar } from "./components/ReviewBar";
 
 export function App() {
   const { setState, patchScene } = useUi();
@@ -22,6 +23,9 @@ export function App() {
         <Rail />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-3 py-2 border-b border-zinc-800 flex justify-end">
+          <ReviewBar />
+        </div>
         <Preview />
         <SceneTabs />
       </div>
