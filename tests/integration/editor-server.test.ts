@@ -3,6 +3,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
 import { startEditor, type EditorHandle } from "../../src/editor/index.js";
+import { startSampleApp, stopSampleApp } from "./server.js";
+import { EventSource } from "eventsource";
 
 let h: EditorHandle;
 let demoFile: string;
@@ -33,4 +35,45 @@ describe("GET /api/state", () => {
     expect(j.scenes[0].state).toBe("pending");
     expect(j.scenes[0].title).toBe("A");
   });
+});
+
+describe("POST /api/capture/:n", () => {
+  let appUrl: string;
+  let h2: EditorHandle;
+  beforeAll(async () => { appUrl = await startSampleApp(); }, 30_000);
+  afterAll(async () => { await stopSampleApp(); await h2?.stop(); });
+
+  it("captures a scene and emits capture-done via SSE", async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-cap-server-"));
+    const file = path.join(tmp, "demo.demo");
+    await fs.writeFile(file, `---
+title: T
+url: ${appUrl}
+---
+
+# A
+
+prose
+`);
+    h2 = await startEditor({ demoFile: file, port: 0 });
+
+    const events: any[] = [];
+    const ev = new EventSource(`${h2.url}/api/events`);
+    ev.onmessage = (m) => events.push(JSON.parse(m.data));
+    await new Promise((r) => setTimeout(r, 50));
+
+    const r = await fetch(`${h2.url}/api/capture/0`, { method: "POST" });
+    expect(r.ok).toBe(true);
+
+    const deadline = Date.now() + 25_000;
+    while (Date.now() < deadline) {
+      if (events.some((e) => e.type === "capture-done" && e.sceneIndex === 0)) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(events.find((e) => e.type === "capture-done")).toBeTruthy();
+
+    const state = await (await fetch(`${h2.url}/api/state`)).json();
+    expect(state.scenes[0].state).toBe("captured");
+    ev.close();
+  }, 60_000);
 });

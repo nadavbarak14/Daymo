@@ -25,3 +25,19 @@ export function methodNotAllowed(res: ServerResponse): void {
   res.writeHead(405, { "content-type": "text/plain" });
   res.end("method not allowed");
 }
+
+export interface CaptureCtx extends ApiCtx {
+  enqueueCapture(sceneIndex: number): void;
+  sceneCount(): number;
+}
+
+export async function handleCapture(ctx: CaptureCtx, sceneIndex: number, res: ServerResponse): Promise<void> {
+  if (sceneIndex < 0 || sceneIndex >= ctx.sceneCount()) {
+    res.writeHead(404, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "scene out of range" }));
+    return;
+  }
+  ctx.enqueueCapture(sceneIndex);
+  res.writeHead(202, { "content-type": "application/json" });
+  res.end(JSON.stringify({ ok: true }));
+}
