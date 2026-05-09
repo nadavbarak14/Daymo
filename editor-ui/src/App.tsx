@@ -4,6 +4,7 @@ import { useSse } from "./lib/sse";
 import { api } from "./lib/api";
 import { Rail } from "./components/Rail";
 import { Preview } from "./components/Preview";
+import { SceneTabs } from "./components/Tabs";
 
 export function App() {
   const { setState, patchScene } = useUi();
@@ -22,7 +23,7 @@ export function App() {
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <Preview />
-        {/* Tabs go here in Task 21 */}
+        <SceneTabs />
       </div>
     </div>
   );
