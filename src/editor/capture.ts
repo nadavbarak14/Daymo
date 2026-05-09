@@ -14,11 +14,18 @@ export interface CaptureQueueOpts {
 export class CaptureQueue {
   private running = false;
   private q: number[] = [];
+  private idleResolvers: Array<() => void> = [];
   constructor(private opts: CaptureQueueOpts) {}
 
   enqueue(sceneIndex: number): void {
     this.q.push(sceneIndex);
     if (!this.running) void this.drain();
+  }
+
+  /** Resolves when the queue is empty (and any in-flight capture has finished). */
+  whenIdle(): Promise<void> {
+    if (!this.running && this.q.length === 0) return Promise.resolve();
+    return new Promise((resolve) => this.idleResolvers.push(resolve));
   }
 
   private async drain(): Promise<void> {
@@ -40,5 +47,7 @@ export class CaptureQueue {
       }
     }
     this.running = false;
+    const resolvers = this.idleResolvers.splice(0);
+    for (const r of resolvers) r();
   }
 }

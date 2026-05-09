@@ -121,6 +121,11 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
   return {
     url: srv.url,
     port: srv.port,
-    stop: async () => { await srv.stop(); await watcher.stop(); await saveState(stateFile, state); },
+    stop: async () => {
+      await srv.stop();
+      await queue.whenIdle();
+      await watcher.stop();
+      await saveState(stateFile, state);
+    },
   };
 }
