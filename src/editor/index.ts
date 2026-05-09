@@ -85,6 +85,9 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     watcher.suppressNext();
     await fs.writeFile(demoFile, next);
     ast = await readAst();
+    state = reduce(state, { type: "scene-changed", sceneIndex: i });
+    void saveState(stateFile, state);
+    sse.publish({ type: "state", state });
   };
 
   const stitchNow = async () => {
