@@ -8,6 +8,7 @@ import { SseBus } from "./sse.js";
 import { CaptureQueue } from "./capture.js";
 import { rewriteSceneProse } from "./script-rewrite.js";
 import { stitch } from "./stitch.js";
+import { Watcher } from "./watcher.js";
 
 export interface StartEditorOpts {
   demoFile: string;
@@ -51,9 +52,36 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     sse.publish({ type: "state", state });
   };
 
+  const watcher = new Watcher({
+    paths: [demoFile],
+    debounceMs: 100,
+    onChange: async () => {
+      const newAst = await readAst();
+      if (newAst.scenes.length !== state.scenes.length) {
+        state = reduce(state, { type: "scenes-replaced", scenes: newAst.scenes });
+      } else {
+        for (let i = 0; i < state.scenes.length; i++) {
+          const oldRow = state.scenes[i];
+          const newScene = newAst.scenes[i];
+          if (newScene.sourceLine !== oldRow.sourceLine ||
+              newScene.prose !== oldRow.prose ||
+              newScene.title !== oldRow.title) {
+            state = reduce(state, { type: "scene-changed", sceneIndex: i });
+          }
+        }
+      }
+      ast = newAst;
+      void saveState(stateFile, state);
+      sse.publish({ type: "demo-changed" });
+      sse.publish({ type: "state", state });
+    },
+  });
+  await watcher.start();
+
   const rewriteProse = async (i: number, prose: string) => {
     const src = await fs.readFile(demoFile, "utf8");
     const next = rewriteSceneProse(src, i, prose);
+    watcher.suppressNext();
     await fs.writeFile(demoFile, next);
     ast = await readAst();
   };
@@ -87,6 +115,6 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
   return {
     url: srv.url,
     port: srv.port,
-    stop: async () => { await srv.stop(); await saveState(stateFile, state); },
+    stop: async () => { await srv.stop(); await watcher.stop(); await saveState(stateFile, state); },
   };
 }
