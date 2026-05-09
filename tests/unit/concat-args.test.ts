@@ -12,6 +12,11 @@ describe("buildConcatList", () => {
       "file '/abs/cap with space/scene-002.webm'",
     ]);
   });
+
+  it("escapes single quotes in paths", () => {
+    const txt = buildConcatList(["/abs/it's/scene-001.webm"]);
+    expect(txt.trim()).toBe(`file '/abs/it'\\''s/scene-001.webm'`);
+  });
 });
 
 describe("buildStitchArgs", () => {

@@ -1,5 +1,5 @@
 export function buildConcatList(scenePaths: string[]): string {
-  return scenePaths.map((p) => `file '${p}'`).join("\n") + "\n";
+  return scenePaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join("\n") + "\n";
 }
 
 export interface BuildStitchArgsOpts {
