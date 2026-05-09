@@ -61,3 +61,23 @@ export async function readJson<T>(req: IncomingMessage): Promise<T> {
   for await (const c of req as unknown as Readable) chunks.push(c as Buffer);
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
 }
+
+export interface ScriptCtx extends ApiCtx {
+  rewriteProse(sceneIndex: number, prose: string): Promise<void>;
+}
+
+export async function handleScript(
+  ctx: ScriptCtx,
+  sceneIndex: number,
+  body: { prose: string },
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    await ctx.rewriteProse(sceneIndex, body.prose);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  } catch (e) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: (e as Error).message }));
+  }
+}

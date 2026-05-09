@@ -88,3 +88,16 @@ describe("POST /api/approve/:n", () => {
     expect(r.status).toBe(409);
   });
 });
+
+describe("POST /api/script/:n", () => {
+  it("rewrites prose in the .demo file", async () => {
+    const r = await fetch(`${h.url}/api/script/0`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prose: "edited prose" }),
+    });
+    expect(r.ok).toBe(true);
+    const text = await fs.readFile(demoFile, "utf8");
+    expect(text).toContain("edited prose");
+  });
+});

@@ -1,7 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
-import { handleGetState, handleEvents, handleCapture, handleApprove, readJson, notFound } from "./api.js";
+import { handleGetState, handleEvents, handleCapture, handleApprove, handleScript, readJson, notFound } from "./api.js";
 
 export interface ServerOpts {
   port: number;
@@ -9,6 +9,7 @@ export interface ServerOpts {
   getState: () => EditorState;
   enqueueCapture: (sceneIndex: number) => void;
   approve: (sceneIndex: number, approved: boolean) => void;
+  rewriteProse: (sceneIndex: number, prose: string) => Promise<void>;
 }
 
 export interface ServerHandle {
@@ -37,6 +38,11 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
       if (am && req.method === "POST") {
         const body = await readJson<{ approved: boolean }>(req);
         return handleApprove({ ...ctx, approve: opts.approve }, Number(am[1]), body, res);
+      }
+      const sm = url.pathname.match(/^\/api\/script\/(\d+)$/);
+      if (sm && req.method === "POST") {
+        const body = await readJson<{ prose: string }>(req);
+        return handleScript({ ...ctx, rewriteProse: opts.rewriteProse }, Number(sm[1]), body, res);
       }
       notFound(res);
     } catch (e) {

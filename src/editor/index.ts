@@ -6,6 +6,7 @@ import type { EditorState } from "./types.js";
 import { startServer, type ServerHandle } from "./server.js";
 import { SseBus } from "./sse.js";
 import { CaptureQueue } from "./capture.js";
+import { rewriteSceneProse } from "./script-rewrite.js";
 
 export interface StartEditorOpts {
   demoFile: string;
@@ -49,12 +50,20 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     sse.publish({ type: "state", state });
   };
 
+  const rewriteProse = async (i: number, prose: string) => {
+    const src = await fs.readFile(demoFile, "utf8");
+    const next = rewriteSceneProse(src, i, prose);
+    await fs.writeFile(demoFile, next);
+    ast = await readAst();
+  };
+
   const srv: ServerHandle = await startServer({
     port: opts.port ?? 0,
     sse,
     getState: () => state,
     enqueueCapture: (i) => queue.enqueue(i),
     approve,
+    rewriteProse,
   });
 
   return {
