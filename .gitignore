@@ -6,3 +6,9 @@ artifacts/
 .env
 .env.local
 .superpowers/
+editor-ui/dist/
+editor-ui/node_modules/
+editor-ui/*.tsbuildinfo
+editor-ui/*.d.ts
+editor-ui/vite.config.js
+editor-ui/tailwind.config.js
