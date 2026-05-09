@@ -13,6 +13,7 @@ import { Watcher } from "./watcher.js";
 export interface StartEditorOpts {
   demoFile: string;
   port?: number;
+  uiDir?: string;
 }
 
 export interface EditorHandle {
@@ -110,6 +111,8 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     approve,
     rewriteProse,
     stitchNow,
+    uiDir: opts.uiDir,
+    capturesDir,
   });
 
   return {

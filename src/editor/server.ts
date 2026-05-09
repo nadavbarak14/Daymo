@@ -1,7 +1,51 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
+import fs from "node:fs/promises";
+import path from "node:path";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
 import { handleGetState, handleEvents, handleCapture, handleApprove, handleScript, handleStitch, readJson, notFound } from "./api.js";
+
+const MIME: Record<string, string> = {
+  ".html": "text/html",
+  ".js": "application/javascript",
+  ".mjs": "application/javascript",
+  ".css": "text/css",
+  ".svg": "image/svg+xml",
+  ".webm": "video/webm",
+  ".mp4": "video/mp4",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+};
+
+async function serveStatic(rootDir: string, urlPath: string, res: ServerResponse): Promise<void> {
+  const safeRel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
+  const filePath = path.normalize(path.join(rootDir, safeRel));
+  const rootResolved = path.resolve(rootDir);
+  if (!path.resolve(filePath).startsWith(rootResolved)) {
+    res.writeHead(403);
+    res.end();
+    return;
+  }
+  try {
+    const data = await fs.readFile(filePath);
+    const ext = path.extname(filePath);
+    res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream" });
+    res.end(data);
+  } catch {
+    // SPA fallback only for HTML routes
+    if (urlPath.endsWith(".html") || !path.extname(urlPath)) {
+      try {
+        const data = await fs.readFile(path.join(rootResolved, "index.html"));
+        res.writeHead(200, { "content-type": "text/html" });
+        res.end(data);
+        return;
+      } catch {}
+    }
+    res.writeHead(404, { "content-type": "text/plain" });
+    res.end("not found");
+  }
+}
 
 export interface ServerOpts {
   port: number;
@@ -11,6 +55,8 @@ export interface ServerOpts {
   approve: (sceneIndex: number, approved: boolean) => void;
   rewriteProse: (sceneIndex: number, prose: string) => Promise<void>;
   stitchNow: () => Promise<string>;
+  uiDir?: string;
+  capturesDir: string;
 }
 
 export interface ServerHandle {
@@ -51,6 +97,17 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
           res,
         );
       }
+      // Captures (always served from .daymo/captures/)
+      if (url.pathname.startsWith("/captures/")) {
+        const sub = url.pathname.slice("/captures/".length);
+        return serveStatic(opts.capturesDir, "/" + sub, res);
+      }
+
+      // UI bundle (only if uiDir provided)
+      if (opts.uiDir) {
+        return serveStatic(opts.uiDir, url.pathname, res);
+      }
+
       notFound(res);
     } catch (e) {
       res.writeHead(500, { "content-type": "text/plain" });

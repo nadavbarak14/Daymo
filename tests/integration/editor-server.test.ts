@@ -108,3 +108,25 @@ describe("POST /api/stitch", () => {
     expect(r.status).toBe(409);
   });
 });
+
+describe("static UI", () => {
+  it("serves index.html at /", async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-static-"));
+    await fs.writeFile(path.join(tmp, "index.html"), "<html>hi</html>");
+    const file = path.join(tmp, "demo.demo");
+    await fs.writeFile(file, `---
+title: T
+url: http://x
+---
+
+# A
+
+p
+`);
+    const h3 = await startEditor({ demoFile: file, port: 0, uiDir: tmp });
+    try {
+      const r = await fetch(`${h3.url}/`);
+      expect(await r.text()).toContain("<html>hi</html>");
+    } finally { await h3.stop(); }
+  });
+});
