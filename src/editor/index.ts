@@ -7,6 +7,7 @@ import { startServer, type ServerHandle } from "./server.js";
 import { SseBus } from "./sse.js";
 import { CaptureQueue } from "./capture.js";
 import { rewriteSceneProse } from "./script-rewrite.js";
+import { stitch } from "./stitch.js";
 
 export interface StartEditorOpts {
   demoFile: string;
@@ -57,6 +58,22 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     ast = await readAst();
   };
 
+  const stitchNow = async () => {
+    const scenePaths = state.scenes.map((r) => r.webmPath!).filter(Boolean);
+    const baseDir = path.dirname(demoFile);
+    const music = ast.frontmatter.music ? path.resolve(baseDir, ast.frontmatter.music) : null;
+    const out = path.join(baseDir, "output.mp4");
+    await stitch({
+      scenePaths,
+      music,
+      output: out,
+      workDir: dotDir,
+      onLine: (l) => sse.publish({ type: "stitch-progress", line: l }),
+    });
+    sse.publish({ type: "stitch-done", output: out });
+    return out;
+  };
+
   const srv: ServerHandle = await startServer({
     port: opts.port ?? 0,
     sse,
@@ -64,6 +81,7 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     enqueueCapture: (i) => queue.enqueue(i),
     approve,
     rewriteProse,
+    stitchNow,
   });
 
   return {

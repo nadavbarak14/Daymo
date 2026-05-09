@@ -101,3 +101,10 @@ describe("POST /api/script/:n", () => {
     expect(text).toContain("edited prose");
   });
 });
+
+describe("POST /api/stitch", () => {
+  it("returns 409 when not all scenes approved", async () => {
+    const r = await fetch(`${h.url}/api/stitch`, { method: "POST" });
+    expect(r.status).toBe(409);
+  });
+});

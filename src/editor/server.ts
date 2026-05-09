@@ -1,7 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
-import { handleGetState, handleEvents, handleCapture, handleApprove, handleScript, readJson, notFound } from "./api.js";
+import { handleGetState, handleEvents, handleCapture, handleApprove, handleScript, handleStitch, readJson, notFound } from "./api.js";
 
 export interface ServerOpts {
   port: number;
@@ -10,6 +10,7 @@ export interface ServerOpts {
   enqueueCapture: (sceneIndex: number) => void;
   approve: (sceneIndex: number, approved: boolean) => void;
   rewriteProse: (sceneIndex: number, prose: string) => Promise<void>;
+  stitchNow: () => Promise<string>;
 }
 
 export interface ServerHandle {
@@ -43,6 +44,12 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
       if (sm && req.method === "POST") {
         const body = await readJson<{ prose: string }>(req);
         return handleScript({ ...ctx, rewriteProse: opts.rewriteProse }, Number(sm[1]), body, res);
+      }
+      if (url.pathname === "/api/stitch" && req.method === "POST") {
+        return handleStitch(
+          { ...ctx, stitchNow: opts.stitchNow, allApproved: () => opts.getState().allApproved },
+          res,
+        );
       }
       notFound(res);
     } catch (e) {

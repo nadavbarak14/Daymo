@@ -81,3 +81,24 @@ export async function handleScript(
     res.end(JSON.stringify({ error: (e as Error).message }));
   }
 }
+
+export interface StitchCtx extends ApiCtx {
+  stitchNow(): Promise<string>;
+  allApproved(): boolean;
+}
+
+export async function handleStitch(ctx: StitchCtx, res: ServerResponse): Promise<void> {
+  if (!ctx.allApproved()) {
+    res.writeHead(409, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "not all scenes approved" }));
+    return;
+  }
+  try {
+    const output = await ctx.stitchNow();
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ output }));
+  } catch (e) {
+    res.writeHead(500, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: (e as Error).message }));
+  }
+}
