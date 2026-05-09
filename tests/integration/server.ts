@@ -8,6 +8,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FIXTURE = path.resolve(__dirname, "../fixtures/sample-app/index.html");
 
+let _sampleServer: { url: string; close: () => Promise<void> } | null = null;
+
+export async function startSampleApp(): Promise<string> {
+  _sampleServer = await startFixtureServer();
+  return _sampleServer.url;
+}
+
+export async function stopSampleApp(): Promise<void> {
+  await _sampleServer?.close();
+  _sampleServer = null;
+}
+
 export async function startFixtureServer(): Promise<{ url: string; close: () => Promise<void> }> {
   const html = readFileSync(FIXTURE, "utf8");
   const server = http.createServer((req, res) => {
