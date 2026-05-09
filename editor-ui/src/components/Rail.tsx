@@ -1,6 +1,7 @@
 import { Badge } from "./ui/badge";
 import { useUi } from "../store";
 import { api } from "../lib/api";
+import { StitchBar } from "./StitchBar";
 
 export function Rail() {
   const { state, selectedSceneIndex, setSelected, drafts } = useUi();
@@ -42,6 +43,9 @@ export function Rail() {
           </div>
         );
       })}
+      <div className="mt-auto pt-2 border-t border-zinc-800">
+        <StitchBar />
+      </div>
     </div>
   );
 }
