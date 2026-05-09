@@ -1,13 +1,14 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
-import { handleGetState, handleEvents, handleCapture, notFound } from "./api.js";
+import { handleGetState, handleEvents, handleCapture, handleApprove, readJson, notFound } from "./api.js";
 
 export interface ServerOpts {
   port: number;
   sse: SseBus;
   getState: () => EditorState;
   enqueueCapture: (sceneIndex: number) => void;
+  approve: (sceneIndex: number, approved: boolean) => void;
 }
 
 export interface ServerHandle {
@@ -31,6 +32,11 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
           Number(m[1]),
           res,
         );
+      }
+      const am = url.pathname.match(/^\/api\/approve\/(\d+)$/);
+      if (am && req.method === "POST") {
+        const body = await readJson<{ approved: boolean }>(req);
+        return handleApprove({ ...ctx, approve: opts.approve }, Number(am[1]), body, res);
       }
       notFound(res);
     } catch (e) {

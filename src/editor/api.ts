@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Readable } from "node:stream";
 import type { EditorState } from "./types.js";
 import type { SseBus } from "./sse.js";
 
@@ -40,4 +41,23 @@ export async function handleCapture(ctx: CaptureCtx, sceneIndex: number, res: Se
   ctx.enqueueCapture(sceneIndex);
   res.writeHead(202, { "content-type": "application/json" });
   res.end(JSON.stringify({ ok: true }));
+}
+
+export interface ApproveCtx extends ApiCtx { approve(sceneIndex: number, approved: boolean): void; }
+
+export async function handleApprove(ctx: ApproveCtx, sceneIndex: number, body: { approved: boolean }, res: ServerResponse): Promise<void> {
+  try {
+    ctx.approve(sceneIndex, !!body.approved);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  } catch (e) {
+    res.writeHead(409, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: (e as Error).message }));
+  }
+}
+
+export async function readJson<T>(req: IncomingMessage): Promise<T> {
+  const chunks: Buffer[] = [];
+  for await (const c of req as unknown as Readable) chunks.push(c as Buffer);
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
 }

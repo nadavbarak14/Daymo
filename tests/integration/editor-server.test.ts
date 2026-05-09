@@ -77,3 +77,14 @@ prose
     ev.close();
   }, 60_000);
 });
+
+describe("POST /api/approve/:n", () => {
+  it("rejects approval when scene not captured", async () => {
+    const r = await fetch(`${h.url}/api/approve/0`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ approved: true }),
+    });
+    expect(r.status).toBe(409);
+  });
+});
