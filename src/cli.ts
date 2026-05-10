@@ -5,6 +5,7 @@ import { doctorCommand } from "./commands/doctor.js";
 import { editCommand } from "./commands/edit.js";
 import { stateCommand } from "./commands/state.js";
 import { captureCommand } from "./commands/capture.js";
+import { stitchCommand } from "./commands/stitch.js";
 
 const cli = cac("daymo");
 
@@ -39,6 +40,9 @@ cli.command("capture <file>", "Capture one scene (--scene N) or all scenes (--al
       all: !!flags.all,
     }),
   );
+
+cli.command("stitch <file>", "Compose all captured scenes into output.mp4")
+  .action((file: string) => stitchCommand(file));
 
 cli.help();
 cli.version("0.1.0");
