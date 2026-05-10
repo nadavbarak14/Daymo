@@ -6,6 +6,7 @@ import { editCommand } from "./commands/edit.js";
 import { stateCommand } from "./commands/state.js";
 import { captureCommand } from "./commands/capture.js";
 import { stitchCommand } from "./commands/stitch.js";
+import { setProseCommand } from "./commands/set-prose.js";
 
 const cli = cac("daymo");
 
@@ -43,6 +44,14 @@ cli.command("capture <file>", "Capture one scene (--scene N) or all scenes (--al
 
 cli.command("stitch <file>", "Compose all captured scenes into output.mp4")
   .action((file: string) => stitchCommand(file));
+
+cli.command("set-prose <file>", "Rewrite a scene's prose markdown")
+  .option("--scene <n>", "Scene index, 1-based")
+  .option("--text <txt>", "New prose")
+  .action((file: string, flags: { scene: string; text: string }) => {
+    if (!flags.scene || flags.text === undefined) throw new Error("--scene and --text are required");
+    return setProseCommand(file, { scene: Number(flags.scene), text: flags.text });
+  });
 
 cli.help();
 cli.version("0.1.0");
