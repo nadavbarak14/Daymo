@@ -43,19 +43,6 @@ export async function handleCapture(ctx: CaptureCtx, sceneIndex: number, res: Se
   res.end(JSON.stringify({ ok: true }));
 }
 
-export interface ApproveCtx extends ApiCtx { approve(sceneIndex: number, approved: boolean): void; }
-
-export async function handleApprove(ctx: ApproveCtx, sceneIndex: number, body: { approved: boolean }, res: ServerResponse): Promise<void> {
-  try {
-    ctx.approve(sceneIndex, !!body.approved);
-    res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ok: true }));
-  } catch (e) {
-    res.writeHead(409, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: (e as Error).message }));
-  }
-}
-
 export async function readJson<T>(req: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = [];
   for await (const c of req as unknown as Readable) chunks.push(c as Buffer);
@@ -84,13 +71,14 @@ export async function handleScript(
 
 export interface StitchCtx extends ApiCtx {
   stitchNow(): Promise<string>;
-  allApproved(): boolean;
+  pendingScenes(): number[]; // 0-indexed scene indices that are still "pending"
 }
 
 export async function handleStitch(ctx: StitchCtx, res: ServerResponse): Promise<void> {
-  if (!ctx.allApproved()) {
+  const pending = ctx.pendingScenes();
+  if (pending.length > 0) {
     res.writeHead(409, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "not all scenes approved" }));
+    res.end(JSON.stringify({ error: `scenes not captured: ${pending.map((i) => i + 1).join(", ")}` }));
     return;
   }
   try {

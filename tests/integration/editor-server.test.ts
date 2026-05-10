@@ -78,17 +78,6 @@ prose
   }, 60_000);
 });
 
-describe("POST /api/approve/:n", () => {
-  it("rejects approval when scene not captured", async () => {
-    const r = await fetch(`${h.url}/api/approve/0`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ approved: true }),
-    });
-    expect(r.status).toBe(409);
-  });
-});
-
 describe("POST /api/script/:n", () => {
   it("rewrites prose in the .demo file", async () => {
     const r = await fetch(`${h.url}/api/script/0`, {
@@ -103,7 +92,7 @@ describe("POST /api/script/:n", () => {
 });
 
 describe("POST /api/stitch", () => {
-  it("returns 409 when not all scenes approved", async () => {
+  it("returns 409 when scenes not yet captured", async () => {
     const r = await fetch(`${h.url}/api/stitch`, { method: "POST" });
     expect(r.status).toBe(409);
   });

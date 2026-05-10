@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
-import { handleGetState, handleEvents, handleCapture, handleApprove, handleScript, handleStitch, readJson, notFound } from "./api.js";
+import { handleGetState, handleEvents, handleCapture, handleScript, handleStitch, readJson, notFound } from "./api.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html",
@@ -52,7 +52,6 @@ export interface ServerOpts {
   sse: SseBus;
   getState: () => EditorState;
   enqueueCapture: (sceneIndex: number) => void;
-  approve: (sceneIndex: number, approved: boolean) => void;
   rewriteProse: (sceneIndex: number, prose: string) => Promise<void>;
   stitchNow: () => Promise<string>;
   uiDir?: string;
@@ -81,11 +80,6 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
           res,
         );
       }
-      const am = url.pathname.match(/^\/api\/approve\/(\d+)$/);
-      if (am && req.method === "POST") {
-        const body = await readJson<{ approved: boolean }>(req);
-        return handleApprove({ ...ctx, approve: opts.approve }, Number(am[1]), body, res);
-      }
       const sm = url.pathname.match(/^\/api\/script\/(\d+)$/);
       if (sm && req.method === "POST") {
         const body = await readJson<{ prose: string }>(req);
@@ -93,7 +87,7 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
       }
       if (url.pathname === "/api/stitch" && req.method === "POST") {
         return handleStitch(
-          { ...ctx, stitchNow: opts.stitchNow, allApproved: () => opts.getState().allApproved },
+          { ...ctx, stitchNow: opts.stitchNow, pendingScenes: () => opts.getState().scenes.flatMap((r, i) => r.state === "pending" ? [i] : []) },
           res,
         );
       }

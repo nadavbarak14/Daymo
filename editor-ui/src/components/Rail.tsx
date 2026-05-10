@@ -51,7 +51,6 @@ export function Rail() {
                 <>
                   {r.state === "pending" && <span>⊘ pending</span>}
                   {r.state === "captured" && <span>🎬 captured</span>}
-                  {r.state === "approved" && <span>✓ approved</span>}
                 </>
               )}
               {draftCount > 0 && <Badge className="text-warn border-warn/40">💬 {draftCount}</Badge>}

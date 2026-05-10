@@ -8,17 +8,16 @@ export function StitchBar() {
   const [busy, setBusy] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
   if (!state) return null;
-  const ok = state.allApproved;
-  const captured = state.scenes.filter((r) => r.state === "captured" || r.state === "approved").length;
-  const approved = state.scenes.filter((r) => r.state === "approved").length;
+  const hasPending = state.scenes.some((r) => r.state === "pending");
+  const captured = state.scenes.filter((r) => r.state === "captured").length;
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className="text-[10px] opacity-60">
-        {captured}/{state.scenes.length} captured · {approved} approved
+        {captured}/{state.scenes.length} captured
       </span>
       <Button
         size="sm"
-        disabled={!ok || busy}
+        disabled={hasPending || busy}
         onClick={async () => {
           setBusy(true);
           try {

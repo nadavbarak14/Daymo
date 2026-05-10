@@ -1,4 +1,4 @@
-export type SceneState = "pending" | "captured" | "approved";
+export type SceneState = "pending" | "captured";
 export interface OverlayDirective {
   type: "callout" | "highlight";
   target?: string;
@@ -20,5 +20,4 @@ export interface SceneRow {
 export interface EditorState {
   demoFile: string;
   scenes: SceneRow[];
-  allApproved: boolean;
 }

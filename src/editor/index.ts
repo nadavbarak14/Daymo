@@ -47,12 +47,6 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     },
   });
 
-  const approve = (i: number, approved: boolean) => {
-    state = reduce(state, { type: "approve", sceneIndex: i, approved });
-    void saveState(stateFile, state);
-    sse.publish({ type: "state", state });
-  };
-
   const watcher = new Watcher({
     paths: [demoFile],
     debounceMs: 100,
@@ -111,7 +105,6 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     sse,
     getState: () => state,
     enqueueCapture: (i) => queue.enqueue(i),
-    approve,
     rewriteProse,
     stitchNow,
     uiDir: opts.uiDir,

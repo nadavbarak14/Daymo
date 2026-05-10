@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useUi } from "../store";
-import { api } from "../lib/api";
 import { Button } from "./ui/button";
 
 function srcOf(webmPath: string | undefined): string | null {
@@ -9,7 +8,7 @@ function srcOf(webmPath: string | undefined): string | null {
 }
 
 export function Preview() {
-  const { state, selectedSceneIndex, setSelected, patchScene, capturing } = useUi();
+  const { state, selectedSceneIndex, setSelected, capturing } = useUi();
   const [previewing, setPreviewing] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -121,18 +120,6 @@ export function Preview() {
           >
             ▶ Preview all
           </Button>
-          {row.state !== "pending" && !isCapturing && (
-            <Button
-              size="sm"
-              onClick={async () => {
-                const next = row.state === "approved" ? "captured" : "approved";
-                await api.approve(selectedSceneIndex, next === "approved");
-                patchScene(selectedSceneIndex, { state: next });
-              }}
-            >
-              {row.state === "approved" ? "Unapprove" : "✓ Approve"}
-            </Button>
-          )}
         </div>
       </div>
       <div className="flex-1 min-h-0 flex items-center justify-center">

@@ -42,7 +42,7 @@ export const useUi = create<UiStore>((set) => ({
     set((u) => {
       if (!u.state) return u;
       const scenes = u.state.scenes.map((row, idx) => (idx === i ? { ...row, ...patch } : row));
-      return { state: { ...u.state, scenes, allApproved: scenes.every((r) => r.state === "approved") } };
+      return { state: { ...u.state, scenes } };
     }),
   setSelected: (i) => set({ selectedSceneIndex: i }),
   addDraft: (d) =>
