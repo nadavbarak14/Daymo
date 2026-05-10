@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Loomly — Dashboard</title>
+  <style>
+    :root {
+      --bg: #f7f7fb;
+      --surface: #ffffff;
+      --ink: #0f1420;
+      --muted: #6b7387;
+      --line: #e6e7ee;
+      --primary: #4f46e5;
+      --primary-ink: #ffffff;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* Top bar */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+    .brand .logo {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+    }
+    .user {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--muted);
+    }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #c4b5fd; color: #312e81;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+    }
+
+    /* Layout */
+    main { padding: 28px 32px; max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }
+    .subhead { color: var(--muted); margin: 0 0 24px; font-size: 13px; }
+
+    /* Stats */
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      padding: 16px;
+    }
+    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat .value { font-size: 28px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em; }
+    .stat .delta { font-size: 12px; color: var(--green); margin-top: 2px; }
+    .stat .delta.down { color: var(--red); }
+
+    /* Section header */
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 8px 0 12px;
+    }
+    .section-head h2 { margin: 0; font-size: 16px; }
+
+    /* Buttons */
+    .btn {
+      padding: 9px 16px; border-radius: 8px;
+      border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      font: inherit; cursor: pointer;
+    }
+    .btn:hover { border-color: #c8cad6; }
+    .btn.primary {
+      background: var(--primary); color: var(--primary-ink); border-color: transparent;
+      box-shadow: 0 1px 0 rgba(79,70,229,0.4);
+    }
+    .btn.primary:hover { filter: brightness(1.07); }
+
+    /* Project list */
+    .projects {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden;
+    }
+    .project {
+      display: grid; grid-template-columns: 1fr 110px 110px 100px;
+      gap: 12px; align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .project:last-child { border-bottom: 0; }
+    .project .name { font-weight: 600; }
+    .project .desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .project .owner { color: var(--muted); font-size: 13px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500;
+      background: #eef2ff; color: #4338ca;
+    }
+    .badge.green { background: #ecfdf5; color: #047857; }
+    .badge.amber { background: #fffbeb; color: #b45309; }
+    .badge.red   { background: #fef2f2; color: #b91c1c; }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .due { font-size: 13px; color: var(--muted); }
+
+    /* Dialog */
+    dialog {
+      padding: 0; border: 0; border-radius: 14px;
+      box-shadow: 0 24px 64px rgba(15,20,32,.18);
+      width: min(440px, 92vw);
+    }
+    dialog::backdrop { background: rgba(15,20,32,.4); }
+    .dialog-body { padding: 20px 22px; }
+    .dialog-body h2 { margin: 0 0 14px; font-size: 18px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type=text], textarea {
+      width: 100%; padding: 9px 11px; border-radius: 8px;
+      border: 1px solid var(--line); font: inherit; outline: none;
+    }
+    input[type=text]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+    textarea { resize: vertical; min-height: 70px; }
+    .field { margin-bottom: 14px; }
+    .dialog-actions {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 12px 22px;
+      border-top: 1px solid var(--line); background: #fafafd;
+      border-radius: 0 0 14px 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <span>Loomly</span>
+    </div>
+    <div class="user">
+      <span id="userName">Alex Chen</span>
+      <div class="avatar" id="userInitial">A</div>
+    </div>
+  </header>
+
+  <main>
+    <h1>Projects</h1>
+    <p class="subhead">A snapshot of everything in flight, plus what's coming up.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Active</div>
+        <div class="value" data-testid="stat-active">7</div>
+        <div class="delta">▲ 2 this week</div>
+      </div>
+      <div class="stat">
+        <div class="label">Due this week</div>
+        <div class="value" data-testid="stat-due">3</div>
+        <div class="delta down">▼ 1 since Monday</div>
+      </div>
+      <div class="stat">
+        <div class="label">Shipped (Q3)</div>
+        <div class="value" data-testid="stat-shipped">12</div>
+        <div class="delta">▲ on track</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Your projects</h2>
+      <button class="btn primary" data-testid="new-project-btn">+ New project</button>
+    </div>
+
+    <div class="projects" data-testid="project-list" id="projectList">
+      <!-- populated by JS -->
+    </div>
+  </main>
+
+  <dialog data-testid="new-project-dialog" id="dlg">
+    <form method="dialog" id="form">
+      <div class="dialog-body">
+        <h2>Create a new project</h2>
+        <div class="field">
+          <label for="pname">Name</label>
+          <input id="pname" type="text" data-testid="project-name-input" placeholder="e.g. Holiday landing page" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="pdesc">Brief</label>
+          <textarea id="pdesc" data-testid="project-desc-input" placeholder="One line about the goal"></textarea>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-testid="cancel-btn" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn primary" data-testid="create-btn" id="createBtn">Create project</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const STATUS = {
+      "in-progress": { label: "In progress", cls: "" },
+      "shipped":     { label: "Shipped", cls: "green" },
+      "at-risk":     { label: "At risk", cls: "amber" },
+      "blocked":     { label: "Blocked", cls: "red" },
+    };
+
+    function render(projects) {
+      const list = document.getElementById("projectList");
+      list.innerHTML = projects.map(p => {
+        const s = STATUS[p.status] ?? STATUS["in-progress"];
+        return `
+          <div class="project" data-testid="project-row">
+            <div>
+              <div class="name">${p.name}</div>
+              <div class="desc">${p.description ?? ""}</div>
+            </div>
+            <div class="owner">${p.owner ?? ""}</div>
+            <div><span class="badge ${s.cls}"><span class="dot"></span>${s.label}</span></div>
+            <div class="due">${p.due ?? ""}</div>
+          </div>`;
+      }).join("");
+    }
+
+    async function load() {
+      try {
+        const me = await fetch("/api/me").then(r => r.json());
+        document.getElementById("userName").textContent = me.name;
+        document.getElementById("userInitial").textContent = (me.name ?? "?")[0].toUpperCase();
+      } catch {}
+      try {
+        const projects = await fetch("/api/projects").then(r => r.json());
+        render(projects);
+        window.__projects = projects;
+      } catch {
+        render([]);
+      }
+    }
+    load();
+
+    const dlg = document.getElementById("dlg");
+    document.querySelector("[data-testid=new-project-btn]").addEventListener("click", () => dlg.showModal());
+    document.getElementById("cancelBtn").addEventListener("click", (e) => { e.preventDefault(); dlg.close(); });
+    document.getElementById("form").addEventListener("submit", (e) => {
+      const name = document.getElementById("pname").value.trim();
+      const desc = document.getElementById("pdesc").value.trim();
+      if (!name) { e.preventDefault(); return; }
+      const next = [
+        { name, description: desc, owner: window.__me?.name ?? "Alex Chen", status: "in-progress", due: "Friday" },
+        ...(window.__projects ?? []),
+      ];
+      window.__projects = next;
+      render(next);
+      // dialog closes via method=dialog
+      // bump active count
+      const stat = document.querySelector("[data-testid=stat-active]");
+      if (stat) stat.textContent = String((Number(stat.textContent) || 0) + 1);
+    });
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 import { cac } from "cac";
 import { renderCommand } from "./commands/render.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { editCommand } from "./commands/edit.js";
 
 const cli = cac("daymo");
 
@@ -13,6 +14,13 @@ cli.command("render <file>", "Execute the demo and produce output.mp4")
 
 cli.command("doctor", "Verify Playwright and ffmpeg are configured")
   .action(() => doctorCommand());
+
+cli.command("edit <file>", "Open the visual editor for a .demo file")
+  .option("--port <n>", "Port to bind on localhost", { default: 0 })
+  .option("--no-open", "Do not open a browser tab")
+  .action((file: string, flags: { port: number; noOpen: boolean }) =>
+    editCommand(file, { port: flags.port, noOpen: flags.noOpen }),
+  );
 
 cli.help();
 cli.version("0.1.0");

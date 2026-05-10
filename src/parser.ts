@@ -4,6 +4,7 @@ import { parse as parseYaml } from "yaml";
 import type { DemoAst, Frontmatter, OverlayDirective, Scene } from "./types.js";
 
 export function parse(source: string): DemoAst {
+  source = source.replace(/\r\n/g, "\n");
   let parsed: ReturnType<typeof matter>;
   try {
     parsed = matter(source);
@@ -32,15 +33,17 @@ export function parse(source: string): DemoAst {
   const sceneChunks = splitOnFenceAwareDelimiter(parsed.content);
   const scenes: Scene[] = [];
   let runningOffset = contentStartLine;
-  for (const chunk of sceneChunks) {
+  for (let chunkIdx = 0; chunkIdx < sceneChunks.length; chunkIdx++) {
+    const chunk = sceneChunks[chunkIdx];
     const chunkLines = chunk.split("\n").length;
     const trimmed = chunk.trim();
+    const isLast = chunkIdx === sceneChunks.length - 1;
     if (!trimmed) {
-      runningOffset += chunkLines;
+      runningOffset += chunkLines + (isLast ? 0 : 1);
       continue;
     }
     scenes.push(parseScene(chunk, runningOffset));
-    runningOffset += chunkLines;
+    runningOffset += chunkLines + (isLast ? 0 : 1);
   }
 
   if (scenes.length === 0) {
