@@ -4,6 +4,7 @@ import { renderCommand } from "./commands/render.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { editCommand } from "./commands/edit.js";
 import { stateCommand } from "./commands/state.js";
+import { captureCommand } from "./commands/capture.js";
 
 const cli = cac("daymo");
 
@@ -27,6 +28,16 @@ cli.command("state <file>", "Print scene state table")
   .option("--json", "Emit raw JSON state")
   .action((file: string, flags: { json: boolean }) =>
     stateCommand(file, { json: flags.json }),
+  );
+
+cli.command("capture <file>", "Capture one scene (--scene N) or all scenes (--all)")
+  .option("--scene <n>", "Scene index, 1-based")
+  .option("--all", "Capture every scene")
+  .action((file: string, flags: { scene?: string; all?: boolean }) =>
+    captureCommand(file, {
+      scene: flags.scene !== undefined ? Number(flags.scene) : undefined,
+      all: !!flags.all,
+    }),
   );
 
 cli.help();
