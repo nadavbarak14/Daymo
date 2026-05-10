@@ -32,6 +32,7 @@ describe("buildStitchArgs", () => {
       "-filter_complex","[1:a]volume=0.4[m]",
       "-map","0:v","-map","[m]",
       "-c:v","libx264","-c:a","aac",
+      "-shortest",
       "/o.mp4",
     ]);
   });

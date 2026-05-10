@@ -4,6 +4,7 @@ import { parse as parseYaml } from "yaml";
 import type { DemoAst, Frontmatter, OverlayDirective, Scene } from "./types.js";
 
 export function parse(source: string): DemoAst {
+  source = source.replace(/\r\n/g, "\n");
   let parsed: ReturnType<typeof matter>;
   try {
     parsed = matter(source);

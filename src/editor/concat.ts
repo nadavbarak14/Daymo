@@ -20,6 +20,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
       "-map", "[m]",
       "-c:v", "libx264",
       "-c:a", "aac",
+      "-shortest",
       opts.output,
     );
   } else {

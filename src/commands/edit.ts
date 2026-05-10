@@ -8,8 +8,8 @@ export async function editCommand(
   opts: { port?: number; noOpen?: boolean } = {},
 ): Promise<void> {
   const demoFile = path.resolve(file);
-  // dist/cli.js is the runtime path; sibling dist/editor-ui/ holds the bundle.
-  const uiDir = path.resolve(url.fileURLToPath(new URL("./editor-ui", import.meta.url)));
+  // dist/commands/edit.js is the runtime path; dist/editor-ui/ is one level up.
+  const uiDir = path.resolve(url.fileURLToPath(new URL("../editor-ui", import.meta.url)));
   const h = await startEditor({
     demoFile,
     port: opts.port ?? 0,
