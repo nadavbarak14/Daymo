@@ -8,9 +8,9 @@ music: ./tour-music.mp3
 
 # Sign in to ScreenAssist
 
-The pro film room every basketball player can run. Self-tag your plays, get pro-grade stats, auto-build a recruit reel.
 
 ```playwright
+await fx.say("The pro film room every basketball player can run. Self-tag your plays, get pro-grade stats, auto-build a recruit reel.");
 await page.waitForLoadState("domcontentloaded");
 await page.waitForSelector("input[type='email']");
 try {
@@ -35,9 +35,9 @@ await fx.pause(1.2);
 
 # Overview — your player card
 
-Name, team, jersey, season at a glance. The first thing a recruiter sees.
 
 ```playwright
+await fx.say("Name, team, jersey, season at a glance. The first thing a recruiter sees.");
 await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
 await fx.pause(1);
 await page.waitForSelector("h1", { timeout: 10000 });
@@ -49,9 +49,9 @@ await fx.pause(2.5);
 
 # Season splits — per-game averages
 
-Points, rebounds, assists, shooting splits — broken down by competition so league play isn't muddied by scrimmages.
 
 ```playwright
+await fx.say("Points, rebounds, assists, shooting splits — broken down by competition so league play isn't muddied by scrimmages.");
 const splits = page.locator("h2:has-text('Season splits')").first();
 await splits.scrollIntoViewIfNeeded();
 await fx.pause(0.6);
@@ -69,9 +69,9 @@ await fx.pause(2);
 
 # Recent games — every score, one click away
 
-W/L marker, opponent, score, venue. Click any row and you're in the per-game breakdown.
 
 ```playwright
+await fx.say("W/L marker, opponent, score, venue. Click any row and you're in the per-game breakdown.");
 const games = page.locator("h2:has-text('Recent games')").first();
 await games.scrollIntoViewIfNeeded();
 await fx.pause(0.6);
@@ -88,9 +88,9 @@ await fx.pause(2.8);
 
 # Top plays — every tagged moment, instantly playable
 
-Each thumbnail is a real clip. One click, the play viewer opens — no editing, no exporting.
 
 ```playwright
+await fx.say("Each thumbnail is a real clip. One click, the play viewer opens — no editing, no exporting.");
 const topPlays = page.locator("h2:has-text('Top plays')").first();
 await topPlays.scrollIntoViewIfNeeded();
 await fx.pause(1);
@@ -110,9 +110,9 @@ await fx.pause(5);
 
 # Jump between clips with one button
 
-Side arrows or keyboard — review every play in your library without a single page reload.
 
 ```playwright
+await fx.say("Side arrows or keyboard — review every play in your library without a single page reload.");
 const next = page.locator("button[aria-label='Next clip']").first();
 const nb = await next.boundingBox();
 if (nb) {
@@ -132,9 +132,9 @@ await fx.pause(0.8);
 
 # Stats — every game at a glance
 
-Drafts in progress, completed league games, the whole season laid out. Edit metadata, resume tagging, drill into the box score.
 
 ```playwright
+await fx.say("Drafts in progress, completed league games, the whole season laid out. Edit metadata, resume tagging, drill into the box score.");
 await fx.cursorTo("header a[href='/games']");
 await fx.pause(0.3);
 await page.click("header a[href='/games']");
@@ -154,9 +154,9 @@ await fx.pause(3);
 
 # Analysis — the shot chart that finds patterns
 
-Hexbin or zone view. Hex size is volume, color is efficiency. Hot zones in green, cold in red.
 
 ```playwright
+await fx.say("Hexbin or zone view. Hex size is volume, color is efficiency. Hot zones in green, cold in red.");
 await fx.cursorTo("header a[href='/analysis']");
 await fx.pause(0.3);
 await page.click("header a[href='/analysis']");
@@ -178,9 +178,9 @@ await fx.pause(3);
 
 # Click any zone, watch every clip from it
 
-Every row on the right side is a bucket — by zone, shot type, contest level, quarter, opponent. One click and the player surfaces every clip from that bucket.
 
 ```playwright
+await fx.say("Every row on the right side is a bucket — by zone, shot type, contest level, quarter, opponent. One click and the player surfaces every clip from that bucket.");
 await fx.cursorTo("button[aria-label='Watch Paint clips']");
 await fx.pause(0.5);
 await page.click("button[aria-label='Watch Paint clips']");
@@ -196,9 +196,9 @@ await fx.pause(0.8);
 
 # Or watch the whole season — all 22 shots
 
-The big "Watch All" button up top plays every shot in the season as one continuous reel.
 
 ```playwright
+await fx.say("The big \"Watch All\" button up top plays every shot in the season as one continuous reel.");
 const watchAll = page.locator("button:has-text('Watch All')").first();
 const wb = await watchAll.boundingBox().catch(() => null);
 if (wb) {
@@ -219,9 +219,9 @@ await fx.pause(0.8);
 
 # Analysis sub-tabs — assists, rebounds, turnovers, steals, blocks
 
-Same depth, different lens. Each sub-tab breaks the play type down by zone, shot type, contest, quarter, and game.
 
 ```playwright
+await fx.say("Same depth, different lens. Each sub-tab breaks the play type down by zone, shot type, contest, quarter, and game.");
 await fx.cursorTo("a[href='/analysis/assists']");
 await fx.pause(0.3);
 await page.click("a[href='/analysis/assists']");
@@ -241,9 +241,9 @@ await fx.pause(2.5);
 
 # Plays — the full library, fully searchable
 
-Sixty plays, two views: filters on the left, the full play list on the right with notes alongside.
 
 ```playwright
+await fx.say("Sixty plays, two views: filters on the left, the full play list on the right with notes alongside.");
 await fx.cursorTo("header a[href='/plays']");
 await fx.pause(0.3);
 await page.click("header a[href='/plays']");
@@ -270,9 +270,9 @@ await fx.pause(2.5);
 
 # Highlights — the reel builds itself
 
-Auto-built per game. Watch, manage, build a new one — or share the live reel as a link.
 
 ```playwright
+await fx.say("Auto-built per game. Watch, manage, build a new one — or share the live reel as a link.");
 await fx.cursorTo("header a[href='/highlights']");
 await fx.pause(0.3);
 await page.click("header a[href='/highlights']");
@@ -299,9 +299,9 @@ await fx.pause(2.5);
 
 # Share — your profile becomes a link
 
-The Share button opens a popover: toggle public or private, copy the link, send it.
 
 ```playwright
+await fx.say("The Share button opens a popover: toggle public or private, copy the link, send it.");
 await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
 await fx.pause(0.6);
 const shareBtn = page.locator("header button:has-text('Share')").first();
@@ -334,9 +334,9 @@ await fx.pause(2.5);
 
 # That's ScreenAssist
 
-Tag your plays. Get pro-grade stats. Auto-build a recruit reel. Share one link. Free during the public beta.
 
 ```playwright
+await fx.say("Tag your plays. Get pro-grade stats. Auto-build a recruit reel. Share one link. Free during the public beta.");
 await page.keyboard.press("Escape");
 await fx.pause(0.4);
 await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));

@@ -16,9 +16,9 @@ mocks:
 
 # Welcome back, Alex
 
-This is your Loomly dashboard — a snapshot of every project in flight.
 
 ```playwright
+await fx.say("This is your Loomly dashboard — a snapshot of every project in flight.");
 await page.waitForSelector("h1:has-text('Projects')");
 await page.waitForSelector("[data-testid='project-row']");
 await fx.pause(0.6);
@@ -37,9 +37,9 @@ duration: 2.5s
 
 # Browse the project list
 
-Each row shows the brief, owner, status, and the next deadline.
 
 ```playwright
+await fx.say("Each row shows the brief, owner, status, and the next deadline.");
 await page.waitForSelector("[data-testid='project-row']");
 await fx.pause(0.4);
 await fx.cursorTo("[data-testid='project-row']:nth-child(2)");
@@ -58,9 +58,9 @@ duration: 2.5s
 
 # Open the new-project dialog
 
-Click **+ New project** to start a fresh one.
 
 ```playwright
+await fx.say("Click **+ New project** to start a fresh one.");
 await page.waitForSelector("[data-testid='new-project-btn']");
 await fx.pause(0.5);
 await fx.cursorTo("[data-testid='new-project-btn']");
@@ -74,9 +74,9 @@ await fx.pause(1);
 
 # Fill it in and create
 
-Type a name and a brief, then hit Create. The new row appears at the top.
 
 ```playwright
+await fx.say("Type a name and a brief, then hit Create. The new row appears at the top.");
 await page.click("[data-testid='new-project-btn']");
 await page.waitForSelector("[data-testid='new-project-dialog'][open]");
 await fx.cursorTo("[data-testid='project-name-input']");

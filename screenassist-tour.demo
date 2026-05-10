@@ -7,9 +7,9 @@ viewport: { width: 1280, height: 800 }
 
 # Meet ScreenAssist
 
-A pro film room every basketball player can run — tag your own plays, build a college-ready reel, share one link.
 
 ```playwright
+await fx.say("A pro film room every basketball player can run — tag your own plays, build a college-ready reel, share one link.");
 await page.waitForLoadState("networkidle");
 await page.waitForSelector("h1.display");
 await fx.pause(0.6);
@@ -26,9 +26,9 @@ duration: 3s
 
 # One CTA, no friction
 
-The whole site funnels here — every "Start now" button drops you into signup. Free during beta, no credit card.
 
 ```playwright
+await fx.say("The whole site funnels here — every \"Start now\" button drops you into signup. Free during beta, no credit card.");
 await fx.cursorTo("nav.top a[href='/signup']");
 await fx.highlight("nav.top a[href='/signup']", 1.5);
 await fx.pause(0.8);
@@ -45,9 +45,9 @@ duration: 2.5s
 
 # How it works
 
-Five steps from your film to your future — self-tag plays, get instant stats, surface patterns, auto-build a reel, share one link.
 
 ```playwright
+await fx.say("Five steps from your film to your future — self-tag plays, get instant stats, surface patterns, auto-build a reel, share one link.");
 await page.locator("#how").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
@@ -66,9 +66,9 @@ duration: 2.5s
 
 # Works on the film you already have
 
-iPhone bleacher clips, AAU livestream rips, that folder of old MP4s — ScreenAssist runs on whatever you've got.
 
 ```playwright
+await fx.say("iPhone bleacher clips, AAU livestream rips, that folder of old MP4s — ScreenAssist runs on whatever you've got.");
 await page.locator("#wedge").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
@@ -80,9 +80,9 @@ await fx.pause(1.2);
 
 # Built for the player, made for everyone in their corner
 
-Players own the reel. Coaches and trainers get the toolkit they can't always build themselves.
 
 ```playwright
+await fx.say("Players own the reel. Coaches and trainers get the toolkit they can't always build themselves.");
 await page.locator("#for-parents-coaches").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
@@ -94,9 +94,9 @@ await fx.pause(1.2);
 
 # Start free
 
-Pricing, FAQ, and one button to start. The pro film room every player can run.
 
 ```playwright
+await fx.say("Pricing, FAQ, and one button to start. The pro film room every player can run.");
 await page.locator("#pricing").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.4);
