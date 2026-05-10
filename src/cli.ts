@@ -3,6 +3,7 @@ import { cac } from "cac";
 import { renderCommand } from "./commands/render.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { editCommand } from "./commands/edit.js";
+import { stateCommand } from "./commands/state.js";
 
 const cli = cac("daymo");
 
@@ -20,6 +21,12 @@ cli.command("edit <file>", "Open the visual editor for a .demo file")
   .option("--no-open", "Do not open a browser tab")
   .action((file: string, flags: { port: number; noOpen: boolean }) =>
     editCommand(file, { port: flags.port, noOpen: flags.noOpen }),
+  );
+
+cli.command("state <file>", "Print scene state table")
+  .option("--json", "Emit raw JSON state")
+  .action((file: string, flags: { json: boolean }) =>
+    stateCommand(file, { json: flags.json }),
   );
 
 cli.help();
