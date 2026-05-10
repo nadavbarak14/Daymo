@@ -153,6 +153,142 @@ export const OVERLAY_INIT_SCRIPT = String.raw`
     captionBanner.style.opacity = "0";
   }
 
-  window.__daymo = { moveCursor, highlight, callout, zoom, measure, showCaption, hideCaption };
+  // Subtitle bar — separate from the legacy caption banner. Word-level karaoke.
+  const subtitle = document.createElement("div");
+  subtitle.setAttribute("data-daymo-subtitle", "");
+  subtitle.style.cssText = [
+    "position:absolute",
+    "left:50%",
+    "bottom:48px",
+    "transform:translateX(-50%)",
+    "max-width:80%",
+    "padding:14px 22px",
+    "background:rgba(15,23,42,0.92)",
+    "color:#fff",
+    "border-radius:12px",
+    "font:18px/1.45 -apple-system,system-ui,sans-serif",
+    "box-shadow:0 8px 24px rgba(0,0,0,0.35)",
+    "opacity:0",
+    "transition:opacity 0.2s ease",
+    "white-space:pre-wrap",
+  ].join(";");
+  root.appendChild(subtitle);
+
+  // Persistent banner (formerly auto-prose).
+  const banner = document.createElement("div");
+  banner.setAttribute("data-daymo-banner", "");
+  banner.style.cssText = [
+    "position:absolute",
+    "left:50%",
+    "bottom:140px",
+    "transform:translateX(-50%)",
+    "max-width:80%",
+    "padding:14px 22px",
+    "background:rgba(15,23,42,0.92)",
+    "color:#fff",
+    "border-radius:12px",
+    "font:18px/1.45 -apple-system,system-ui,sans-serif",
+    "box-shadow:0 8px 24px rgba(0,0,0,0.35)",
+    "opacity:0",
+    "transition:opacity 0.3s ease",
+    "white-space:pre-wrap",
+  ].join(";");
+  const bannerTitle = document.createElement("div");
+  bannerTitle.style.cssText = "font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;opacity:0.7;margin-bottom:6px;";
+  const bannerBody = document.createElement("div");
+  banner.appendChild(bannerTitle);
+  banner.appendChild(bannerBody);
+  root.appendChild(banner);
+
+  let sayQueue = Promise.resolve();
+  let sayQueueDepth = 0;
+
+  function say(hash) {
+    const entry = (window.__daymo && window.__daymo.sayTable || {})[hash];
+    if (!entry) return Promise.reject(new Error("say: unknown hash " + hash));
+    // If the queue is idle, mount the DOM (subtitle bar + word spans)
+    // synchronously so callers observing the DOM immediately after calling
+    // say() see the spans. Queued entries mount their DOM when their turn
+    // comes (so they don't clobber the currently-playing entry).
+    let prebuiltSpans = null;
+    if (sayQueueDepth === 0) {
+      prebuiltSpans = mountSayDom(entry);
+    }
+    sayQueueDepth++;
+    const next = sayQueue.then(() => playSay(entry, prebuiltSpans)).finally(() => {
+      sayQueueDepth--;
+    });
+    sayQueue = next;
+    return next;
+  }
+
+  function mountSayDom(entry) {
+    mount();
+    subtitle.innerHTML = "";
+    const spans = [];
+    for (const w of entry.words) {
+      const s = document.createElement("span");
+      s.textContent = (w.word || w.text) + " ";
+      s.style.transition = "color 0.05s linear, font-weight 0.05s linear";
+      subtitle.appendChild(s);
+      spans.push(s);
+    }
+    return spans;
+  }
+
+  function playSay(entry, prebuiltSpans) {
+    return new Promise((resolve) => {
+      // Use prebuilt spans if they're still mounted (queue depth was 0 at
+      // schedule time). Otherwise rebuild — a previous entry has clobbered
+      // the DOM, or we deferred.
+      let spans = prebuiltSpans;
+      if (!spans || subtitle.children.length !== entry.words.length) {
+        spans = mountSayDom(entry);
+      }
+      requestAnimationFrame(() => { subtitle.style.opacity = "1"; });
+      const t0 = performance.now();
+      let idx = 0;
+      function tick() {
+        const t = performance.now() - t0;
+        while (idx < entry.words.length && t >= entry.words[idx].startMs) {
+          if (idx > 0) {
+            spans[idx - 1].style.color = "#fff";
+            spans[idx - 1].style.fontWeight = "400";
+          }
+          spans[idx].style.color = "#fbbf24";
+          spans[idx].style.fontWeight = "700";
+          idx++;
+        }
+        if (t < entry.durationMs) {
+          requestAnimationFrame(tick);
+        } else {
+          setTimeout(() => { subtitle.style.opacity = "0"; }, 200);
+          resolve();
+        }
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function showBanner(text, durationMs, title) {
+    mount();
+    bannerTitle.textContent = title || "";
+    bannerBody.textContent = text || "";
+    requestAnimationFrame(() => { banner.style.opacity = "1"; });
+    if (typeof durationMs === "number" && durationMs > 0) {
+      setTimeout(() => { banner.style.opacity = "0"; }, durationMs);
+    }
+  }
+
+  function hideBanner() {
+    banner.style.opacity = "0";
+  }
+
+  window.__daymo = Object.assign({}, window.__daymo || {}, {
+    moveCursor, highlight, callout, zoom, measure,
+    showCaption, hideCaption,
+    say, banner: showBanner, hideBanner,
+    sayTable: (window.__daymo && window.__daymo.sayTable) || {},
+  });
 })();
 `;
