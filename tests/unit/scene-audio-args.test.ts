@@ -32,7 +32,7 @@ describe("buildSceneAudioArgs", () => {
       "-map", "0:v",
       "-map", "[narr]",
       "-c:v", "copy",
-      "-c:a", "aac",
+      "-c:a", "libopus",
       "/cap/scene-001.with-audio.webm",
     ]);
   });
@@ -53,7 +53,7 @@ describe("buildSceneAudioArgs", () => {
       "-map", "0:v",
       "-map", "[narr]",
       "-c:v", "copy",
-      "-c:a", "aac",
+      "-c:a", "libopus",
       "/cap/scene-001.with-audio.webm",
     ]);
   });

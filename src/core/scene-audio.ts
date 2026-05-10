@@ -33,7 +33,7 @@ export function buildSceneAudioArgs(opts: SceneAudioInput): string[] {
     "-map", "0:v",
     "-map", "[narr]",
     "-c:v", "copy",
-    "-c:a", "aac",
+    "-c:a", "libopus",
     opts.output,
   );
   return argv;

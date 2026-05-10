@@ -20,7 +20,16 @@ describe("stitch", () => {
     await makeTinyWebm(a);
     await makeTinyWebm(b);
     const out = path.join(tmp, "output.mp4");
-    await stitch({ scenePaths: [a, b], music: null, output: out, workDir: tmp });
+    await stitch({
+      scenes: [
+        { webm: a, sayEvents: [] },
+        { webm: b, sayEvents: [] },
+      ],
+      music: null,
+      output: out,
+      workDir: tmp,
+      ttsDir: path.join(tmp, "tts"),
+    });
     const stat = await fs.stat(out);
     expect(stat.size).toBeGreaterThan(0);
   }, 30_000);

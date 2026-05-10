@@ -56,6 +56,10 @@ export async function render(opts: RenderOpts): Promise<{ mp4Path: string; artif
   }
 
   const musicSrc = ast.frontmatter.music ? path.resolve(baseDir, ast.frontmatter.music) : null;
+  // NOTE: `daymo render` runs all scenes in a single capture and does not currently
+  // per-scene-mix narration audio. For TTS-narrated demos, use:
+  //   daymo capture <file> --all && daymo stitch <file>
+  // Full-pipeline TTS mixing in `render` is future work.
   await compose({ artifacts, musicSrc });
   return { mp4Path: artifacts.output, artifactsDir };
 }

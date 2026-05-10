@@ -20,9 +20,14 @@ describe("buildConcatList", () => {
 });
 
 describe("buildStitchArgs", () => {
-  it("uses concat demuxer + libx264, no audio when no music", () => {
+  it("passes through scene audio (if any) when no music, re-encoding video to libx264", () => {
     const a = buildStitchArgs({ listFile: "/tmp/list.txt", music: null, output: "/o.mp4" });
-    expect(a).toEqual(["-y","-f","concat","-safe","0","-i","/tmp/list.txt","-an","-c:v","libx264","/o.mp4"]);
+    expect(a).toEqual([
+      "-y","-f","concat","-safe","0","-i","/tmp/list.txt",
+      "-map","0:v","-map","0:a?",
+      "-c:v","libx264","-c:a","aac",
+      "/o.mp4",
+    ]);
   });
   it("muxes music with default volume 0.4", () => {
     const a = buildStitchArgs({ listFile: "/tmp/list.txt", music: "/m.mp3", output: "/o.mp4" });

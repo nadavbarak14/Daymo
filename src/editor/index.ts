@@ -85,16 +85,30 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
   };
 
   const stitchNow = async () => {
-    const scenePaths = state.scenes.map((r) => r.webmPath!).filter(Boolean);
+    const ttsDir = path.join(dotDir, "tts");
+    const scenes: import("../core/stitch.js").SceneInput[] = [];
+    for (const r of state.scenes) {
+      let sayEvents: { hash: string; t: number }[] = [];
+      if (r.eventsPath) {
+        try {
+          const raw = await fs.readFile(r.eventsPath, "utf8");
+          const events: any[] = JSON.parse(raw);
+          sayEvents = events.filter((e: any) => e.kind === "say").map((e: any) => ({ hash: e.hash, t: e.t }));
+        } catch {}
+      }
+      scenes.push({ webm: r.webmPath!, sayEvents });
+    }
     const baseDir = path.dirname(demoFile);
     const music = ast.frontmatter.music ? path.resolve(baseDir, ast.frontmatter.music) : null;
     const out = path.join(baseDir, "output.mp4");
     await stitch({
-      scenePaths,
+      scenes,
       music,
       output: out,
       workDir: dotDir,
-      onLine: (l) => sse.publish({ type: "stitch-progress", line: l }),
+      ttsDir,
+      musicDuck: ast.frontmatter.tts.music_duck,
+      onLine: (l: string) => sse.publish({ type: "stitch-progress", line: l }),
     });
     sse.publish({ type: "stitch-done", output: out });
     return out;

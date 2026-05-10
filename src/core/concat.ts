@@ -39,7 +39,15 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
       );
     }
   } else {
-    argv.push("-an", "-c:v", "libx264", opts.output);
+    // No bg music: passthrough scene audio (if any) and re-encode video to h264.
+    // Use ? on the audio map so concat without audio streams still works.
+    argv.push(
+      "-map", "0:v",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-c:a", "aac",
+      opts.output,
+    );
   }
   return argv;
 }
