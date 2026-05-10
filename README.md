@@ -28,11 +28,18 @@ Run `npx daymo doctor` to verify all of the above.
 ## Commands
 
 ```
-daymo render <file>     Execute the demo and produce output.mp4
-daymo doctor            Verify Playwright and ffmpeg are configured
+daymo render <file>                              Execute the demo and produce output.mp4
+daymo doctor                                     Verify Playwright and ffmpeg are configured
+daymo edit <file>                                Open the visual editor for a .demo file
+
+daymo capture <file> --scene N | --all           Capture one scene (1-indexed) or all scenes
+daymo stitch <file>                              Compose all captured scenes into output.mp4
+daymo state <file> [--json]                      Show scene status table (or JSON)
+daymo set-prose <file> --scene N --text "…"      Rewrite a scene's prose markdown
+daymo migrate-prose <file>                       Wrap existing prose into fx.say() calls
 ```
 
-Outputs land in `./artifacts/<id>/`. The final mp4 is `output.mp4`; the raw page video and events log are kept beside it for re-rendering or debugging.
+Outputs land in `./artifacts/<id>/` for `daymo render`, or in `<demo-dir>/output.mp4` for `daymo stitch`. The state directory `<demo-dir>/.daymo/` holds per-scene captures (`captures/`), state (`state.json`), and the TTS audio cache (`tts/`).
 
 ## The `.demo` file format
 
@@ -53,7 +60,7 @@ A `.demo` file is markdown with YAML frontmatter. Headings define **scenes**. Ea
 ### Scene body
 
 - **`# Heading`** — scene title, displayed in the caption banner during the scene
-- **Prose** — rendered as on-screen captions for the duration of the scene
+- **Prose** — descriptive markdown documentation. Not auto-rendered or auto-narrated. To narrate prose, wrap it in `fx.say(...)` inside the playwright block (or run `daymo migrate-prose <file>` to do it mechanically). To show as a static banner, use `fx.banner(...)`.
 - **` ```playwright `** — JavaScript executed against `page` (Playwright `Page`), `fx` (the Daymo fx runtime), and `console`
 - **` ```overlay `** — declarative overlays parsed as YAML
 - **`---`** — scene break (also the frontmatter delimiter)
@@ -67,6 +74,49 @@ fx.zoom(selector, factor?: number, duration?: number)
 fx.pause(seconds: number)
 fx.callout(text: string, target?: string, duration?: number)
 fx.highlight(selector: string, duration?: number)
+fx.say(text: string, opts?: { voice?: string; rate?: string })
+fx.banner(text: string, opts?: { duration?: number; title?: string })
+fx.hideBanner()
+```
+
+### Narration with `fx.say`
+
+Daymo can narrate scenes using free Edge TTS. Inside a `playwright` block:
+
+```js
+// Sequential narration — voice finishes, then click
+await fx.say("Click the new project button to begin.");
+await page.click("[data-testid='new-project-btn']");
+
+// Parallel — voice plays while cursor moves
+const n = fx.say("Welcome back, Alex. Your dashboard.");
+await fx.cursorTo("h1");
+await fx.pause(0.5);
+await n;
+```
+
+While the voice plays, a karaoke-style subtitle bar shows the sentence with the currently-spoken word highlighted. The first time a string is synthesized, it's cached at `<demo-dir>/.daymo/tts/<hash>.mp3` — re-renders are cache hits.
+
+**Constraint:** the text passed to `fx.say` must be a string literal (not a template literal or variable).
+
+Frontmatter overrides (all optional):
+
+```yaml
+tts:
+  voice: en-US-AriaNeural
+  rate: "+0%"
+  music_duck: true   # auto-lower bg music while voice plays
+```
+
+For an opt-in static caption banner (the old auto-prose behavior), use `fx.banner(text, { duration?: seconds, title?: string })`.
+
+### Pipeline: `render` vs `capture` + `stitch`
+
+`daymo render` runs everything in one shot but does not yet per-scene-mix narration audio. For TTS-narrated demos, use the two-step pipeline:
+
+```bash
+daymo capture my.demo --all
+daymo stitch my.demo
 ```
 
 ### Mock declaration
