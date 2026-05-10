@@ -7,6 +7,7 @@ import { stateCommand } from "./commands/state.js";
 import { captureCommand } from "./commands/capture.js";
 import { stitchCommand } from "./commands/stitch.js";
 import { setProseCommand } from "./commands/set-prose.js";
+import { migrateProseCommand } from "./commands/migrate-prose.js";
 
 const cli = cac("daymo");
 
@@ -52,6 +53,9 @@ cli.command("set-prose <file>", "Rewrite a scene's prose markdown")
     if (!flags.scene || flags.text === undefined) throw new Error("--scene and --text are required");
     return setProseCommand(file, { scene: Number(flags.scene), text: flags.text });
   });
+
+cli.command("migrate-prose <file>", "Wrap each scene's prose into fx.say() and remove from markdown body")
+  .action((file: string) => migrateProseCommand(file));
 
 cli.help();
 cli.version("0.1.0");
