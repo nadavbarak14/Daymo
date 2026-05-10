@@ -1,0 +1,113 @@
+---
+title: ScreenAssist — Site Tour
+description: A walkthrough of the ScreenAssist marketing landing page.
+url: http://localhost:3000/
+viewport: { width: 1280, height: 800 }
+---
+
+# Meet ScreenAssist
+
+A pro film room every basketball player can run — tag your own plays, build a college-ready reel, share one link.
+
+```playwright
+await page.waitForLoadState("networkidle");
+await page.waitForSelector("h1.display");
+await fx.pause(0.6);
+```
+
+```overlay
+type: callout
+target: "h1.display"
+text: "The hero pitch — Get seen, on film you already have."
+duration: 3s
+```
+
+---
+
+# One CTA, no friction
+
+The whole site funnels here — every "Start now" button drops you into signup. Free during beta, no credit card.
+
+```playwright
+await fx.cursorTo("nav.top a[href='/signup']");
+await fx.highlight("nav.top a[href='/signup']", 1.5);
+await fx.pause(0.8);
+```
+
+```overlay
+type: callout
+target: "nav.top a[href='/signup']"
+text: "Free during beta · no credit card"
+duration: 2.5s
+```
+
+---
+
+# How it works
+
+Five steps from your film to your future — self-tag plays, get instant stats, surface patterns, auto-build a reel, share one link.
+
+```playwright
+await page.locator("#how").scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+await fx.pause(0.5);
+await fx.cursorTo("#how h2");
+await fx.pause(1.2);
+```
+
+```overlay
+type: callout
+target: "#how h2"
+text: "The 5-step workflow"
+duration: 2.5s
+```
+
+---
+
+# Works on the film you already have
+
+iPhone bleacher clips, AAU livestream rips, that folder of old MP4s — ScreenAssist runs on whatever you've got.
+
+```playwright
+await page.locator("#wedge").scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+await fx.pause(0.5);
+await fx.highlight("#wedge h2", 1.5);
+await fx.pause(1.2);
+```
+
+---
+
+# Built for the player, made for everyone in their corner
+
+Players own the reel. Coaches and trainers get the toolkit they can't always build themselves.
+
+```playwright
+await page.locator("#for-parents-coaches").scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+await fx.pause(0.5);
+await fx.cursorTo("#for-parents-coaches h2");
+await fx.pause(1.2);
+```
+
+---
+
+# Start free
+
+Pricing, FAQ, and one button to start. The pro film room every player can run.
+
+```playwright
+await page.locator("#pricing").scrollIntoViewIfNeeded();
+await page.waitForTimeout(400);
+await fx.pause(0.4);
+await fx.cursorTo("#pricing a.btn-primary");
+await fx.highlight("#pricing a.btn-primary", 2);
+await fx.pause(1.5);
+```
+
+```overlay
+type: callout
+target: "#pricing a.btn-primary"
+text: "Start free — for players"
+duration: 2.5s
+```

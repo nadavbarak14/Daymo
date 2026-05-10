@@ -1,4 +1,4 @@
-import { captureSingleScene } from "../single-capture.js";
+import { captureSingleScene } from "../core/capture.js";
 import type { DemoAst } from "../types.js";
 import type { SseBus } from "./sse.js";
 

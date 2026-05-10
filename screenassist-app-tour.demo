@@ -1,0 +1,344 @@
+---
+title: ScreenAssist — Full Product Tour
+description: Logged-in walkthrough of the ScreenAssist app — every major capability, with real clicks.
+url: https://screenassist.app/login
+viewport: { width: 1440, height: 900 }
+music: ./tour-music.mp3
+---
+
+# Sign in to ScreenAssist
+
+The pro film room every basketball player can run. Self-tag your plays, get pro-grade stats, auto-build a recruit reel.
+
+```playwright
+await page.waitForLoadState("domcontentloaded");
+await page.waitForSelector("input[type='email']");
+try {
+  await page.locator("[role='dialog'][aria-label='Cookie consent'] button:has-text('Accept')").click({ timeout: 1500 });
+} catch {}
+await fx.pause(0.8);
+await fx.cursorTo("input[type='email']");
+await fx.typeWithDelay("input[type='email']", "eran@bstat.dev", 22);
+await fx.cursorTo("input[type='password']");
+await fx.typeWithDelay("input[type='password']", "test1234", 26);
+await fx.pause(0.5);
+await fx.cursorTo("button[type='submit']");
+await fx.highlight("button[type='submit']", 1);
+await fx.pause(0.8);
+await page.click("button[type='submit']");
+await page.waitForURL("**/overview**", { timeout: 20000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(1.2);
+```
+
+---
+
+# Overview — your player card
+
+Name, team, jersey, season at a glance. The first thing a recruiter sees.
+
+```playwright
+await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+await fx.pause(1);
+await page.waitForSelector("h1", { timeout: 10000 });
+await fx.cursorTo("h1");
+await fx.pause(2.5);
+```
+
+---
+
+# Season splits — per-game averages
+
+Points, rebounds, assists, shooting splits — broken down by competition so league play isn't muddied by scrimmages.
+
+```playwright
+const splits = page.locator("h2:has-text('Season splits')").first();
+await splits.scrollIntoViewIfNeeded();
+await fx.pause(0.6);
+const sb = await splits.boundingBox();
+if (sb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 600),
+    { x: sb.x + 60, y: sb.y + 100 });
+}
+await fx.pause(2.5);
+await page.evaluate(() => window.scrollBy({ top: 200, behavior: "smooth" }));
+await fx.pause(2);
+```
+
+---
+
+# Recent games — every score, one click away
+
+W/L marker, opponent, score, venue. Click any row and you're in the per-game breakdown.
+
+```playwright
+const games = page.locator("h2:has-text('Recent games')").first();
+await games.scrollIntoViewIfNeeded();
+await fx.pause(0.6);
+const firstGame = page.locator("button:has-text('vs Hod Hasharon')").first();
+const gb = await firstGame.boundingBox().catch(() => null);
+if (gb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 700),
+    { x: gb.x + gb.width/2, y: gb.y + gb.height/2 });
+}
+await fx.pause(2.8);
+```
+
+---
+
+# Top plays — every tagged moment, instantly playable
+
+Each thumbnail is a real clip. One click, the play viewer opens — no editing, no exporting.
+
+```playwright
+const topPlays = page.locator("h2:has-text('Top plays')").first();
+await topPlays.scrollIntoViewIfNeeded();
+await fx.pause(1);
+const firstPlay = page.locator("h2:has-text('Top plays')").locator("xpath=following::button[1]");
+const pb = await firstPlay.boundingBox();
+if (pb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 600),
+    { x: pb.x + pb.width/2, y: pb.y + pb.height/2 });
+  await page.waitForTimeout(700);
+}
+await firstPlay.click();
+await page.waitForSelector("[role='dialog'][aria-label='Clip viewer']", { timeout: 10000 });
+await fx.pause(5);
+```
+
+---
+
+# Jump between clips with one button
+
+Side arrows or keyboard — review every play in your library without a single page reload.
+
+```playwright
+const next = page.locator("button[aria-label='Next clip']").first();
+const nb = await next.boundingBox();
+if (nb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: nb.x + nb.width/2, y: nb.y + nb.height/2 });
+}
+await fx.pause(0.5);
+await next.click();
+await fx.pause(3.5);
+await next.click();
+await fx.pause(3);
+await page.keyboard.press("Escape");
+await fx.pause(0.8);
+```
+
+---
+
+# Stats — every game at a glance
+
+Drafts in progress, completed league games, the whole season laid out. Edit metadata, resume tagging, drill into the box score.
+
+```playwright
+await fx.cursorTo("header a[href='/games']");
+await fx.pause(0.3);
+await page.click("header a[href='/games']");
+await page.waitForURL("**/games**", { timeout: 15000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(2);
+const leagueH = page.locator("h3:has-text('LEAGUE')").first();
+const lb = await leagueH.boundingBox().catch(() => null);
+if (lb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 600),
+    { x: lb.x + 80, y: lb.y + 80 });
+}
+await fx.pause(3);
+```
+
+---
+
+# Analysis — the shot chart that finds patterns
+
+Hexbin or zone view. Hex size is volume, color is efficiency. Hot zones in green, cold in red.
+
+```playwright
+await fx.cursorTo("header a[href='/analysis']");
+await fx.pause(0.3);
+await page.click("header a[href='/analysis']");
+await page.waitForURL("**/analysis**", { timeout: 15000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(2.5);
+const hexBtn = page.locator("button:has-text('Hexbin')").first();
+const hb = await hexBtn.boundingBox().catch(() => null);
+if (hb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: hb.x + hb.width/2, y: hb.y + hb.height/2 });
+  await page.waitForTimeout(600);
+}
+await hexBtn.click();
+await fx.pause(3);
+```
+
+---
+
+# Click any zone, watch every clip from it
+
+Every row on the right side is a bucket — by zone, shot type, contest level, quarter, opponent. One click and the player surfaces every clip from that bucket.
+
+```playwright
+await fx.cursorTo("button[aria-label='Watch Paint clips']");
+await fx.pause(0.5);
+await page.click("button[aria-label='Watch Paint clips']");
+await page.waitForSelector("[role='dialog'][aria-label='Clip viewer']", { timeout: 8000 });
+await fx.pause(4.5);
+await page.locator("button[aria-label='Next clip']").click();
+await fx.pause(3.5);
+await page.keyboard.press("Escape");
+await fx.pause(0.8);
+```
+
+---
+
+# Or watch the whole season — all 22 shots
+
+The big "Watch All" button up top plays every shot in the season as one continuous reel.
+
+```playwright
+const watchAll = page.locator("button:has-text('Watch All')").first();
+const wb = await watchAll.boundingBox().catch(() => null);
+if (wb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: wb.x + wb.width/2, y: wb.y + wb.height/2 });
+  await page.waitForTimeout(600);
+}
+await watchAll.click();
+await page.waitForSelector("[role='dialog'][aria-label='Clip viewer']", { timeout: 8000 });
+await fx.pause(4);
+await page.locator("button[aria-label='Next clip']").click();
+await fx.pause(3.5);
+await page.keyboard.press("Escape");
+await fx.pause(0.8);
+```
+
+---
+
+# Analysis sub-tabs — assists, rebounds, turnovers, steals, blocks
+
+Same depth, different lens. Each sub-tab breaks the play type down by zone, shot type, contest, quarter, and game.
+
+```playwright
+await fx.cursorTo("a[href='/analysis/assists']");
+await fx.pause(0.3);
+await page.click("a[href='/analysis/assists']");
+await page.waitForURL("**/analysis/assists**", { timeout: 10000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(2.5);
+await page.evaluate(() => window.scrollBy({ top: 250, behavior: "smooth" }));
+await fx.pause(2.5);
+await fx.cursorTo("a[href='/analysis/rebounds']");
+await fx.pause(0.3);
+await page.click("a[href='/analysis/rebounds']");
+await page.waitForLoadState("networkidle");
+await fx.pause(2.5);
+```
+
+---
+
+# Plays — the full library, fully searchable
+
+Sixty plays, two views: filters on the left, the full play list on the right with notes alongside.
+
+```playwright
+await fx.cursorTo("header a[href='/plays']");
+await fx.pause(0.3);
+await page.click("header a[href='/plays']");
+await page.waitForURL("**/plays**", { timeout: 15000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(2.5);
+const filtersBtn = page.locator("button:has-text('Filters')").first();
+const fb = await filtersBtn.boundingBox().catch(() => null);
+if (fb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: fb.x + fb.width/2, y: fb.y + fb.height/2 });
+}
+await fx.pause(2);
+const notesBtn = page.locator("button:has-text('Notes')").first();
+const nb2 = await notesBtn.boundingBox().catch(() => null);
+if (nb2) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: nb2.x + nb2.width/2, y: nb2.y + nb2.height/2 });
+}
+await fx.pause(2.5);
+```
+
+---
+
+# Highlights — the reel builds itself
+
+Auto-built per game. Watch, manage, build a new one — or share the live reel as a link.
+
+```playwright
+await fx.cursorTo("header a[href='/highlights']");
+await fx.pause(0.3);
+await page.click("header a[href='/highlights']");
+await page.waitForURL("**/highlights**", { timeout: 15000 });
+await page.waitForLoadState("networkidle");
+await fx.pause(2);
+const reel = page.locator("button:has-text('Highlights')").first();
+const rb = await reel.boundingBox().catch(() => null);
+if (rb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 600),
+    { x: rb.x + rb.width/2, y: rb.y + rb.height/2 });
+}
+await fx.pause(2.5);
+const newH = page.locator("button:has-text('New Highlight')").first();
+const nhb = await newH.boundingBox().catch(() => null);
+if (nhb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: nhb.x + nhb.width/2, y: nhb.y + nhb.height/2 });
+}
+await fx.pause(2.5);
+```
+
+---
+
+# Share — your profile becomes a link
+
+The Share button opens a popover: toggle public or private, copy the link, send it.
+
+```playwright
+await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+await fx.pause(0.6);
+const shareBtn = page.locator("header button:has-text('Share')").first();
+const shb = await shareBtn.boundingBox();
+if (shb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: shb.x + shb.width/2, y: shb.y + shb.height/2 });
+  await page.waitForTimeout(600);
+}
+await shareBtn.click();
+await page.waitForSelector("[role='dialog'][aria-label='Share profile']", { timeout: 5000 });
+await fx.pause(2);
+const toggle = page.locator("button[aria-label='Toggle profile visibility']").first();
+const tb = await toggle.boundingBox().catch(() => null);
+if (tb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: tb.x + tb.width/2, y: tb.y + tb.height/2 });
+}
+await fx.pause(2);
+const copy = page.locator("button[aria-label='Copy link']").first();
+const cb = await copy.boundingBox().catch(() => null);
+if (cb) {
+  await page.evaluate(({x,y}) => window.__daymo.moveCursor(x, y, 500),
+    { x: cb.x + cb.width/2, y: cb.y + cb.height/2 });
+}
+await fx.pause(2.5);
+```
+
+---
+
+# That's ScreenAssist
+
+Tag your plays. Get pro-grade stats. Auto-build a recruit reel. Share one link. Free during the public beta.
+
+```playwright
+await page.keyboard.press("Escape");
+await fx.pause(0.4);
+await page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+await fx.pause(3.5);
+```

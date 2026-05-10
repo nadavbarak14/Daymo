@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import { startSampleApp, stopSampleApp } from "./server.js";
 import { parse } from "../../src/parser.js";
-import { captureSingleScene } from "../../src/single-capture.js";
+import { captureSingleScene } from "../../src/core/capture.js";
 
 let appUrl: string;
 beforeAll(async () => { appUrl = await startSampleApp(); }, 30_000);
