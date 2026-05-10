@@ -6,9 +6,16 @@ artifacts/
 .env
 .env.local
 .superpowers/
+.claude/
 editor-ui/dist/
 editor-ui/node_modules/
 editor-ui/*.tsbuildinfo
 editor-ui/*.d.ts
 editor-ui/vite.config.js
 editor-ui/tailwind.config.js
+# Per-demo runtime state (editor's persisted captures + state.json)
+.daymo/
+# Rendered demo outputs
+/output.mp4
+# Music files (BYO)
+/tour-music.mp3
