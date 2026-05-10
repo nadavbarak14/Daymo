@@ -42,7 +42,7 @@ export class EdgeTtsProvider implements TtsProvider {
     const timings: WordTiming[] = [];
 
     audioStream.on("data", (c: Buffer) => audioChunks.push(c));
-    metadataStream.on("data", (chunk: BoundaryEvent | Buffer | string) => {
+    metadataStream?.on("data", (chunk: BoundaryEvent | Buffer | string) => {
       const events: BoundaryEvent[] = [];
       if (Buffer.isBuffer(chunk) || typeof chunk === "string") {
         const parsed = safeParse(chunk.toString());
