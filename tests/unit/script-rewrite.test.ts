@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rewriteSceneProse } from "../../src/editor/script-rewrite.js";
+import { rewriteSceneProse } from "../../src/core/rewrite.js";
 import { parse } from "../../src/parser.js";
 
 const SAMPLE = `---
