@@ -1,3 +1,12 @@
+export type { WordTiming } from "./tts/provider.js";
+
+export interface TtsConfig {
+  provider: "edge";
+  voice: string;
+  rate: string;
+  music_duck: boolean;
+}
+
 export interface Frontmatter {
   title: string;
   description?: string;
@@ -6,6 +15,7 @@ export interface Frontmatter {
   music?: string;
   mocks?: MockSourceConfig[];
   auth?: { storageState: string };
+  tts: TtsConfig;     // always populated post-parse (with defaults)
 }
 
 export type MockSourceConfig =
@@ -43,6 +53,7 @@ export type RunnerEvent =
   | { kind: "scene_start"; t: number; index: number; title: string; prose: string }
   | { kind: "scene_end"; t: number; index: number }
   | { kind: "fx"; t: number; method: string; args: unknown[] }
+  | { kind: "say"; t: number; hash: string; text: string; durationMs: number }
   | { kind: "overlay"; t: number; directive: OverlayDirective; bbox: BBox | null }
   | { kind: "log"; t: number; level: "log" | "warn" | "error"; args: unknown[] }
   | { kind: "error"; t: number; message: string; sceneIndex: number };
@@ -56,6 +67,9 @@ export interface DemoFx {
   pause(seconds: number): Promise<void>;
   callout(text: string, target?: string, duration?: number): Promise<void>;
   highlight(selector: string, duration?: number): Promise<void>;
+  say(text: string, opts?: { voice?: string; rate?: string }): Promise<void>;
+  banner(text: string, opts?: { duration?: number; title?: string }): Promise<void>;
+  hideBanner(): Promise<void>;
 }
 
 export interface ArtifactPaths {

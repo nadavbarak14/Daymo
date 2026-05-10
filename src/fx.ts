@@ -73,5 +73,17 @@ export function createFx(page: Page, events: RunnerEvent[], clock: Clock): DemoF
         { selector, durationMs },
       );
     },
+
+    async say(_text, _opts) {
+      throw new Error("fx.say: not implemented (Task D3)");
+    },
+
+    async banner(_text, _opts) {
+      throw new Error("fx.banner: not implemented (Task D3)");
+    },
+
+    async hideBanner() {
+      throw new Error("fx.hideBanner: not implemented (Task D3)");
+    },
   };
 }

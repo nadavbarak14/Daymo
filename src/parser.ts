@@ -11,7 +11,16 @@ export function parse(source: string): DemoAst {
   } catch (e) {
     throw new Error(`failed to parse frontmatter: ${(e as Error).message}`);
   }
-  const frontmatter = parsed.data as Frontmatter;
+  const rawTts = (parsed.data as any).tts ?? {};
+  const frontmatter: Frontmatter = {
+    ...(parsed.data as Frontmatter),
+    tts: {
+      provider: rawTts.provider ?? "edge",
+      voice: rawTts.voice ?? "en-US-AriaNeural",
+      rate: rawTts.rate ?? "+0%",
+      music_duck: rawTts.music_duck ?? true,
+    },
+  };
   if (!frontmatter.title || !frontmatter.url) {
     throw new Error("missing or incomplete frontmatter (need `title` and `url`)");
   }

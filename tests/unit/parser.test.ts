@@ -92,4 +92,41 @@ just prose with no heading
 `;
     expect(() => parse(bad)).toThrow(/heading/i);
   });
+
+  it("parses tts: frontmatter with defaults applied", () => {
+    const src = `---
+title: t
+url: about:blank
+tts:
+  voice: en-US-JennyNeural
+  rate: "+10%"
+---
+
+# S
+`;
+    const ast = parse(src);
+    expect(ast.frontmatter.tts).toEqual({
+      provider: "edge",
+      voice: "en-US-JennyNeural",
+      rate: "+10%",
+      music_duck: true,
+    });
+  });
+
+  it("applies all defaults when tts: is absent", () => {
+    const src = `---
+title: t
+url: about:blank
+---
+
+# S
+`;
+    const ast = parse(src);
+    expect(ast.frontmatter.tts).toEqual({
+      provider: "edge",
+      voice: "en-US-AriaNeural",
+      rate: "+0%",
+      music_duck: true,
+    });
+  });
 });
