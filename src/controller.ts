@@ -4,8 +4,11 @@ import fs from "node:fs/promises";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { OVERLAY_INIT_SCRIPT } from "./overlay.js";
 import { attachMocks, buildRouteTable } from "./mocks.js";
-import { createFx } from "./fx.js";
+import { createFx, type SayContext } from "./fx.js";
 import { runSceneBlock } from "./sandbox.js";
+import { computeKey } from "./tts/cache.js";
+import { scanFxSayLiterals } from "./tts/scan.js";
+import type { TtsProvider, WordTiming } from "./tts/provider.js";
 import type { MockSourceConfig, RunnerEvent, Scene } from "./types.js";
 
 export interface ControllerOpts {
@@ -14,6 +17,8 @@ export interface ControllerOpts {
   mocks?: MockSourceConfig[];
   storageStatePath?: string;
   artifactsDir: string;
+  ttsProvider?: TtsProvider;
+  ttsConfig?: { voice: string; rate: string };
 }
 
 function parseDurationSeconds(s: string | undefined, defaultSec: number): number {
@@ -66,8 +71,30 @@ export class Controller {
       prose: scene.prose,
     });
     try {
+      let sayCtx: SayContext | undefined;
+      if (this.opts.ttsProvider && scene.playwrightCode) {
+        const calls = scanFxSayLiterals(scene.playwrightCode.code);
+        const sayTable: Record<string, { durationMs: number; words: WordTiming[] }> = {};
+        const hashByText: Record<string, string> = {};
+        const cfg = this.opts.ttsConfig ?? { voice: "en-US-AriaNeural", rate: "+0%" };
+        await Promise.all(calls.map(async (c) => {
+          const out = await this.opts.ttsProvider!.synthesize({ text: c.text, voice: cfg.voice, rate: cfg.rate });
+          const hash = computeKey({ text: c.text, voice: cfg.voice, rate: cfg.rate, providerId: this.opts.ttsProvider!.id });
+          const totalMs = out.timings.length ? out.timings[out.timings.length - 1].endMs : 0;
+          sayTable[hash] = { durationMs: totalMs, words: out.timings };
+          hashByText[c.text] = hash;
+        }));
+        await this.page.evaluate((table) => {
+          (window as any).__daymo.sayTable = table;
+        }, sayTable);
+        sayCtx = {
+          sayTable,
+          sayHashFor: (text) => hashByText[text] ?? null,
+        };
+      }
+
       if (scene.playwrightCode) {
-        const fx = createFx(this.page, this.events, () => this.now());
+        const fx = createFx(this.page, this.events, () => this.now(), sayCtx);
         const console = {
           log: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "log", args }),
           warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),

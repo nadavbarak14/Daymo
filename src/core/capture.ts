@@ -1,6 +1,9 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { Controller } from "../controller.js";
+import { CachedTtsProvider } from "../tts/cache.js";
+import { EdgeTtsProvider } from "../tts/edge.js";
+import { MockTtsProvider } from "../tts/mock.js";
 import type { DemoAst } from "../types.js";
 
 export interface CaptureSingleSceneOpts {
@@ -29,6 +32,10 @@ export async function captureSingleScene(
   const baseDir = path.dirname(path.resolve(opts.demoFile));
   const tmpArtifacts = await fs.mkdtemp(path.join(opts.capturesDir, `.tmp-${sceneIndex}-`));
 
+  const ttsCacheDir = path.join(baseDir, ".daymo", "tts");
+  const innerProvider = process.env.DAYMO_TTS_PROVIDER === "mock" ? new MockTtsProvider() : new EdgeTtsProvider();
+  const ttsProvider = new CachedTtsProvider(innerProvider, ttsCacheDir);
+
   const ctrl = await Controller.start({
     url: ast.frontmatter.url,
     viewport: ast.frontmatter.viewport,
@@ -37,6 +44,8 @@ export async function captureSingleScene(
       ? path.resolve(baseDir, ast.frontmatter.auth.storageState)
       : undefined,
     artifactsDir: tmpArtifacts,
+    ttsProvider,
+    ttsConfig: { voice: ast.frontmatter.tts.voice, rate: ast.frontmatter.tts.rate },
   });
   try {
     await ctrl.runScene(scene);

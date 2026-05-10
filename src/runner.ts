@@ -5,6 +5,9 @@ import crypto from "node:crypto";
 import { parse } from "./parser.js";
 import { Controller } from "./controller.js";
 import { compose } from "./compositor.js";
+import { CachedTtsProvider } from "./tts/cache.js";
+import { EdgeTtsProvider } from "./tts/edge.js";
+import { MockTtsProvider } from "./tts/mock.js";
 import type { ArtifactPaths } from "./types.js";
 
 export interface RenderOpts {
@@ -29,6 +32,10 @@ export async function render(opts: RenderOpts): Promise<{ mp4Path: string; artif
     output: path.join(artifactsDir, "output.mp4"),
   };
 
+  const ttsCacheDir = path.join(baseDir, ".daymo", "tts");
+  const innerProvider = process.env.DAYMO_TTS_PROVIDER === "mock" ? new MockTtsProvider() : new EdgeTtsProvider();
+  const ttsProvider = new CachedTtsProvider(innerProvider, ttsCacheDir);
+
   const ctrl = await Controller.start({
     url: ast.frontmatter.url,
     viewport: ast.frontmatter.viewport,
@@ -37,6 +44,8 @@ export async function render(opts: RenderOpts): Promise<{ mp4Path: string; artif
       ? path.resolve(baseDir, ast.frontmatter.auth.storageState)
       : undefined,
     artifactsDir,
+    ttsProvider,
+    ttsConfig: { voice: ast.frontmatter.tts.voice, rate: ast.frontmatter.tts.rate },
   });
   try {
     for (const scene of ast.scenes) {
