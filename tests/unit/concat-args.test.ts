@@ -36,4 +36,36 @@ describe("buildStitchArgs", () => {
       "/o.mp4",
     ]);
   });
+
+  it("sidechain-ducks music against narration when musicDuck=true", () => {
+    const a = buildStitchArgs({
+      listFile: "/tmp/list.txt",
+      music: "/m.mp3",
+      output: "/o.mp4",
+      musicDuck: true,
+    });
+    expect(a).toEqual([
+      "-y","-f","concat","-safe","0","-i","/tmp/list.txt",
+      "-i","/m.mp3",
+      "-filter_complex",
+      "[1:a]volume=0.4[bg];[bg][0:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][0:a]amix=inputs=2:duration=first[final]",
+      "-map","0:v","-map","[final]",
+      "-c:v","libx264","-c:a","aac",
+      "-shortest",
+      "/o.mp4",
+    ]);
+  });
+
+  it("falls back to constant volume when musicDuck=false", () => {
+    const a = buildStitchArgs({ listFile: "/tmp/list.txt", music: "/m.mp3", output: "/o.mp4", musicDuck: false });
+    expect(a).toEqual([
+      "-y","-f","concat","-safe","0","-i","/tmp/list.txt",
+      "-i","/m.mp3",
+      "-filter_complex","[1:a]volume=0.4[m]",
+      "-map","0:v","-map","[m]",
+      "-c:v","libx264","-c:a","aac",
+      "-shortest",
+      "/o.mp4",
+    ]);
+  });
 });
