@@ -12,7 +12,6 @@ export function formatReviewPrompt(state: EditorState, drafts: DraftLike[]): str
   const lines: string[] = [];
   lines.push(`You're editing \`${state.demoFile}\`. The user has left these review comments —`);
   lines.push(`please apply them as a single edit. Do NOT touch scenes that are not mentioned.`);
-  lines.push(`After editing, do not run capture; the editor will handle that.`);
   lines.push("");
   drafts.forEach((d, i) => {
     const row = state.scenes[d.sceneIndex];
