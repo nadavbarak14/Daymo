@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { initialState, reduce } from "../../src/core/store.js";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { initialState, reduce, saveState, loadState } from "../../src/core/store.js";
 
 const scenes = [
   { sourceLine: 5, title: "S1", prose: "p1", overlays: [] },
@@ -31,5 +34,33 @@ describe("core store reducer", () => {
   it("rejects approve action (removed)", () => {
     let s = initialState({ demoFile: "/p/d.demo", scenes });
     expect(() => reduce(s, { type: "approve" } as any)).toThrow(/unknown action/i);
+  });
+});
+
+describe("core store persistence", () => {
+  it("coerces legacy state: 'approved' to 'captured' on load", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-store-"));
+    const file = path.join(dir, "state.json");
+    await fs.writeFile(file, JSON.stringify({
+      version: 1,
+      scenes: [
+        { sourceLine: 5, state: "approved", webmPath: "/cap/scene-001.webm" },
+        { sourceLine: 9, state: "captured", webmPath: "/cap/scene-002.webm" },
+      ],
+    }));
+    const s = await loadState(file, scenes, "/p/d.demo");
+    expect(s.scenes[0].state).toBe("captured");
+    expect(s.scenes[1].state).toBe("captured");
+  });
+
+  it("round-trips current state with version 2", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-store-"));
+    const file = path.join(dir, "state.json");
+    let s = initialState({ demoFile: "/p/d.demo", scenes });
+    s = reduce(s, { type: "capture-done", sceneIndex: 0, webmPath: "/x.webm" });
+    await saveState(file, s);
+    const loaded = await loadState(file, scenes, "/p/d.demo");
+    expect(loaded.scenes[0].state).toBe("captured");
+    expect(loaded.scenes[0].webmPath).toBe("/x.webm");
   });
 });
