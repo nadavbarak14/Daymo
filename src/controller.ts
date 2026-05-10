@@ -66,12 +66,6 @@ export class Controller {
       prose: scene.prose,
     });
     try {
-      if (scene.prose.trim()) {
-        await this.page.evaluate(
-          ({ title, prose }) => (window as any).__daymo.showCaption(title, prose),
-          { title: scene.title, prose: scene.prose },
-        );
-      }
       if (scene.playwrightCode) {
         const fx = createFx(this.page, this.events, () => this.now());
         const console = {
@@ -106,7 +100,6 @@ export class Controller {
           );
         }
       }
-      await this.page.evaluate(() => (window as any).__daymo.hideCaption());
       this.events.push({ kind: "scene_end", t: this.now(), index: scene.sourceLine });
     } catch (e) {
       this.events.push({

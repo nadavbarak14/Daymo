@@ -65,7 +65,9 @@ describe("Controller", () => {
     }
   });
 
-  it("renders the caption banner during a scene with prose", async () => {
+  // Skipped after A9: auto-prose-as-banner was removed. Will be replaced
+  // by an fx.banner test in Phase D when fx.banner is added.
+  it.skip("renders the caption banner during a scene with prose", async () => {
     const ctrl = await Controller.start({
       url: serverUrl,
       mocks: [{ source: "inline", routes: { "GET /api/me": { name: "Alex" }, "GET /api/projects": [] } }],
