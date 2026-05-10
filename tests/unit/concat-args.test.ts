@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildConcatList, buildStitchArgs } from "../../src/editor/concat.js";
+import { buildConcatList, buildStitchArgs } from "../../src/core/concat.js";
 
 describe("buildConcatList", () => {
   it("emits 'file' lines with single-quote escaping for ffmpeg concat demuxer", () => {
