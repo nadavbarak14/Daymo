@@ -181,6 +181,9 @@ mocks:
     routes:
       "GET /api/me": { "name": "Alex", "plan": "free" }
       "GET /api/projects": []
+      "POST /api/projects":
+        status: 201
+        body: { "id": "p1" }
 ---
 
 # Onboarding
@@ -211,5 +214,5 @@ await page.click("button[type=submit]");
 - Mock every network call the demo will hit — Daymo runs against the real frontend, so unmocked calls will fall through to the real network.
 - Keep the prose tight. Two short sentences per scene render better as captions than a long paragraph.
 - Don't write assertions. Daymo isn't a test framework.
-- Use `fx.step("…")` to break long scenes into named chunks. One step holds one logical user action (cursor + click + say + wait).
+- Use `fx.step("…")` to break long scenes into named steps. One step holds one logical user action (cursor + click + say + wait).
 - Hard limits per step: at most one `fx.say` and one `fx.banner`. If you'd narrate twice, split into two steps.
