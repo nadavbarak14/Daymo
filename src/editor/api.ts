@@ -90,3 +90,45 @@ export async function handleStitch(ctx: StitchCtx, res: ServerResponse): Promise
     res.end(JSON.stringify({ error: (e as Error).message }));
   }
 }
+
+export interface StepCtx extends ApiCtx {
+  rewriteStep(
+    sceneIndex: number,
+    stepIndex: number,
+    kind: "description" | "say" | "banner",
+    text: string,
+  ): Promise<void>;
+  sceneCount(): number;
+}
+
+export interface StepBody {
+  sceneIndex: number;
+  stepIndex: number;
+  kind: "description" | "say" | "banner";
+  text: string;
+}
+
+export async function handleStep(
+  ctx: StepCtx,
+  body: StepBody,
+  res: ServerResponse,
+): Promise<void> {
+  if (body.sceneIndex < 0 || body.sceneIndex >= ctx.sceneCount()) {
+    res.writeHead(404, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "scene out of range" }));
+    return;
+  }
+  if (!body.kind || (body.kind !== "description" && body.kind !== "say" && body.kind !== "banner")) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "invalid kind" }));
+    return;
+  }
+  try {
+    await ctx.rewriteStep(body.sceneIndex, body.stepIndex, body.kind, body.text);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  } catch (e) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: (e as Error).message }));
+  }
+}

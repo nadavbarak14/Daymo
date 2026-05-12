@@ -7,6 +7,7 @@ import { startServer, type ServerHandle } from "./server.js";
 import { SseBus } from "./sse.js";
 import { CaptureQueue } from "./capture.js";
 import { rewriteSceneProse } from "./script-rewrite.js";
+import { rewriteLiteralAt } from "../core/rewrite.js";
 import { stitch } from "./stitch.js";
 import { Watcher } from "./watcher.js";
 
@@ -96,6 +97,46 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     sse.publish({ type: "state", state });
   };
 
+  const rewriteStep = async (
+    sceneIndex: number,
+    stepIndex: number,
+    kind: "description" | "say" | "banner",
+    text: string,
+  ) => {
+    const scene = ast.scenes[sceneIndex];
+    if (!scene) throw new Error(`scene ${sceneIndex} out of range`);
+    const step = scene.steps[stepIndex];
+    if (!step) throw new Error(`step ${stepIndex} out of range in scene ${sceneIndex}`);
+    let span: import("../types.js").SourceSpan | undefined;
+    if (kind === "description") {
+      if (!step.descriptionSpan) {
+        throw new Error("cannot edit preamble description — add an explicit fx.step() call first");
+      }
+      span = step.descriptionSpan;
+    } else if (kind === "say") {
+      if (step.says.length === 0) {
+        throw new Error("step has no fx.say to edit");
+      }
+      span = step.says[0].span;
+    } else {
+      if (step.banners.length === 0) {
+        throw new Error("step has no fx.banner to edit");
+      }
+      span = step.banners[0].span;
+    }
+    watcher.suppressNext();
+    await rewriteLiteralAt(demoFile, span!, text);
+    ast = await readAst();
+    state = reduce(state, { type: "scene-changed", sceneIndex });
+    // refresh row payloads so UI sees new literals
+    state = {
+      ...state,
+      scenes: state.scenes.map((row, i) => ({ ...row, steps: ast.scenes[i].steps, title: ast.scenes[i].title, prose: ast.scenes[i].prose })),
+    };
+    void saveState(stateFile, state);
+    sse.publish({ type: "state", state });
+  };
+
   const stitchNow = async () => {
     const ttsDir = path.join(dotDir, "tts");
     const scenes: import("../core/stitch.js").SceneInput[] = [];
@@ -132,6 +173,7 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     getState: () => state,
     enqueueCapture: (i) => queue.enqueue(i),
     rewriteProse,
+    rewriteStep,
     stitchNow,
     uiDir: opts.uiDir,
     capturesDir,

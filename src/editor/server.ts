@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
-import { handleGetState, handleEvents, handleCapture, handleScript, handleStitch, readJson, notFound } from "./api.js";
+import { handleGetState, handleEvents, handleCapture, handleScript, handleStitch, handleStep, readJson, notFound } from "./api.js";
 
 const MIME: Record<string, string> = {
   ".html": "text/html",
@@ -53,6 +53,12 @@ export interface ServerOpts {
   getState: () => EditorState;
   enqueueCapture: (sceneIndex: number) => void;
   rewriteProse: (sceneIndex: number, prose: string) => Promise<void>;
+  rewriteStep: (
+    sceneIndex: number,
+    stepIndex: number,
+    kind: "description" | "say" | "banner",
+    text: string,
+  ) => Promise<void>;
   stitchNow: () => Promise<string>;
   uiDir?: string;
   capturesDir: string;
@@ -84,6 +90,18 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
       if (sm && req.method === "POST") {
         const body = await readJson<{ prose: string }>(req);
         return handleScript({ ...ctx, rewriteProse: opts.rewriteProse }, Number(sm[1]), body, res);
+      }
+      if (url.pathname === "/api/step" && req.method === "POST") {
+        const body = await readJson<{ sceneIndex: number; stepIndex: number; kind: "description" | "say" | "banner"; text: string }>(req);
+        return handleStep(
+          {
+            ...ctx,
+            rewriteStep: opts.rewriteStep,
+            sceneCount: () => opts.getState().scenes.length,
+          },
+          body,
+          res,
+        );
       }
       if (url.pathname === "/api/stitch" && req.method === "POST") {
         return handleStitch(
