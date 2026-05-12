@@ -132,5 +132,6 @@ function parseScene(chunk: string, baseLine: number): Scene {
     prose: proseLines.join("\n").trim(),
     playwrightCode,
     overlays,
+    steps: [],
   };
 }

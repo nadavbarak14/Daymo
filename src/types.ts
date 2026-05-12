@@ -34,6 +34,31 @@ export interface OverlayDirective {
   [key: string]: unknown;
 }
 
+export interface SourceSpan {
+  /** Byte offset within the full .demo file. */
+  start: number;
+  /** Exclusive byte offset within the full .demo file. */
+  end: number;
+  /** 1-based line within the .demo file (for error messages). */
+  line: number;
+}
+
+export interface StepLiteral {
+  text: string;
+  span: SourceSpan;
+}
+
+export interface Step {
+  /** Author description (the fx.step("...") literal). undefined for the implicit
+   *  preamble that wraps statements appearing before the first fx.step call. */
+  description?: string;
+  descriptionSpan?: SourceSpan;
+  /** 0 or 1 entries — enforced by parser invariant. */
+  says: StepLiteral[];
+  /** 0 or 1 entries — enforced by parser invariant. */
+  banners: StepLiteral[];
+}
+
 export interface Scene {
   /** 1-based line number in the source where the heading sits. */
   sourceLine: number;
@@ -41,6 +66,9 @@ export interface Scene {
   prose: string;
   playwrightCode?: { code: string; sourceLine: number };
   overlays: OverlayDirective[];
+  /** Always length >= 1. steps[0] is the implicit preamble (no description).
+   *  Each explicit fx.step() call appends a new entry. */
+  steps: Step[];
 }
 
 export interface DemoAst {
@@ -54,6 +82,7 @@ export type RunnerEvent =
   | { kind: "scene_end"; t: number; index: number }
   | { kind: "fx"; t: number; method: string; args: unknown[] }
   | { kind: "say"; t: number; hash: string; text: string; durationMs: number }
+  | { kind: "step"; t: number; sceneIndex: number; stepIndex: number; description: string }
   | { kind: "overlay"; t: number; directive: OverlayDirective; bbox: BBox | null }
   | { kind: "log"; t: number; level: "log" | "warn" | "error"; args: unknown[] }
   | { kind: "error"; t: number; message: string; sceneIndex: number };
@@ -70,6 +99,7 @@ export interface DemoFx {
   say(text: string, opts?: { voice?: string; rate?: string }): Promise<void>;
   banner(text: string, opts?: { duration?: number; title?: string }): Promise<void>;
   hideBanner(): Promise<void>;
+  step(description: string): Promise<void>;
 }
 
 export interface ArtifactPaths {

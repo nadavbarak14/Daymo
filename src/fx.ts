@@ -114,5 +114,9 @@ export function createFx(
       emit("hideBanner", []);
       await page.evaluate(() => (window as any).__daymo.hideBanner());
     },
+
+    async step(_description) {
+      throw new Error("fx.step impl pending");
+    },
   };
 }
