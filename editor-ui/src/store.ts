@@ -22,7 +22,6 @@ interface UiStore {
   drafts: Draft[];
   capturing: number[];
   panelOpen: boolean;
-  composeRequest: { sceneIndex: number; nonce: number } | null;
   setState: (s: EditorState) => void;
   patchScene: (i: number, patch: Partial<SceneRow>) => void;
   setSelected: (i: number | null) => void;
@@ -33,8 +32,6 @@ interface UiStore {
   clearCapturing: (i: number) => void;
   togglePanel: () => void;
   setPanelOpen: (open: boolean) => void;
-  requestCompose: (sceneIndex: number) => void;
-  clearComposeRequest: () => void;
 }
 
 export const useUi = create<UiStore>((set) => ({
@@ -43,7 +40,6 @@ export const useUi = create<UiStore>((set) => ({
   drafts: [],
   capturing: [],
   panelOpen: false,
-  composeRequest: null,
   setState: (s) => set({ state: s }),
   patchScene: (i, patch) =>
     set((u) => {
@@ -61,7 +57,4 @@ export const useUi = create<UiStore>((set) => ({
   clearCapturing: (i) => set((u) => ({ capturing: u.capturing.filter((x) => x !== i) })),
   togglePanel: () => set((u) => ({ panelOpen: !u.panelOpen })),
   setPanelOpen: (open) => set({ panelOpen: open }),
-  requestCompose: (sceneIndex) =>
-    set({ panelOpen: true, composeRequest: { sceneIndex, nonce: Date.now() } }),
-  clearComposeRequest: () => set({ composeRequest: null }),
 }));

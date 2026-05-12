@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUi } from "../store";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
@@ -31,18 +31,6 @@ export function ComposerInline({ sceneIndex, target }: { sceneIndex: number; tar
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const addDraft = useUi((s) => s.addDraft);
-  const composeRequest = useUi((s) => s.composeRequest);
-  const clearComposeRequest = useUi((s) => s.clearComposeRequest);
-  useEffect(() => {
-    if (
-      composeRequest &&
-      composeRequest.sceneIndex === sceneIndex &&
-      target.kind === "caption"
-    ) {
-      setOpen(true);
-      clearComposeRequest();
-    }
-  }, [composeRequest, sceneIndex, target.kind, clearComposeRequest]);
   if (!open) {
     return (
       <button

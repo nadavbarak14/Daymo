@@ -1,21 +1,12 @@
-import type { MouseEvent } from "react";
 import { useUi } from "../store";
 
 export function PanelToggle() {
-  const { state, selectedSceneIndex, drafts, panelOpen, togglePanel, requestCompose } = useUi();
+  const { state, selectedSceneIndex, drafts, panelOpen, togglePanel } = useUi();
   if (!state) return null;
   const overlayCount =
     selectedSceneIndex !== null ? state.scenes[selectedSceneIndex]?.overlays.length ?? 0 : 0;
   const sceneCommentCount =
     selectedSceneIndex !== null ? drafts.filter((d) => d.sceneIndex === selectedSceneIndex).length : 0;
-
-  const onAddComment = (e: MouseEvent) => {
-    e.stopPropagation();
-    if (selectedSceneIndex === null) return;
-    requestCompose(selectedSceneIndex);
-  };
-
-  const canComment = selectedSceneIndex !== null;
 
   return (
     <div
@@ -33,17 +24,7 @@ export function PanelToggle() {
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        {canComment && (
-          <button
-            onClick={onAddComment}
-            className="text-accent hover:text-accent/80 font-medium"
-          >
-            💬 Add comment
-          </button>
-        )}
-        <span className="opacity-60">{panelOpen ? "Hide" : "Show"}</span>
-      </div>
+      <span className="opacity-60">{panelOpen ? "Hide" : "Show"}</span>
     </div>
   );
 }
