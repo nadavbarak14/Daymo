@@ -60,6 +60,16 @@ describe("E2E smoke", () => {
     expect(types).toEqual(["audio", "video"]);
     const videoDuration = Number(streams.find((s) => s.codec_type === "video")?.duration ?? 0);
     expect(videoDuration).toBeGreaterThan(0);
+    // events.json should contain a step event for the second scene
+    const artifactsDir = path.dirname(mp4Path);
+    const events: any[] = JSON.parse(
+      await fs.readFile(path.join(artifactsDir, "events.json"), "utf8"),
+    );
+    const step = events.find((e) => e.kind === "step");
+    expect(step).toBeDefined();
+    expect(step.description).toBe("Open the dialog");
+    expect(step.stepIndex).toBe(1);
+    expect(step.sceneIndex).toBe(1); // second scene, 0-indexed
   }, 60_000);
 
   it("without music: produces an mp4 with a video stream and no audio stream", async () => {

@@ -26,6 +26,7 @@ await page.waitForSelector("[data-testid=new-project-btn]");
 Now we open the new-project dialog.
 
 ```playwright
+await fx.step("Open the dialog");
 await fx.cursorTo("[data-testid=new-project-btn]");
 await page.click("[data-testid=new-project-btn]");
 await page.waitForSelector("[data-testid=new-project-dialog][open]");
