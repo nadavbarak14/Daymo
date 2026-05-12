@@ -30,4 +30,21 @@ describe("formatReviewPrompt", () => {
     expect(md).not.toContain("# Comment 3");
     expect(md).not.toContain("Scene 2");
   });
+
+  it("formats a step.description comment", () => {
+    const state: any = {
+      demoFile: "/x.demo",
+      scenes: [{
+        sourceLine: 1, title: "T", prose: "", overlays: [], steps: [
+          { says: [], banners: [] },
+          { description: "Click the button", says: [{ text: "hi", span: { start: 0, end: 1, line: 1 } }], banners: [] },
+        ], state: "pending",
+      }],
+    };
+    const out = formatReviewPrompt(state, [{
+      id: "1", sceneIndex: 0, stepIndex: 1, targetKind: "step.description", text: "rename me",
+    }]);
+    expect(out).toContain('Step 1 — "Click the button"');
+    expect(out).toContain('rename me');
+  });
 });

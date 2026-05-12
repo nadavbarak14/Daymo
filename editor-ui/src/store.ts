@@ -4,8 +4,15 @@ import type { EditorState, SceneRow } from "./lib/types";
 export interface Draft {
   id: string;
   sceneIndex: number;
-  targetKind: "caption" | "overlay";
+  /** Target of the comment. New step.* kinds carry a stepIndex. */
+  targetKind:
+    | "caption"
+    | "overlay"
+    | "step.description"
+    | "step.say"
+    | "step.banner";
   targetIndex?: number;
+  stepIndex?: number;
   text: string;
 }
 

@@ -17,5 +17,18 @@ export const api = {
         body: JSON.stringify({ prose }),
       }),
     ),
+  setStep: (
+    sceneIndex: number,
+    stepIndex: number,
+    kind: "description" | "say" | "banner",
+    text: string,
+  ) =>
+    jsonOrThrow(
+      fetch(`/api/step`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sceneIndex, stepIndex, kind, text }),
+      }),
+    ),
   stitch: () => jsonOrThrow<{ output: string }>(fetch("/api/stitch", { method: "POST" })),
 };

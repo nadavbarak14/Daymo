@@ -4,8 +4,14 @@ import type { EditorState } from "./types";
 export interface DraftLike {
   id: string;
   sceneIndex: number;
-  targetKind: "caption" | "overlay";
+  targetKind:
+    | "caption"
+    | "overlay"
+    | "step.description"
+    | "step.say"
+    | "step.banner";
   targetIndex?: number;
+  stepIndex?: number;
   text: string;
 }
 
@@ -21,7 +27,7 @@ export function formatReviewPrompt(state: EditorState, drafts: DraftLike[]): str
     if (d.targetKind === "caption") {
       lines.push("Current text:");
       for (const ln of row.prose.split("\n")) lines.push(`> ${ln}`);
-    } else {
+    } else if (d.targetKind === "overlay") {
       const ov = row.overlays[d.targetIndex ?? 0];
       lines.push("Current overlay:");
       lines.push("```yaml");
@@ -30,6 +36,20 @@ export function formatReviewPrompt(state: EditorState, drafts: DraftLike[]): str
       if (ov.text) lines.push(`text: "${ov.text}"`);
       if (ov.duration) lines.push(`duration: ${ov.duration}`);
       lines.push("```");
+    } else {
+      // step.* kinds
+      const step = row.steps[d.stepIndex ?? 0];
+      const label = step?.description ?? "<preamble>";
+      lines.push(`Step ${d.stepIndex} — "${label}"`);
+      if (d.targetKind === "step.description") {
+        lines.push(`Current description: "${label}"`);
+      } else if (d.targetKind === "step.say") {
+        const t = step?.says[0]?.text ?? "<none>";
+        lines.push(`Current fx.say: "${t}"`);
+      } else if (d.targetKind === "step.banner") {
+        const t = step?.banners[0]?.text ?? "<none>";
+        lines.push(`Current fx.banner: "${t}"`);
+      }
     }
     lines.push("");
     lines.push("User comment:");
