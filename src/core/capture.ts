@@ -48,7 +48,7 @@ export async function captureSingleScene(
     ttsConfig: { voice: ast.frontmatter.tts.voice, rate: ast.frontmatter.tts.rate },
   });
   try {
-    await ctrl.runScene(scene);
+    await ctrl.runScene(scene, sceneIndex);
   } finally {
     await ctrl.stop();
   }

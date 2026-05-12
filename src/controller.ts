@@ -62,7 +62,7 @@ export class Controller {
     return Date.now() - this.startWall;
   }
 
-  async runScene(scene: Scene): Promise<void> {
+  async runScene(scene: Scene, sceneIndex: number): Promise<void> {
     this.events.push({
       kind: "scene_start",
       t: this.now(),
@@ -94,7 +94,9 @@ export class Controller {
       }
 
       if (scene.playwrightCode) {
-        const fx = createFx(this.page, this.events, () => this.now(), sayCtx);
+        let stepCounter = 0;
+        const stepCtx = { sceneIndex, nextStepIndex: () => ++stepCounter };
+        const fx = createFx(this.page, this.events, () => this.now(), sayCtx, stepCtx);
         const console = {
           log: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "log", args }),
           warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),

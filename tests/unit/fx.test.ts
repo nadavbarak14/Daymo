@@ -116,3 +116,18 @@ describe("fx.zoom", () => {
     expect(events.find((e) => e.kind === "fx" && e.method === "zoom")).toBeDefined();
   });
 });
+
+describe("fx.step", () => {
+  it("emits a step event with stepIndex and description", async () => {
+    const events: RunnerEvent[] = [];
+    const fakePage = { evaluate: async () => {} } as any;
+    const fx = createFx(fakePage, events, () => 42, undefined, {
+      sceneIndex: 3,
+      nextStepIndex: () => 1,
+    });
+    await fx.step("Open the dialog");
+    expect(events).toEqual([
+      { kind: "step", t: 42, sceneIndex: 3, stepIndex: 1, description: "Open the dialog" },
+    ]);
+  });
+});

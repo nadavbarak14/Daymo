@@ -48,8 +48,8 @@ export async function render(opts: RenderOpts): Promise<{ mp4Path: string; artif
     ttsConfig: { voice: ast.frontmatter.tts.voice, rate: ast.frontmatter.tts.rate },
   });
   try {
-    for (const scene of ast.scenes) {
-      await ctrl.runScene(scene);
+    for (let i = 0; i < ast.scenes.length; i++) {
+      await ctrl.runScene(ast.scenes[i], i);
     }
   } finally {
     await ctrl.stop();

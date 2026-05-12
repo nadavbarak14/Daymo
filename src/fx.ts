@@ -11,11 +11,20 @@ export interface SayContext {
   sayHashFor: (text: string) => string | null;
 }
 
+export interface StepContext {
+  /** Position of the current scene in the AST scenes array (0-based). */
+  sceneIndex: number;
+  /** Returns the index that should be assigned to the next fx.step call.
+   *  Implementation is expected to increment its own counter. */
+  nextStepIndex: () => number;
+}
+
 export function createFx(
   page: Page,
   events: RunnerEvent[],
   clock: Clock,
   sayCtx?: SayContext,
+  stepCtx?: StepContext,
 ): DemoFx {
   function emit(method: string, args: unknown[]) {
     events.push({ kind: "fx", t: clock(), method, args });
@@ -115,8 +124,18 @@ export function createFx(
       await page.evaluate(() => (window as any).__daymo.hideBanner());
     },
 
-    async step(_description) {
-      throw new Error("fx.step impl pending");
+    async step(description) {
+      if (!stepCtx) {
+        // Outside of a capture context (e.g. dry runs) — silently no-op.
+        return;
+      }
+      events.push({
+        kind: "step",
+        t: clock(),
+        sceneIndex: stepCtx.sceneIndex,
+        stepIndex: stepCtx.nextStepIndex(),
+        description,
+      });
     },
   };
 }

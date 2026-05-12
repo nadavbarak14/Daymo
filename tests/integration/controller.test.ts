@@ -39,7 +39,7 @@ describe("Controller", () => {
         prose: "hello",
         playwrightCode: { code: 'await page.waitForSelector("[data-testid=new-project-btn]");', sourceLine: 2 },
         overlays: [],
-      });
+      }, 0);
     } finally {
       await ctrl.stop();
     }
@@ -82,7 +82,7 @@ describe("Controller", () => {
         prose: "Scene narration text",
         playwrightCode: { code: 'await page.waitForTimeout(200);', sourceLine: 2 },
         overlays: [],
-      });
+      }, 0);
       // Sample shortly into the scene.
       await page.waitForTimeout(50);
       const bodyText = await page.evaluate(() => document.body.textContent ?? "");
@@ -107,7 +107,7 @@ describe("Controller", () => {
         prose: "",
         playwrightCode: { code: 'await page.waitForTimeout(300);', sourceLine: 2 },
         overlays: [{ type: "callout", target: "h1", text: "Hello callout", duration: "2s" }],
-      });
+      }, 0);
       // The overlay loop fires AFTER the playwrightCode block in runScene.
       // We need to sample after the playwright block has finished but before the scene ends.
       // Simpler: sample at the end of the scene after scenePromise resolves but before stop().
@@ -137,7 +137,7 @@ describe("Controller", () => {
         prose: "",
         playwrightCode: { code: 'throw new Error("intentional failure");', sourceLine: 2 },
         overlays: [],
-      }),
+      }, 0),
     ).rejects.toThrow(/intentional failure/);
     await ctrl.stop();
     const events = JSON.parse(await fs.readFile(path.join(artifactsDir, "events.json"), "utf8"));
