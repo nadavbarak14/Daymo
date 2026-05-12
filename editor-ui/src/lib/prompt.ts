@@ -40,7 +40,7 @@ export function formatReviewPrompt(state: EditorState, drafts: DraftLike[]): str
       // step.* kinds
       const step = row.steps[d.stepIndex ?? 0];
       const label = step?.description ?? "<preamble>";
-      lines.push(`Step ${d.stepIndex} — "${label}"`);
+      lines.push(`Step ${d.stepIndex ?? 0} — "${label}"`);
       if (d.targetKind === "step.description") {
         lines.push(`Current description: "${label}"`);
       } else if (d.targetKind === "step.say") {

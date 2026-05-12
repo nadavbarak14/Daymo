@@ -47,4 +47,20 @@ describe("formatReviewPrompt", () => {
     expect(out).toContain('Step 1 — "Click the button"');
     expect(out).toContain('rename me');
   });
+
+  it("defends Step header against undefined stepIndex", () => {
+    const state: any = {
+      demoFile: "/x.demo",
+      scenes: [{
+        sourceLine: 1, title: "T", prose: "", overlays: [],
+        steps: [{ says: [], banners: [] }],
+        state: "pending",
+      }],
+    };
+    const out = formatReviewPrompt(state, [{
+      id: "1", sceneIndex: 0, targetKind: "step.description", text: "x",
+    }]);
+    expect(out).toContain('Step 0 — "<preamble>"');
+    expect(out).not.toContain("undefined");
+  });
 });
