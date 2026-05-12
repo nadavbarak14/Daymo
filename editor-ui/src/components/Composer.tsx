@@ -4,10 +4,20 @@ import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { formatReviewPrompt } from "../lib/prompt";
 
-type Target = { kind: "caption" } | { kind: "overlay"; index: number };
+type Target =
+  | { kind: "caption" }
+  | { kind: "overlay"; index: number }
+  | { kind: "step.description"; stepIndex: number }
+  | { kind: "step.say"; stepIndex: number }
+  | { kind: "step.banner"; stepIndex: number };
 
-const targetLabel = (t: Target) =>
-  t.kind === "caption" ? "the caption" : `overlay #${t.index + 1}`;
+const targetLabel = (t: Target) => {
+  if (t.kind === "caption") return "the caption";
+  if (t.kind === "overlay") return `overlay #${t.index + 1}`;
+  if (t.kind === "step.description") return `step ${t.stepIndex} description`;
+  if (t.kind === "step.say") return `step ${t.stepIndex} subtitle`;
+  return `step ${t.stepIndex} banner`;
+};
 
 function toast(text: string) {
   const t = document.createElement("div");
@@ -49,6 +59,12 @@ export function ComposerInline({ sceneIndex, target }: { sceneIndex: number; tar
       sceneIndex,
       targetKind: target.kind,
       targetIndex: target.kind === "overlay" ? target.index : undefined,
+      stepIndex:
+        target.kind === "step.description" ||
+        target.kind === "step.say" ||
+        target.kind === "step.banner"
+          ? target.stepIndex
+          : undefined,
       text: text.trim(),
     });
     setText("");
