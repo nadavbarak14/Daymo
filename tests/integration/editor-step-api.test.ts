@@ -75,4 +75,11 @@ describe("editor /api/step", () => {
     const r = await post({ sceneIndex: 99, stepIndex: 0, kind: "description", text: "x" });
     expect(r.status).toBe(404);
   });
+
+  it("rejects malformed body (missing sceneIndex)", async () => {
+    const r = await post({ stepIndex: 1, kind: "description", text: "x" });
+    expect(r.status).toBe(400);
+    const body = await r.json();
+    expect(body.error).toMatch(/invalid body/);
+  });
 });

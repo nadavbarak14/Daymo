@@ -113,6 +113,15 @@ export async function handleStep(
   body: StepBody,
   res: ServerResponse,
 ): Promise<void> {
+  if (
+    typeof body.sceneIndex !== "number" ||
+    typeof body.stepIndex !== "number" ||
+    typeof body.text !== "string"
+  ) {
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "invalid body" }));
+    return;
+  }
   if (body.sceneIndex < 0 || body.sceneIndex >= ctx.sceneCount()) {
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "scene out of range" }));
