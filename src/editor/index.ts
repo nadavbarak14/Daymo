@@ -47,6 +47,9 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     },
   });
 
+  const stepsKey = (steps: import("../types.js").Step[]) =>
+    steps.map((s) => `${s.description ?? ""}|${s.says.map((x) => x.text).join("§")}|${s.banners.map((x) => x.text).join("§")}`).join("¶");
+
   const watcher = new Watcher({
     paths: [demoFile],
     debounceMs: 100,
@@ -58,12 +61,21 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
         for (let i = 0; i < state.scenes.length; i++) {
           const oldRow = state.scenes[i];
           const newScene = newAst.scenes[i];
-          if (newScene.sourceLine !== oldRow.sourceLine ||
-              newScene.prose !== oldRow.prose ||
-              newScene.title !== oldRow.title) {
+          const changed =
+            newScene.sourceLine !== oldRow.sourceLine ||
+            newScene.prose !== oldRow.prose ||
+            newScene.title !== oldRow.title ||
+            stepsKey(newScene.steps) !== stepsKey(oldRow.steps);
+          if (changed) {
             state = reduce(state, { type: "scene-changed", sceneIndex: i });
           }
         }
+        // Even if no captures are invalidated, refresh the row payloads
+        // so the UI sees new step content.
+        state = {
+          ...state,
+          scenes: state.scenes.map((row, i) => ({ ...row, steps: newAst.scenes[i].steps, title: newAst.scenes[i].title, prose: newAst.scenes[i].prose })),
+        };
       }
       ast = newAst;
       void saveState(stateFile, state);

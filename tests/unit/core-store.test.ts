@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { initialState, reduce, saveState, loadState } from "../../src/core/store.js";
+import type { Scene } from "../../src/types.js";
 
 const scenes = [
   { sourceLine: 5, title: "S1", prose: "p1", overlays: [] },
@@ -62,5 +63,23 @@ describe("core store persistence", () => {
     const loaded = await loadState(file, scenes, "/p/d.demo");
     expect(loaded.scenes[0].state).toBe("captured");
     expect(loaded.scenes[0].webmPath).toBe("/x.webm");
+  });
+});
+
+describe("core/store — SceneRow.steps", () => {
+  it("hydrates steps from Scene", () => {
+    const scenes: Scene[] = [{
+      sourceLine: 1,
+      title: "T",
+      prose: "",
+      overlays: [],
+      steps: [
+        { says: [], banners: [] },
+        { description: "Step A", descriptionSpan: { start: 0, end: 10, line: 4 }, says: [], banners: [] },
+      ],
+    }];
+    const s = initialState({ demoFile: "x.demo", scenes });
+    expect(s.scenes[0].steps).toHaveLength(2);
+    expect(s.scenes[0].steps[1].description).toBe("Step A");
   });
 });

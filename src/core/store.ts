@@ -1,7 +1,7 @@
 // src/core/store.ts
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Scene } from "../types.js";
+import type { Scene, Step } from "../types.js";
 
 export type SceneState = "pending" | "captured";
 
@@ -10,6 +10,7 @@ export interface SceneRow {
   title: string;
   prose: string;
   overlays: Scene["overlays"];
+  steps: Step[];
   state: SceneState;
   webmPath?: string;
   eventsPath?: string;
@@ -37,7 +38,14 @@ export function initialState(opts: { demoFile: string; scenes: Scene[] }): Edito
 }
 
 function toRow(s: Scene): SceneRow {
-  return { sourceLine: s.sourceLine, title: s.title, prose: s.prose, overlays: s.overlays, state: "pending" };
+  return {
+    sourceLine: s.sourceLine,
+    title: s.title,
+    prose: s.prose,
+    overlays: s.overlays,
+    steps: s.steps,
+    state: "pending",
+  };
 }
 
 function withRow(s: EditorState, i: number, patch: Partial<SceneRow>): EditorState {
