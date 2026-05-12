@@ -77,6 +77,7 @@ fx.highlight(selector: string, duration?: number)
 fx.say(text: string, opts?: { voice?: string; rate?: string })
 fx.banner(text: string, opts?: { duration?: number; title?: string })
 fx.hideBanner()
+fx.step(description: string)
 ```
 
 ### Narration with `fx.say`
@@ -109,6 +110,31 @@ tts:
 ```
 
 For an opt-in static caption banner (the old auto-prose behavior), use `fx.banner(text, { duration?: seconds, title?: string })`.
+
+### Structuring long scenes into steps
+
+Long scenes (a 20-minute walkthrough is fine as one scene) become hard to navigate as a single block. Wrap user-visible actions with `fx.step("…")` to give the editor — and any reviewer — a narrative outline:
+
+```js
+await fx.step("Open the new-project dialog");
+await fx.cursorTo("[data-testid=new-project-btn]");
+await page.click("[data-testid=new-project-btn]");
+await fx.say("Click here to start a new project.");
+await page.waitForSelector("[role=dialog]");
+
+await fx.step("Name the project");
+await page.fill("[name=projectName]", "My first project");
+await fx.say("Give it a name.");
+```
+
+Each `fx.step` opens a new step and every following statement belongs to it until the next `fx.step` (or the end of the block). The description has no visual effect at render time — it shows up in the editor and in `events.json` only.
+
+**Rules** (enforced at parse time):
+
+- The argument must be a string literal — no template strings, no variables.
+- At most one `fx.say` per step. If you'd narrate two different lines, those are two different steps.
+- At most one `fx.banner` per step.
+- `fx.step` is optional. A scene with no `fx.step` calls behaves exactly as today.
 
 ### Pipeline: `render` vs `capture` + `stitch`
 
@@ -157,31 +183,25 @@ mocks:
       "GET /api/projects": []
 ---
 
-# Welcome to your dashboard
-
-Welcome back, Alex. This is your project dashboard — the home base for everything you build.
+# Onboarding
 
 ```playwright
+await fx.step("Welcome the user");
 await page.waitForSelector("h1:has-text('Projects')");
-```
+await fx.say("Welcome back, Alex. This is your project dashboard.");
 
-```overlay
-type: callout
-target: "[data-testid='new-project-btn']"
-text: "Click here to start a new project"
-duration: 2.5s
-```
+await fx.step("Open the new-project dialog");
+await fx.cursorTo("[data-testid=new-project-btn]");
+await page.click("[data-testid=new-project-btn]");
+await fx.say("Click here to start a new project.");
+await page.waitForSelector("[role=dialog]");
 
----
+await fx.step("Name the project");
+await page.fill("[name=projectName]", "My first project");
+await fx.say("Give it a name.");
 
-# Open the new-project dialog
-
-Click **New Project** to open the creation dialog.
-
-```playwright
-await fx.cursorTo("[data-testid='new-project-btn']");
-await page.click("[data-testid='new-project-btn']");
-await page.waitForSelector("[role='dialog']");
+await fx.step("Submit");
+await page.click("button[type=submit]");
 ```
 ````
 
@@ -191,3 +211,5 @@ await page.waitForSelector("[role='dialog']");
 - Mock every network call the demo will hit — Daymo runs against the real frontend, so unmocked calls will fall through to the real network.
 - Keep the prose tight. Two short sentences per scene render better as captions than a long paragraph.
 - Don't write assertions. Daymo isn't a test framework.
+- Use `fx.step("…")` to break long scenes into named chunks. One step holds one logical user action (cursor + click + say + wait).
+- Hard limits per step: at most one `fx.say` and one `fx.banner`. If you'd narrate twice, split into two steps.
