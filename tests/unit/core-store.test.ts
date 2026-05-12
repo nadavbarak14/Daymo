@@ -5,10 +5,10 @@ import fs from "node:fs/promises";
 import { initialState, reduce, saveState, loadState } from "../../src/core/store.js";
 import type { Scene } from "../../src/types.js";
 
-const scenes = [
-  { sourceLine: 5, title: "S1", prose: "p1", overlays: [] },
-  { sourceLine: 9, title: "S2", prose: "p2", overlays: [] },
-] as any;
+const scenes: Scene[] = [
+  { sourceLine: 5, title: "S1", prose: "p1", overlays: [], steps: [{ says: [], banners: [] }] },
+  { sourceLine: 9, title: "S2", prose: "p2", overlays: [], steps: [{ says: [], banners: [] }] },
+];
 
 describe("core store reducer", () => {
   it("starts every scene as pending", () => {

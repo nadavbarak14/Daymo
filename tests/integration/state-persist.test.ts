@@ -3,19 +3,28 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
 import { initialState, reduce, saveState, loadState } from "../../src/core/store.js";
+import type { Scene } from "../../src/types.js";
 
 describe("state persistence", () => {
   it("saves and loads capture metadata", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-state-"));
     const file = path.join(tmp, "state.json");
+    const scenes: Scene[] = [{ sourceLine: 5, title: "S1", prose: "", overlays: [], steps: [{ says: [], banners: [] }] }];
     let s = initialState({
       demoFile: "/p/demo.demo",
-      scenes: [{ sourceLine: 5, title: "S1", prose: "", overlays: [] }] as any,
+      scenes,
     });
     s = reduce(s, { type: "capture-done", sceneIndex: 0, webmPath: "/cap/scene-001.webm" });
     await saveState(file, s);
 
-    const loaded = await loadState(file, s.scenes.map((r) => ({ sourceLine: r.sourceLine, title: r.title, prose: r.prose, overlays: r.overlays })) as any, "/p/demo.demo");
+    const reloadScenes: Scene[] = s.scenes.map((r) => ({
+      sourceLine: r.sourceLine,
+      title: r.title,
+      prose: r.prose,
+      overlays: r.overlays,
+      steps: [{ says: [], banners: [] }],
+    }));
+    const loaded = await loadState(file, reloadScenes, "/p/demo.demo");
     expect(loaded.scenes[0].state).toBe("captured");
     expect(loaded.scenes[0].webmPath).toBe("/cap/scene-001.webm");
   });
@@ -23,7 +32,11 @@ describe("state persistence", () => {
   it("loadState falls back to initial when file missing", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-state-"));
     const file = path.join(tmp, "missing.json");
-    const loaded = await loadState(file, [{ sourceLine: 1, title: "S", prose: "", overlays: [] }] as any, "/p/demo.demo");
+    const loaded = await loadState(
+      file,
+      [{ sourceLine: 1, title: "S", prose: "", overlays: [], steps: [{ says: [], banners: [] }] }],
+      "/p/demo.demo",
+    );
     expect(loaded.scenes[0].state).toBe("pending");
   });
 });

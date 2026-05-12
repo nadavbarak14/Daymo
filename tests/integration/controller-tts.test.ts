@@ -24,6 +24,7 @@ describe("controller + TTS", () => {
         prose: "",
         playwrightCode: { code: `await fx.say("hello world");\nawait fx.pause(0.1);`, sourceLine: 1 },
         overlays: [],
+        steps: [{ says: [], banners: [] }],
       }, 0);
     } finally {
       await ctrl.stop();
