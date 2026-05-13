@@ -44,19 +44,32 @@ function escapeAssText(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/\{/g, "(").replace(/\}/g, ")");
 }
 
-/** Build a karaoke-tagged Dialogue text from word timings. Each word gets a
- *  `{\kN}` tag where N is its duration in centiseconds. Words start in
- *  SecondaryColour (white), turn to PrimaryColour (amber) after their tag
- *  fires — a "progress karaoke" effect that's natively supported by
- *  libass/ffmpeg. */
+/** Build a karaoke-tagged Dialogue text from word timings. The karaoke clock
+ *  in ASS advances by the sum of all preceding `{\kN}` durations — so we must
+ *  account for leading silence AND inter-word gaps, not just word durations.
+ *  Otherwise the highlight runs ahead of the audio (TTS adds breath/preroll
+ *  before the first word and pauses after commas/periods). Provider-agnostic:
+ *  as long as `WordTiming.startMs/endMs` describe true offsets in the MP3,
+ *  emitting a leading `{\kgap}` before each word makes the cumulative karaoke
+ *  time equal `word.startMs` exactly — same time as the audio sample. */
 function buildKaraokeText(words: WordTiming[]): string {
   const parts: string[] = [];
+  let cursorCs = 0;
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
-    const durCs = Math.max(0, Math.round((w.endMs - w.startMs) / 10));
+    // Quantize each boundary to centiseconds the same way (round-to-grid)
+    // before differencing. Differencing pre-rounded values keeps the running
+    // karaoke clock identical to a cs-rounded view of word.startMs/endMs —
+    // the same grid the .ass Dialogue start lives on.
+    const startCs = Math.round(w.startMs / 10);
+    const endCs = Math.round(w.endMs / 10);
+    const gapCs = Math.max(0, startCs - cursorCs);
+    if (gapCs > 0) parts.push(`{\\k${gapCs}}`);
+    const durCs = Math.max(0, endCs - startCs);
     const text = escapeAssText((w as { word?: string; text?: string }).word ?? (w as { text?: string }).text ?? "");
     const sep = i < words.length - 1 ? " " : "";
     parts.push(`{\\k${durCs}}${text}${sep}`);
+    cursorCs = startCs + durCs;
   }
   return parts.join("");
 }
