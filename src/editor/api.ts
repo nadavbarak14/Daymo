@@ -95,8 +95,9 @@ export interface StepCtx extends ApiCtx {
   rewriteStep(
     sceneIndex: number,
     stepIndex: number,
-    kind: "description" | "say" | "banner",
+    kind: "description" | "say" | "banner" | "type",
     text: string,
+    typeIndex?: number,
   ): Promise<void>;
   sceneCount(): number;
 }
@@ -104,8 +105,10 @@ export interface StepCtx extends ApiCtx {
 export interface StepBody {
   sceneIndex: number;
   stepIndex: number;
-  kind: "description" | "say" | "banner";
+  kind: "description" | "say" | "banner" | "type";
   text: string;
+  /** Index into step.types[]; only meaningful when kind === "type". Defaults to 0. */
+  typeIndex?: number;
 }
 
 export async function handleStep(
@@ -127,13 +130,19 @@ export async function handleStep(
     res.end(JSON.stringify({ error: "scene out of range" }));
     return;
   }
-  if (!body.kind || (body.kind !== "description" && body.kind !== "say" && body.kind !== "banner")) {
+  if (
+    !body.kind ||
+    (body.kind !== "description" &&
+      body.kind !== "say" &&
+      body.kind !== "banner" &&
+      body.kind !== "type")
+  ) {
     res.writeHead(400, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "invalid kind" }));
     return;
   }
   try {
-    await ctx.rewriteStep(body.sceneIndex, body.stepIndex, body.kind, body.text);
+    await ctx.rewriteStep(body.sceneIndex, body.stepIndex, body.kind, body.text, body.typeIndex);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
   } catch (e) {

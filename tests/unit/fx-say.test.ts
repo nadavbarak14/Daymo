@@ -2,36 +2,41 @@ import { describe, it, expect } from "vitest";
 import { createFx } from "../../src/fx.js";
 
 describe("fx.say", () => {
-  it("emits a 'say' event with computed hash and pre-known duration", async () => {
+  it("emits a 'say' event with hash + duration + word timings, reserves duration on the recording", async () => {
     const events: any[] = [];
-    let now = 0;
-    const calls: any[] = [];
-
+    const evaluateCalls: any[] = [];
+    const waitCalls: number[] = [];
     const fakePage = {
-      evaluate: async (_fn: any, args: any) => {
-        calls.push(args);
-        // Simulate page-side wait of durationMs by advancing the clock.
-        now += args.durationMs;
-      },
+      // fx.say must NOT call into the browser — karaoke is burned in at
+      // stitch time. Any page.evaluate here would re-introduce the drift bug.
+      evaluate: async (_fn: any, args: any) => { evaluateCalls.push(args); },
       locator: () => { throw new Error("not used"); },
-      waitForTimeout: async () => {},
+      waitForTimeout: async (ms: number) => { waitCalls.push(ms); },
     } as any;
 
-    const fx = createFx(fakePage, events, () => now, {
-      sayTable: { abc123: { durationMs: 1500, words: [{ word: "hi", startMs: 0, endMs: 1500 }] } },
-      sayHashFor: (text: string) => (text === "hi" ? "abc123" : null),
+    const words = [
+      { word: "hi", startMs: 0, endMs: 600 },
+      { word: "there", startMs: 600, endMs: 1500 },
+    ];
+    const fx = createFx(fakePage, events, () => 7000, {
+      sayTable: { abc123: { durationMs: 1500, words } },
+      sayHashFor: (text: string) => (text === "hi there" ? "abc123" : null),
     });
 
-    await fx.say("hi");
+    await fx.say("hi there");
 
     const sayEvent = events.find((e) => e.kind === "say");
     expect(sayEvent).toMatchObject({
       kind: "say",
+      t: 7000,
       hash: "abc123",
-      text: "hi",
+      text: "hi there",
       durationMs: 1500,
     });
-    expect(calls[0].hash).toBe("abc123");
+    // words[] is the single source of truth for stitch-time subtitle karaoke
+    expect(sayEvent.words).toEqual(words);
+    expect(waitCalls).toEqual([1500]);
+    expect(evaluateCalls).toEqual([]);
   });
 
   it("throws if text was not pre-synthesized", async () => {
@@ -42,6 +47,49 @@ describe("fx.say", () => {
   it("throws clearly if no sayContext was provided", async () => {
     const fx = createFx({} as any, [], () => 0);
     await expect(fx.say("anything")).rejects.toThrow(/not available/);
+  });
+});
+
+describe("fx.waitForSelector / waitForLoadState / waitForURL", () => {
+  it("waitForSelector delegates to page.waitForSelector and emits an 'fx' event", async () => {
+    const events: any[] = [];
+    const calls: any[] = [];
+    const fakePage = {
+      waitForSelector: async (sel: string, opts: any) => { calls.push({ sel, opts }); },
+    } as any;
+    const fx = createFx(fakePage, events, () => 100);
+    await fx.waitForSelector(".main", { state: "visible" });
+    expect(calls).toEqual([{ sel: ".main", opts: { state: "visible" } }]);
+    const ev = events.find((e) => e.kind === "fx" && e.method === "waitForSelector");
+    expect(ev).toBeDefined();
+  });
+
+  it("waitForLoadState defaults to 'load' and delegates", async () => {
+    const events: any[] = [];
+    const states: string[] = [];
+    const fakePage = {
+      waitForLoadState: async (s: string) => { states.push(s); },
+    } as any;
+    const fx = createFx(fakePage, events, () => 0);
+    await fx.waitForLoadState();
+    await fx.waitForLoadState("networkidle");
+    expect(states).toEqual(["load", "networkidle"]);
+    expect(events.filter((e) => e.kind === "fx" && e.method === "waitForLoadState")).toHaveLength(2);
+  });
+
+  it("waitForURL delegates and emits", async () => {
+    const events: any[] = [];
+    const urls: any[] = [];
+    const fakePage = {
+      waitForURL: async (u: any, opts: any) => { urls.push({ u, opts }); },
+    } as any;
+    const fx = createFx(fakePage, events, () => 0);
+    await fx.waitForURL("/dashboard");
+    await fx.waitForURL(/item\?id=\d+/, { timeout: 5000 });
+    expect(urls).toHaveLength(2);
+    expect(urls[0].u).toBe("/dashboard");
+    expect(urls[1].u).toBeInstanceOf(RegExp);
+    expect(events.filter((e) => e.kind === "fx" && e.method === "waitForURL")).toHaveLength(2);
   });
 });
 

@@ -20,14 +20,15 @@ export const api = {
   setStep: (
     sceneIndex: number,
     stepIndex: number,
-    kind: "description" | "say" | "banner",
+    kind: "description" | "say" | "banner" | "type",
     text: string,
+    typeIndex?: number,
   ) =>
     jsonOrThrow(
       fetch(`/api/step`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sceneIndex, stepIndex, kind, text }),
+        body: JSON.stringify({ sceneIndex, stepIndex, kind, text, typeIndex }),
       }),
     ),
   stitch: () => jsonOrThrow<{ output: string }>(fetch("/api/stitch", { method: "POST" })),

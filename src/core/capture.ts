@@ -11,6 +11,11 @@ export interface CaptureSingleSceneOpts {
   capturesDir: string;
   /** Path to the source `.demo`, used as the basedir for storageState/music. */
   demoFile: string;
+  /** When set, a JPEG screenshot of the live Playwright page is grabbed every
+   *  `frameIntervalMs` (default 500) and handed to this callback as base64.
+   *  Used by the editor to stream a "live view" of capture progress. */
+  onFrame?: (jpegBase64: string) => void;
+  frameIntervalMs?: number;
 }
 
 export interface CaptureSingleSceneResult {
@@ -47,9 +52,29 @@ export async function captureSingleScene(
     ttsProvider,
     ttsConfig: { voice: ast.frontmatter.tts.voice, rate: ast.frontmatter.tts.rate },
   });
+  let frameTimer: ReturnType<typeof setInterval> | undefined;
+  if (opts.onFrame) {
+    const intervalMs = opts.frameIntervalMs ?? 500;
+    let inflight = false;
+    const grab = async () => {
+      if (inflight) return;
+      inflight = true;
+      try {
+        const buf = await ctrl.page.screenshot({ type: "jpeg", quality: 55, timeout: 1500 });
+        opts.onFrame!(buf.toString("base64"));
+      } catch {
+        // Page navigating, closed, or otherwise unavailable — skip this tick.
+      } finally {
+        inflight = false;
+      }
+    };
+    void grab();
+    frameTimer = setInterval(grab, intervalMs);
+  }
   try {
     await ctrl.runScene(scene, sceneIndex);
   } finally {
+    if (frameTimer) clearInterval(frameTimer);
     await ctrl.stop();
   }
 

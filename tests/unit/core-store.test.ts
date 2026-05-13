@@ -6,8 +6,8 @@ import { initialState, reduce, saveState, loadState } from "../../src/core/store
 import type { Scene } from "../../src/types.js";
 
 const scenes: Scene[] = [
-  { sourceLine: 5, title: "S1", prose: "p1", overlays: [], steps: [{ says: [], banners: [] }] },
-  { sourceLine: 9, title: "S2", prose: "p2", overlays: [], steps: [{ says: [], banners: [] }] },
+  { sourceLine: 5, title: "S1", prose: "p1", overlays: [], steps: [{ says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] }] },
+  { sourceLine: 9, title: "S2", prose: "p2", overlays: [], steps: [{ says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] }] },
 ];
 
 describe("core store reducer", () => {
@@ -74,8 +74,8 @@ describe("core/store — SceneRow.steps", () => {
       prose: "",
       overlays: [],
       steps: [
-        { says: [], banners: [] },
-        { description: "Step A", descriptionSpan: { start: 0, end: 10, line: 4 }, says: [], banners: [] },
+        { says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] },
+        { description: "Step A", descriptionSpan: { start: 0, end: 10, line: 4 }, says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] },
       ],
     }];
     const s = initialState({ demoFile: "x.demo", scenes });

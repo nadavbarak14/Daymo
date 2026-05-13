@@ -30,6 +30,12 @@ function parseDurationSeconds(s: string | undefined, defaultSec: number): number
 export class Controller {
   private events: RunnerEvent[] = [];
   private startWall: number = 0;
+  /** Wall time when recordVideo started capturing (= page creation, before
+   *  page.goto). startWall is set AFTER goto so events `t=0` corresponds to
+   *  "page is loaded". The gap between these two is the webm prefix that
+   *  shows the page-load state — audio mixed at events-time would otherwise
+   *  play during that prefix. Stitch trims by this offset to realign. */
+  private recordingStartedWall: number = 0;
 
   private constructor(
     private browser: Browser,
@@ -49,11 +55,15 @@ export class Controller {
     });
     await context.addInitScript({ content: OVERLAY_INIT_SCRIPT });
     const page = await context.newPage();
+    // recordVideo begins capturing from page creation. Mark this moment so
+    // stitch can trim the page-load prefix off the front of the webm.
+    const recordingStartedWall = Date.now();
     if (opts.mocks?.length) {
       await attachMocks(page, buildRouteTable(opts.mocks));
     }
     await page.goto(opts.url);
     const ctrl = new Controller(browser, context, page, opts);
+    ctrl.recordingStartedWall = recordingStartedWall;
     ctrl.startWall = Date.now();
     return ctrl;
   }
@@ -69,10 +79,17 @@ export class Controller {
       index: scene.sourceLine,
       title: scene.title,
       prose: scene.prose,
+      // Page-load prefix that stitch should trim off the front of the webm.
+      recordingOffsetMs: Math.max(0, this.startWall - this.recordingStartedWall),
     });
     try {
       let sayCtx: SayContext | undefined;
       if (this.opts.ttsProvider && scene.playwrightCode) {
+        // Pre-synthesize so fx.say can record durationMs + word timings into
+        // the event. Audio and per-word karaoke subtitles are both rendered
+        // by ffmpeg at stitch time from those events — capture itself only
+        // reserves the duration on the recording. Single source of truth →
+        // audio and subtitles cannot drift apart.
         const calls = scanFxSayLiterals(scene.playwrightCode.code);
         const sayTable: Record<string, { durationMs: number; words: WordTiming[] }> = {};
         const hashByText: Record<string, string> = {};
@@ -84,9 +101,6 @@ export class Controller {
           sayTable[hash] = { durationMs: totalMs, words: out.timings };
           hashByText[c.text] = hash;
         }));
-        await this.page.evaluate((table) => {
-          (window as any).__daymo.sayTable = table;
-        }, sayTable);
         sayCtx = {
           sayTable,
           sayHashFor: (text) => hashByText[text] ?? null,

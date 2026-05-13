@@ -1,0 +1,95 @@
+---
+title: A tour of Hacker News
+description: A guided tour of news.ycombinator.com — the front page, then a story's discussion thread.
+url: https://news.ycombinator.com/
+viewport: { width: 1280, height: 800 }
+---
+
+# Scene 1: The front page
+
+```playwright
+await fx.step("Land on the front page");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector(".athing.submission");
+await fx.banner("Hacker News", { title: "news.ycombinator.com", duration: 5 });
+await fx.pause(1);
+await fx.say("Hacker News — the developer community's front page since 2007.");
+await fx.pause(0.5);
+
+await fx.step("The top story");
+await fx.cursorTo(".athing.submission .titleline > a", "the top story's title link");
+await fx.highlight(".athing.submission .titleline > a", "the top story's title link", { duration: 5 });
+await fx.pause(1);
+await fx.say("At the top sits the story with the most points right now — title, then a link out to its source.");
+await fx.pause(0.5);
+
+await fx.step("Source domain");
+await fx.cursorTo(".athing.submission .sitebit", "the source domain badge");
+await fx.highlight(".athing.submission .sitebit", "the source domain in parentheses", { duration: 4 });
+await fx.pause(1);
+await fx.say("In parentheses next to the title: the source domain, so you know where you'd land before clicking.");
+await fx.pause(0.5);
+
+await fx.step("Vote arrow");
+await fx.cursorTo(".athing.submission .votearrow", "the upvote arrow");
+await fx.highlight(".athing.submission .votearrow", "the upvote arrow", { duration: 4, color: "#22c55e" });
+await fx.pause(1);
+await fx.say("The little up-arrow on the left is the vote — clicking it is how a story climbs the rankings.");
+await fx.pause(0.5);
+
+await fx.step("Story byline");
+await fx.cursorTo(".subtext .subline", "the story byline row");
+await fx.highlight(".subtext .subline", "byline: points, user, age, comments", { duration: 5 });
+await fx.pause(1);
+await fx.say("Below each title sits the byline: points, who posted it, when, and a link into the comments.");
+await fx.pause(0.5);
+
+await fx.step("Comments link");
+await fx.cursorTo(".subtext a[href^='item?id=']", "the comments link");
+await fx.highlight(".subtext a[href^='item?id=']", "the comments link — gateway to the thread", { duration: 4 });
+await fx.pause(1);
+await fx.say("That comments link is the gateway to the discussion — let's open it.");
+await fx.pause(0.5);
+```
+
+---
+
+# Scene 2: Inside the discussion
+
+```playwright
+await fx.step("Open the discussion");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector(".athing.submission");
+await fx.click(".subtext a[href^='item?id=']", "clicking the comments link on the top story");
+await fx.waitForURL(/item\?id=\d+/);
+await fx.waitForSelector(".comment-tree");
+await fx.pause(0.5);
+
+await fx.step("The story header");
+await fx.cursorTo(".fatitem .titleline > a", "the title at the top of the story page");
+await fx.highlight(".fatitem", "the story header section", { duration: 5 });
+await fx.pause(1);
+await fx.say("The story page repeats the title and byline at the top, like a header for the conversation that follows.");
+await fx.pause(0.5);
+
+await fx.step("The comment tree");
+await fx.cursorTo(".comment-tree", "the start of the comment tree");
+await fx.highlight(".comment-tree", "the whole discussion thread", { duration: 5 });
+await fx.pause(1);
+await fx.say("Below the header: the discussion itself — a tree of replies, indented by depth.");
+await fx.pause(0.5);
+
+await fx.step("A single comment");
+await fx.cursorTo(".comment-tree .comtr .comment", "a single comment's body");
+await fx.highlight(".comment-tree .comtr", "one comment: author, age, text", { duration: 5 });
+await fx.pause(1);
+await fx.say("Each row is one comment: who wrote it, how long ago, and the text underneath.");
+await fx.pause(0.5);
+
+await fx.step("Collapse toggle");
+await fx.cursorTo(".comment-tree .comtr .togg", "the collapse toggle");
+await fx.highlight(".comment-tree .comtr .togg", "the minus toggle that collapses a subtree", { duration: 5, color: "#22c55e" });
+await fx.pause(1);
+await fx.say("The minus toggle on the left collapses any subtree — handy for taming the deep threads.");
+await fx.pause(1);
+```

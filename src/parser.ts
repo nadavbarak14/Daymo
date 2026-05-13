@@ -165,17 +165,13 @@ function parseScene(chunk: string, baseLine: number, baseByte: number): Scene {
     }
   }
 
-  const steps: Step[] = [{ says: [], banners: [] }]; // implicit preamble
+  const emptyStep = (): Step => ({ says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] });
+  const steps: Step[] = [emptyStep()]; // implicit preamble
   if (playwrightCode) {
     const events = scanStepEvents(playwrightCode.code, playwrightFenceStartByte, playwrightFenceStartLine);
     for (const ev of events) {
       if (ev.kind === "step") {
-        steps.push({
-          description: ev.text,
-          descriptionSpan: ev.span,
-          says: [],
-          banners: [],
-        });
+        steps.push({ description: ev.text, descriptionSpan: ev.span, ...emptyStep() });
       } else if (ev.kind === "say") {
         const cur = steps[steps.length - 1];
         if (cur.says.length >= 1) {
@@ -192,6 +188,22 @@ function parseScene(chunk: string, baseLine: number, baseByte: number): Scene {
           );
         }
         cur.banners.push({ text: ev.text, span: ev.span });
+      } else if (ev.kind === "type") {
+        steps[steps.length - 1].types.push({ text: ev.text, span: ev.span });
+      } else if (ev.kind === "highlight" || ev.kind === "click" || ev.kind === "cursor") {
+        const action = {
+          selector: ev.text,
+          selectorSpan: ev.span,
+          description: ev.description ?? "",
+          // Fallback span anchors the description at the selector when absent
+          // (page.click has no description but still needs a defined span for
+          // the editor's source-rewrite plumbing).
+          descriptionSpan: ev.descriptionSpan ?? ev.span,
+        };
+        const cur = steps[steps.length - 1];
+        if (ev.kind === "highlight") cur.highlights.push(action);
+        else if (ev.kind === "click") cur.clicks.push(action);
+        else cur.cursors.push(action);
       }
     }
   }

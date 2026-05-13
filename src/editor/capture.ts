@@ -37,6 +37,8 @@ export class CaptureQueue {
         const out = await captureSingleScene(this.opts.getAst(), i, {
           capturesDir: this.opts.capturesDir,
           demoFile: this.opts.demoFile,
+          onFrame: (jpeg) =>
+            this.opts.sse.publish({ type: "capture-frame", sceneIndex: i, jpeg }),
         });
         this.opts.onDone(i, out.webm, out.events);
         this.opts.sse.publish({ type: "capture-done", sceneIndex: i, webmPath: out.webm });

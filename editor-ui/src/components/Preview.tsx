@@ -8,10 +8,11 @@ function srcOf(webmPath: string | undefined): string | null {
 }
 
 export function Preview() {
-  const { state, selectedSceneIndex, setSelected, capturing } = useUi();
+  const { state, selectedSceneIndex, setSelected, capturing, seekRequest, liveFrames } = useUi();
   const [previewing, setPreviewing] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const sceneVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const queue = state
     ? state.scenes.flatMap((r, i) => (r.webmPath ? [{ index: i, src: srcOf(r.webmPath)!, title: r.title }] : []))
@@ -23,6 +24,25 @@ export function Preview() {
     if (!v) return;
     v.play().catch(() => {});
   }, [previewing, previewIndex]);
+
+  // Apply seek-to-step requests to the single-scene <video>. Loads metadata
+  // first if the video is still cold, otherwise sets currentTime immediately.
+  useEffect(() => {
+    if (!seekRequest) return;
+    if (previewing) return;
+    if (selectedSceneIndex !== seekRequest.sceneIndex) return;
+    const v = sceneVideoRef.current;
+    if (!v) return;
+    const apply = () => {
+      try {
+        v.currentTime = seekRequest.seconds;
+        v.play().catch(() => {});
+      } catch {}
+    };
+    if (v.readyState >= 1) apply();
+    else v.addEventListener("loadedmetadata", apply, { once: true });
+    return () => v.removeEventListener("loadedmetadata", apply);
+  }, [seekRequest, selectedSceneIndex, previewing]);
 
   if (!state) return null;
 
@@ -102,6 +122,7 @@ export function Preview() {
   const row = state.scenes[selectedSceneIndex];
   const src = srcOf(row.webmPath);
   const isCapturing = capturing.includes(selectedSceneIndex);
+  const liveFrame = liveFrames[selectedSceneIndex];
   return (
     <div className="p-3 flex flex-col gap-2 h-full">
       <div className="flex justify-between items-center flex-shrink-0">
@@ -122,26 +143,58 @@ export function Preview() {
           </Button>
         </div>
       </div>
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        <div className="aspect-video max-w-full max-h-full bg-zinc-900 rounded overflow-hidden relative flex items-center justify-center">
-          {src ? (
-            <video key={src} controls src={src} className="w-full h-full object-contain" />
-          ) : (
-            <div className="flex flex-col items-center gap-1 text-xs opacity-70 text-center px-4">
-              <span>No capture yet for this scene.</span>
-              <span className="opacity-60">Use “Capture all” in the sidebar to record.</span>
-            </div>
-          )}
-          {isCapturing && (
-            <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center gap-2 text-zinc-100">
-              <div className="h-8 w-8 rounded-full border-2 border-zinc-100/30 border-t-accent animate-spin" />
-              <div className="text-sm font-medium">Capturing scene {selectedSceneIndex + 1}…</div>
-              <div className="text-[11px] opacity-70">
-                Running Playwright against {state.demoFile.split(/[\\/]/).pop()}
+      <div className="flex-1 min-h-0 relative">
+        {isCapturing ? (
+          // Full-bleed live view during capture — break out of aspect-video so
+          // the screencast frame uses every available pixel.
+          <div className="absolute inset-0 bg-zinc-900 rounded overflow-hidden flex items-center justify-center">
+            {liveFrame ? (
+              <img
+                src={`data:image/jpeg;base64,${liveFrame}`}
+                alt="live capture frame"
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-zinc-100">
+                <div className="h-8 w-8 rounded-full border-2 border-zinc-100/30 border-t-accent animate-spin" />
+                <div className="text-sm font-medium">Starting capture…</div>
               </div>
+            )}
+            <div className="absolute top-3 right-3 bg-black/75 px-3 py-1.5 rounded flex items-center gap-2 text-zinc-100 shadow-lg">
+              <div className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
+              <div className="text-xs font-semibold tracking-wide">LIVE</div>
+              <div className="text-[10px] opacity-70">scene {selectedSceneIndex + 1}</div>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="aspect-video max-w-full max-h-full bg-zinc-900 rounded overflow-hidden relative flex items-center justify-center">
+              {src ? (
+                <video
+                  key={src}
+                  ref={sceneVideoRef}
+                  controls
+                  src={src}
+                  className="w-full h-full object-contain"
+                />
+              ) : row.errorMessage ? (
+                <div className="flex flex-col items-start gap-2 text-xs text-rose-300 text-left px-4 py-3 max-h-full overflow-auto w-full">
+                  <div className="font-semibold uppercase tracking-wide text-[10px] text-rose-400">
+                    ✕ Capture failed
+                  </div>
+                  <pre className="whitespace-pre-wrap font-mono text-[11px] leading-snug opacity-90">
+                    {row.errorMessage}
+                  </pre>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-xs opacity-70 text-center px-4">
+                  <span>No capture yet for this scene.</span>
+                  <span className="opacity-60">Use “Capture all” in the sidebar to record.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

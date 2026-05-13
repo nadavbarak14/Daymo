@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { parse } from "../parser.js";
 import { loadState } from "../core/store.js";
 import { stitch, type SceneInput } from "../core/stitch.js";
+import type { SayEvent } from "../core/scene-audio.js";
 
 export async function stitchCommand(file: string): Promise<void> {
   const demoFile = path.resolve(file);
@@ -22,17 +23,22 @@ export async function stitchCommand(file: string): Promise<void> {
 
   const scenes: SceneInput[] = [];
   for (const r of state.scenes) {
-    let sayEvents: { hash: string; t: number }[] = [];
+    let sayEvents: SayEvent[] = [];
+    let recordingOffsetMs = 0;
     if (r.eventsPath) {
       try {
         const raw = await fs.readFile(r.eventsPath, "utf8");
         const events: any[] = JSON.parse(raw);
         sayEvents = events
           .filter((e) => e.kind === "say")
-          .map((e) => ({ hash: e.hash, t: e.t }));
+          .map((e) => ({ hash: e.hash, t: e.t, durationMs: e.durationMs, words: e.words ?? [] }));
+        const sceneStart = events.find((e) => e.kind === "scene_start");
+        if (sceneStart && typeof sceneStart.recordingOffsetMs === "number") {
+          recordingOffsetMs = sceneStart.recordingOffsetMs;
+        }
       } catch {}
     }
-    scenes.push({ webm: r.webmPath!, sayEvents });
+    scenes.push({ webm: r.webmPath!, sayEvents, recordingOffsetMs });
   }
 
   const music = ast.frontmatter.music ? path.resolve(baseDir, ast.frontmatter.music) : null;

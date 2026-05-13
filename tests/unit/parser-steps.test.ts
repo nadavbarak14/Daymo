@@ -91,6 +91,23 @@ describe("parser — steps", () => {
     expect(() => parse(src)).toThrow(/at most one fx\.banner per step/);
   });
 
+  it("folds fx.typeWithDelay literals into the current step's `types` (multiple allowed)", () => {
+    const src = HEADER + [
+      "# Scene 1",
+      "",
+      "```playwright",
+      'await fx.step("Fill the form");',
+      'await fx.typeWithDelay("#name", "Holiday landing page", 22);',
+      'await fx.typeWithDelay("#desc", "Festive variant");',
+      "```",
+      "",
+    ].join("\n");
+    const ast = parse(src);
+    const steps = ast.scenes[0].steps;
+    expect(steps[1].description).toBe("Fill the form");
+    expect(steps[1].types.map((t) => t.text)).toEqual(["Holiday landing page", "Festive variant"]);
+  });
+
   it("preamble can also hit the invariants", () => {
     const src = HEADER + [
       "# Scene 1",

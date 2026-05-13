@@ -11,6 +11,20 @@ import { rewriteLiteralAt } from "../core/rewrite.js";
 import { stitch } from "./stitch.js";
 import { Watcher } from "./watcher.js";
 
+/** Read `kind:"step"` events from a per-scene events.json and align them with
+ *  the parsed steps array. steps[0] is the implicit preamble (always t=0); the
+ *  Nth step event maps to steps[N]. */
+async function readStepTimes(eventsPath: string, stepCount: number): Promise<number[]> {
+  const raw = await fs.readFile(eventsPath, "utf8");
+  const events: Array<{ kind: string; t: number }> = JSON.parse(raw);
+  const stepEvents = events.filter((e) => e.kind === "step").map((e) => e.t);
+  const out: number[] = new Array(stepCount).fill(0);
+  for (let i = 1; i < stepCount && i - 1 < stepEvents.length; i++) {
+    out[i] = stepEvents[i - 1];
+  }
+  return out;
+}
+
 export interface StartEditorOpts {
   demoFile: string;
   port?: number;
@@ -34,6 +48,18 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
   let ast = await readAst();
   let state: EditorState = await loadState(stateFile, ast.scenes, demoFile);
 
+  // For scenes already captured from a previous session, hydrate stepTimes
+  // from their events.json so seek-to-step works without re-capturing.
+  for (let i = 0; i < state.scenes.length; i++) {
+    const row = state.scenes[i];
+    if (row.state === "captured" && row.eventsPath && !row.stepTimes) {
+      try {
+        const t = await readStepTimes(row.eventsPath, row.steps.length);
+        state = reduce(state, { type: "step-times", sceneIndex: i, stepTimes: t });
+      } catch {}
+    }
+  }
+
   const queue = new CaptureQueue({
     getAst: () => ast,
     capturesDir,
@@ -42,6 +68,13 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     onDone: (i, webm, events) => {
       state = reduce(state, { type: "capture-done", sceneIndex: i, webmPath: webm, eventsPath: events });
       void saveState(stateFile, state);
+      void (async () => {
+        try {
+          const t = await readStepTimes(events, state.scenes[i].steps.length);
+          state = reduce(state, { type: "step-times", sceneIndex: i, stepTimes: t });
+          sse.publish({ type: "state", state });
+        } catch {}
+      })();
     },
     onError: (i, msg) => {
       state = reduce(state, { type: "capture-error", sceneIndex: i, message: msg });
@@ -100,8 +133,9 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
   const rewriteStep = async (
     sceneIndex: number,
     stepIndex: number,
-    kind: "description" | "say" | "banner",
+    kind: "description" | "say" | "banner" | "type",
     text: string,
+    typeIndex?: number,
   ) => {
     const scene = ast.scenes[sceneIndex];
     if (!scene) throw new Error(`scene ${sceneIndex} out of range`);
@@ -118,11 +152,20 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
         throw new Error("step has no fx.say to edit");
       }
       span = step.says[0].span;
-    } else {
+    } else if (kind === "banner") {
       if (step.banners.length === 0) {
         throw new Error("step has no fx.banner to edit");
       }
       span = step.banners[0].span;
+    } else {
+      const idx = typeIndex ?? 0;
+      if (step.types.length === 0) {
+        throw new Error("step has no fx.typeWithDelay to edit");
+      }
+      if (idx < 0 || idx >= step.types.length) {
+        throw new Error(`type index ${idx} out of range (step has ${step.types.length})`);
+      }
+      span = step.types[idx].span;
     }
     watcher.suppressNext();
     await rewriteLiteralAt(demoFile, span!, text);
@@ -141,28 +184,41 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     const ttsDir = path.join(dotDir, "tts");
     const scenes: import("../core/stitch.js").SceneInput[] = [];
     for (const r of state.scenes) {
-      let sayEvents: { hash: string; t: number }[] = [];
+      let sayEvents: import("../core/scene-audio.js").SayEvent[] = [];
+      let recordingOffsetMs = 0;
       if (r.eventsPath) {
         try {
           const raw = await fs.readFile(r.eventsPath, "utf8");
           const events: any[] = JSON.parse(raw);
-          sayEvents = events.filter((e: any) => e.kind === "say").map((e: any) => ({ hash: e.hash, t: e.t }));
+          sayEvents = events
+            .filter((e: any) => e.kind === "say")
+            .map((e: any) => ({ hash: e.hash, t: e.t, durationMs: e.durationMs, words: e.words ?? [] }));
+          const sceneStart = events.find((e: any) => e.kind === "scene_start");
+          if (sceneStart && typeof sceneStart.recordingOffsetMs === "number") {
+            recordingOffsetMs = sceneStart.recordingOffsetMs;
+          }
         } catch {}
       }
-      scenes.push({ webm: r.webmPath!, sayEvents });
+      scenes.push({ webm: r.webmPath!, sayEvents, recordingOffsetMs });
     }
     const baseDir = path.dirname(demoFile);
     const music = ast.frontmatter.music ? path.resolve(baseDir, ast.frontmatter.music) : null;
     const out = path.join(baseDir, "output.mp4");
-    await stitch({
-      scenes,
-      music,
-      output: out,
-      workDir: dotDir,
-      ttsDir,
-      musicDuck: ast.frontmatter.tts.music_duck,
-      onLine: (l: string) => sse.publish({ type: "stitch-progress", line: l }),
-    });
+    sse.publish({ type: "stitch-start", sceneCount: scenes.length });
+    try {
+      await stitch({
+        scenes,
+        music,
+        output: out,
+        workDir: dotDir,
+        ttsDir,
+        musicDuck: ast.frontmatter.tts.music_duck,
+        onLine: (l: string) => sse.publish({ type: "stitch-progress", line: l }),
+      });
+    } catch (e) {
+      sse.publish({ type: "stitch-error", message: (e as Error).message });
+      throw e;
+    }
     sse.publish({ type: "stitch-done", output: out });
     return out;
   };

@@ -1,0 +1,228 @@
+---
+title: A tour of Wikipedia
+description: A four-scene walkthrough of en.wikipedia.org — using the Python article to show how every Wikipedia page is built.
+url: "https://en.wikipedia.org/wiki/Python_(programming_language)"
+viewport: { width: 1366, height: 900 }
+---
+
+# Scene 1: Anatomy of an article
+
+```playwright
+await fx.step("Land on the article");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector("#firstHeading");
+await fx.banner("Wikipedia", { title: "Anatomy of an article", duration: 5 });
+await fx.pause(1);
+await fx.say("Wikipedia — the largest reference work ever written. Sixty million articles across three hundred languages, all built on the same skeleton. Let's look at it.");
+await fx.pause(0.5);
+
+await fx.step("The title");
+await fx.cursorTo("#firstHeading", "the article title at the top of the page");
+await fx.highlight("#firstHeading", "the article's title", { duration: 4 });
+await fx.pause(1);
+await fx.say("Every article starts the same way — a bold title, top of the page, matching the URL slug.");
+await fx.pause(0.5);
+
+await fx.step("The lead paragraph");
+await fx.cursorTo(".mw-parser-output > p", "the lead paragraph");
+await fx.highlight(".mw-parser-output > p", "the lead — a self-contained summary", { duration: 5 });
+await fx.pause(1);
+await fx.say("Right below the title sits the lead — a few paragraphs that summarize the whole article. If you only read one thing, this is it.");
+await fx.pause(0.5);
+
+await fx.step("The infobox");
+await fx.cursorTo(".infobox", "the infobox on the right");
+await fx.highlight(".infobox", "structured facts at a glance", { duration: 6 });
+await fx.pause(1);
+await fx.say("On the right: the infobox. Structured facts pulled out of the prose — designer, release date, file extensions, paradigms — scannable at a glance.");
+await fx.pause(0.5);
+
+await fx.step("The table of contents");
+await fx.cursorTo(".vector-toc", "the sticky table of contents on the left");
+await fx.highlight(".vector-toc", "the table of contents — every section, in order", { duration: 6 });
+await fx.pause(1);
+await fx.say("On the left, sticky as you scroll: the table of contents. Built automatically from every heading in the article — and every entry is a deep link.");
+await fx.pause(0.5);
+```
+
+---
+
+# Scene 2: The body — sections, code, images
+
+```playwright
+await fx.step("Open the article");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector("#firstHeading");
+await fx.pause(0.5);
+
+await fx.step("Scroll into the body");
+await page.evaluate(() => {
+  const heading = document.querySelector("#History") || document.querySelector("h2");
+  heading?.scrollIntoView({ block: "start" });
+});
+await fx.pause(1);
+
+await fx.step("A section heading");
+await fx.cursorTo("h2:has(#History), #History", "the History section heading");
+await fx.highlight("h2:has(#History), #History", "a top-level section — H2", { duration: 5 });
+await fx.pause(1);
+await fx.say("Below the lead, the body is sliced into sections. Each heading is a stable anchor — the ones in the URL after the hash.");
+await fx.pause(0.5);
+
+await fx.step("An image with caption");
+await fx.cursorTo(".mw-parser-output figure, .thumb", "an inline image with a caption");
+await fx.highlight(".mw-parser-output figure, .thumb", "image plus caption", { duration: 5 });
+await fx.pause(1);
+await fx.say("Images aren't bare — every one carries a caption underneath, and a link through to the file page where it was uploaded.");
+await fx.pause(0.5);
+
+await fx.step("Scroll to the code sample");
+await page.evaluate(() => {
+  const code = document.querySelector("pre, .mw-highlight");
+  code?.scrollIntoView({ block: "center" });
+});
+await fx.pause(1);
+
+await fx.step("A code block");
+await fx.cursorTo("pre, .mw-highlight", "a syntax-highlighted code sample");
+await fx.highlight("pre, .mw-highlight", "a code block — syntax-highlighted server-side", { duration: 5, color: "#22c55e" });
+await fx.pause(1);
+await fx.say("Articles about programming languages include real code — syntax-highlighted server-side, no JavaScript needed, and copy-pasteable.");
+await fx.pause(0.5);
+```
+
+---
+
+# Scene 3: Citations and references
+
+```playwright
+await fx.step("Open the article");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector("#firstHeading");
+await fx.pause(0.5);
+
+await fx.step("Scroll to a citation");
+await page.evaluate(() => {
+  const cite = document.querySelector(".reference");
+  cite?.scrollIntoView({ block: "center" });
+});
+await fx.pause(1);
+
+await fx.step("An inline citation");
+await fx.cursorTo(".reference", "an inline citation in the prose");
+await fx.highlight(".reference", "a footnote marker — like [1]", { duration: 5, color: "#fbbf24" });
+await fx.pause(1);
+await fx.say("Wikipedia's defining rule: every claim is sourced. These little bracketed numbers are footnotes — click one to jump to the source.");
+await fx.pause(0.5);
+
+await fx.step("Jump to the references section");
+await page.evaluate(() => {
+  const refs = document.querySelector(".references, .reflist");
+  refs?.scrollIntoView({ block: "start" });
+});
+await fx.pause(1);
+
+await fx.step("The references list");
+await fx.cursorTo(".references, .reflist", "the full references list at the bottom");
+await fx.highlight(".references, .reflist", "every footnote, resolved", { duration: 6 });
+await fx.pause(1);
+await fx.say("Scroll to the bottom and every footnote resolves into a full citation — title, author, publisher, date, plus a link to verify it yourself.");
+await fx.pause(0.5);
+
+await fx.step("A single reference");
+await fx.cursorTo(".references li, .reflist li", "one citation entry");
+await fx.highlight(".references li, .reflist li", "one citation, fully expanded", { duration: 5 });
+await fx.pause(1);
+await fx.say("This is what makes Wikipedia auditable — not the writing, but that every line of it points at a primary source.");
+await fx.pause(0.5);
+```
+
+---
+
+# Scene 4: The page chrome — tabs, actions, languages, history
+
+```playwright
+await fx.step("Land on the article");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector("#firstHeading");
+await page.evaluate(() => window.scrollTo({ top: 0 }));
+await fx.pause(0.5);
+
+await fx.step("Article and Talk tabs");
+await fx.cursorTo("#ca-nstab-main, #ca-talk", "the Article and Talk tabs");
+await fx.highlight("#ca-nstab-main", "Article tab — where we are now", { duration: 4 });
+await fx.pause(0.5);
+await fx.highlight("#ca-talk", "Talk tab — discussion behind the article", { duration: 4 });
+await fx.pause(1);
+await fx.say("Every article has a shadow — the Talk page. Editors argue, plan, and resolve disputes there, separate from the article itself.");
+await fx.pause(0.5);
+
+await fx.step("Read, Edit, View history");
+await fx.cursorTo("#ca-view, #ca-edit, #ca-history", "the action tabs");
+await fx.highlight("#ca-edit", "Edit — anyone can change this page", { duration: 4, color: "#22c55e" });
+await fx.pause(0.5);
+await fx.highlight("#ca-history", "View history — every revision ever made", { duration: 4 });
+await fx.pause(1);
+await fx.say("Three actions on every page: read it, edit it, or open its history. Anyone can click edit. We're about to click history.");
+await fx.pause(0.5);
+
+await fx.step("The languages button");
+await fx.cursorTo("#p-lang-btn", "the languages button");
+await fx.highlight("#p-lang-btn", "translated into dozens of languages", { duration: 4 });
+await fx.pause(1);
+await fx.say("And this button — every article exists in dozens of other languages. They aren't translations of each other; each is independently written and maintained.");
+await fx.pause(0.5);
+
+await fx.step("Open the history page");
+await fx.click("#ca-history a", "clicking View history");
+await fx.waitForURL(/action=history/);
+await fx.waitForSelector("#pagehistory");
+await fx.pause(0.5);
+
+await fx.step("The revision list");
+await fx.cursorTo("#pagehistory", "the revision history");
+await fx.highlight("#pagehistory", "every edit ever made to this page", { duration: 6 });
+await fx.pause(1);
+await fx.say("Every edit since the article was created — author, timestamp, byte delta, and the editor's summary of what they changed. Thousands of revisions deep.");
+await fx.pause(0.5);
+
+await fx.step("Compare revisions");
+await fx.cursorTo(".mw-history-compareselectedversions-button, input[name='diff']", "the compare-revisions button");
+await fx.highlight(".mw-history-compareselectedversions-button, input[name='diff']", "tick two rows, hit compare, get a diff", { duration: 5, color: "#22c55e" });
+await fx.pause(1);
+await fx.say("Pick any two revisions, hit compare, and you get a side-by-side diff of exactly what changed. This is the audit trail that holds the whole project together.");
+await fx.pause(1);
+```
+
+---
+
+# Scene 5: Searching Wikipedia
+
+```playwright
+await fx.step("Land on the article");
+await fx.waitForLoadState("domcontentloaded");
+await fx.waitForSelector("#firstHeading");
+await page.evaluate(() => window.scrollTo({ top: 0 }));
+await fx.pause(0.5);
+
+await fx.step("The search box");
+await fx.cursorTo("#searchInput", "the global search input in the header");
+await fx.highlight("#searchInput", "site-wide search — every article, every language", { duration: 4, color: "#22c55e" });
+await fx.pause(1);
+await fx.say("Every page on Wikipedia carries the same search bar in the header — it spans the whole encyclopedia Like A boss.");
+await fx.pause(0.5);
+
+await fx.step("Type a query");
+await page.click("#searchInput");
+await fx.typeWithDelay("#searchInput", "Turing machine", 22);
+await fx.pause(1);
+await fx.say("Start typing and you get live suggestions — matching article titles, redirects, even section anchors.");
+await fx.pause(0.5);
+
+await fx.step("Submit the search");
+await page.keyboard.press("Enter");
+await fx.waitForLoadState("domcontentloaded");
+await fx.pause(1);
+await fx.say("Hit enter and you land on the article — or, when it's ambiguous, on a full-text results page across the entire encyclopedia.");
+await fx.pause(1);
+```

@@ -1,5 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import fs from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import type { SseBus } from "./sse.js";
 import type { EditorState } from "./types.js";
@@ -18,7 +19,35 @@ const MIME: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
-async function serveStatic(rootDir: string, urlPath: string, res: ServerResponse): Promise<void> {
+function parseRange(header: string | undefined, size: number): { start: number; end: number } | null {
+  if (!header) return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m) return null;
+  const startRaw = m[1];
+  const endRaw = m[2];
+  let start: number;
+  let end: number;
+  if (startRaw === "" && endRaw === "") return null;
+  if (startRaw === "") {
+    const suffix = Number(endRaw);
+    if (!Number.isFinite(suffix) || suffix <= 0) return null;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(startRaw);
+    end = endRaw === "" ? size - 1 : Number(endRaw);
+  }
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (start < 0 || end >= size || start > end) return null;
+  return { start, end };
+}
+
+async function serveStatic(
+  rootDir: string,
+  urlPath: string,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const safeRel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
   const filePath = path.normalize(path.join(rootDir, safeRel));
   const rootResolved = path.resolve(rootDir);
@@ -27,13 +56,10 @@ async function serveStatic(rootDir: string, urlPath: string, res: ServerResponse
     res.end();
     return;
   }
+  let stat;
   try {
-    const data = await fs.readFile(filePath);
-    const ext = path.extname(filePath);
-    res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream" });
-    res.end(data);
+    stat = await fs.stat(filePath);
   } catch {
-    // SPA fallback only for HTML routes
     if (urlPath.endsWith(".html") || !path.extname(urlPath)) {
       try {
         const data = await fs.readFile(path.join(rootResolved, "index.html"));
@@ -44,7 +70,43 @@ async function serveStatic(rootDir: string, urlPath: string, res: ServerResponse
     }
     res.writeHead(404, { "content-type": "text/plain" });
     res.end("not found");
+    return;
   }
+  const ext = path.extname(filePath);
+  const contentType = MIME[ext] ?? "application/octet-stream";
+  const rangeHeader = req.headers.range;
+  if (rangeHeader) {
+    const range = parseRange(rangeHeader, stat.size);
+    if (!range) {
+      res.writeHead(416, {
+        "content-type": "text/plain",
+        "content-range": `bytes */${stat.size}`,
+      });
+      res.end("range not satisfiable");
+      return;
+    }
+    const length = range.end - range.start + 1;
+    res.writeHead(206, {
+      "content-type": contentType,
+      "content-length": String(length),
+      "content-range": `bytes ${range.start}-${range.end}/${stat.size}`,
+      "accept-ranges": "bytes",
+      "cache-control": "no-cache",
+    });
+    const stream = createReadStream(filePath, { start: range.start, end: range.end });
+    stream.on("error", () => res.end());
+    stream.pipe(res);
+    return;
+  }
+  res.writeHead(200, {
+    "content-type": contentType,
+    "content-length": String(stat.size),
+    "accept-ranges": "bytes",
+    "cache-control": "no-cache",
+  });
+  const stream = createReadStream(filePath);
+  stream.on("error", () => res.end());
+  stream.pipe(res);
 }
 
 export interface ServerOpts {
@@ -56,8 +118,9 @@ export interface ServerOpts {
   rewriteStep: (
     sceneIndex: number,
     stepIndex: number,
-    kind: "description" | "say" | "banner",
+    kind: "description" | "say" | "banner" | "type",
     text: string,
+    typeIndex?: number,
   ) => Promise<void>;
   stitchNow: () => Promise<string>;
   uiDir?: string;
@@ -92,7 +155,7 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
         return handleScript({ ...ctx, rewriteProse: opts.rewriteProse }, Number(sm[1]), body, res);
       }
       if (url.pathname === "/api/step" && req.method === "POST") {
-        const body = await readJson<{ sceneIndex: number; stepIndex: number; kind: "description" | "say" | "banner"; text: string }>(req);
+        const body = await readJson<{ sceneIndex: number; stepIndex: number; kind: "description" | "say" | "banner" | "type"; text: string; typeIndex?: number }>(req);
         return handleStep(
           {
             ...ctx,
@@ -112,12 +175,12 @@ export async function startServer(opts: ServerOpts): Promise<ServerHandle> {
       // Captures (always served from .daymo/captures/)
       if (url.pathname.startsWith("/captures/")) {
         const sub = url.pathname.slice("/captures/".length);
-        return serveStatic(opts.capturesDir, "/" + sub, res);
+        return serveStatic(opts.capturesDir, "/" + sub, req, res);
       }
 
       // UI bundle (only if uiDir provided)
       if (opts.uiDir) {
-        return serveStatic(opts.uiDir, url.pathname, res);
+        return serveStatic(opts.uiDir, url.pathname, req, res);
       }
 
       notFound(res);

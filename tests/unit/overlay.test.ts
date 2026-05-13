@@ -44,55 +44,17 @@ function setupOverlay() {
   return { dom, win, document: win.document };
 }
 
-describe("overlay subtitle (say)", () => {
-  it("exposes say, banner, hideBanner methods", () => {
+describe("overlay banner", () => {
+  it("exposes banner + hideBanner; does not expose say (moved to ffmpeg)", () => {
     const { win } = setupOverlay();
-    expect(typeof win.__daymo.say).toBe("function");
     expect(typeof win.__daymo.banner).toBe("function");
     expect(typeof win.__daymo.hideBanner).toBe("function");
+    // Karaoke subtitles are burned in at stitch time, not in the browser —
+    // this exposure is what guarantees coupling with the audio track.
+    expect(win.__daymo.say).toBeUndefined();
+    expect(win.__daymo.sayTable).toBeUndefined();
   });
 
-  it("rejects say() when sayTable has no entry for hash", async () => {
-    const { win } = setupOverlay();
-    win.__daymo.sayTable = {};
-    await expect(win.__daymo.say("missing")).rejects.toThrow(/unknown hash/);
-  });
-
-  it("say() resolves and renders the subtitle bar with per-word spans", async () => {
-    const { win, document } = setupOverlay();
-    win.__daymo.sayTable = {
-      h1: { durationMs: 100, words: [
-        { word: "Hello", startMs: 0, endMs: 50 },
-        { word: "world", startMs: 50, endMs: 100 },
-      ]},
-    };
-    const promise = win.__daymo.say("h1");
-    // Bar mounted with two word spans
-    const bar = document.querySelector("[data-daymo-subtitle]") as HTMLElement | null;
-    expect(bar).toBeTruthy();
-    expect(bar!.children.length).toBe(2);
-    expect(bar!.textContent).toContain("Hello");
-    expect(bar!.textContent).toContain("world");
-    await promise;
-  }, 5_000);
-
-  it("two say() calls in sequence serialize", async () => {
-    const { win } = setupOverlay();
-    win.__daymo.sayTable = {
-      a: { durationMs: 50, words: [{ word: "A", startMs: 0, endMs: 50 }] },
-      b: { durationMs: 50, words: [{ word: "B", startMs: 0, endMs: 50 }] },
-    };
-    const t0 = Date.now();
-    const p1 = win.__daymo.say("a");
-    const p2 = win.__daymo.say("b");
-    await Promise.all([p1, p2]);
-    const elapsed = Date.now() - t0;
-    // Should be at least 100ms (50 + 50) since they serialize. Generous bound.
-    expect(elapsed).toBeGreaterThanOrEqual(80);
-  }, 5_000);
-});
-
-describe("overlay banner", () => {
   it("banner() mounts a [data-daymo-banner] element with the text + title", () => {
     const { win, document } = setupOverlay();
     win.__daymo.banner("Step 1", 0, "INTRO");

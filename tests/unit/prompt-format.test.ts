@@ -36,8 +36,8 @@ describe("formatReviewPrompt", () => {
       demoFile: "/x.demo",
       scenes: [{
         sourceLine: 1, title: "T", prose: "", overlays: [], steps: [
-          { says: [], banners: [] },
-          { description: "Click the button", says: [{ text: "hi", span: { start: 0, end: 1, line: 1 } }], banners: [] },
+          { says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] },
+          { description: "Click the button", says: [{ text: "hi", span: { start: 0, end: 1, line: 1 } }], banners: [], types: [], highlights: [], clicks: [], cursors: [] },
         ], state: "pending",
       }],
     };
@@ -53,7 +53,7 @@ describe("formatReviewPrompt", () => {
       demoFile: "/x.demo",
       scenes: [{
         sourceLine: 1, title: "T", prose: "", overlays: [],
-        steps: [{ says: [], banners: [] }],
+        steps: [{ says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] }],
         state: "pending",
       }],
     };

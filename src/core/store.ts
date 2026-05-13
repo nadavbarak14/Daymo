@@ -11,6 +11,9 @@ export interface SceneRow {
   prose: string;
   overlays: Scene["overlays"];
   steps: Step[];
+  /** ms-from-scene-start for each parsed step. Parallel to steps[].
+   *  Populated from events.json after capture; undefined when not yet captured. */
+  stepTimes?: number[];
   state: SceneState;
   webmPath?: string;
   eventsPath?: string;
@@ -27,6 +30,7 @@ export type StateAction =
   | { type: "capture-start"; sceneIndex: number }
   | { type: "capture-done"; sceneIndex: number; webmPath: string; eventsPath?: string }
   | { type: "capture-error"; sceneIndex: number; message: string }
+  | { type: "step-times"; sceneIndex: number; stepTimes: number[] }
   | { type: "scene-changed"; sceneIndex: number }
   | { type: "scenes-replaced"; scenes: Scene[] };
 
@@ -67,8 +71,16 @@ export function reduce(s: EditorState, a: StateAction): EditorState {
       });
     case "capture-error":
       return withRow(s, a.sceneIndex, { errorMessage: a.message });
+    case "step-times":
+      return withRow(s, a.sceneIndex, { stepTimes: a.stepTimes });
     case "scene-changed":
-      return withRow(s, a.sceneIndex, { state: "pending", webmPath: undefined, eventsPath: undefined, capturedAt: undefined });
+      return withRow(s, a.sceneIndex, {
+        state: "pending",
+        webmPath: undefined,
+        eventsPath: undefined,
+        capturedAt: undefined,
+        stepTimes: undefined,
+      });
     case "scenes-replaced":
       return { ...s, scenes: a.scenes.map(toRow) };
     default:

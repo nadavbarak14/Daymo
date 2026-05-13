@@ -9,18 +9,39 @@ import { ReviewBar } from "./components/ReviewBar";
 import { PanelToggle } from "./components/PanelToggle";
 
 export function App() {
-  const { setState, patchScene, markCapturing, clearCapturing, panelOpen } = useUi();
+  const {
+    setState,
+    patchScene,
+    markCapturing,
+    clearCapturing,
+    setLiveFrame,
+    clearLiveFrame,
+    stitchStart,
+    setStitchLine,
+    stitchDone,
+    stitchFailed,
+    panelOpen,
+  } = useUi();
   useEffect(() => {
     api.state().then(setState).catch(console.error);
   }, [setState]);
   useSse((evt) => {
     if (evt.type === "state") setState(evt.state);
     if (evt.type === "capture-start") markCapturing(evt.sceneIndex);
+    if (evt.type === "capture-frame") setLiveFrame(evt.sceneIndex, evt.jpeg);
     if (evt.type === "capture-done") {
       clearCapturing(evt.sceneIndex);
+      clearLiveFrame(evt.sceneIndex);
       patchScene(evt.sceneIndex, { state: "captured", webmPath: evt.webmPath });
     }
-    if (evt.type === "capture-error") clearCapturing(evt.sceneIndex);
+    if (evt.type === "capture-error") {
+      clearCapturing(evt.sceneIndex);
+      clearLiveFrame(evt.sceneIndex);
+    }
+    if (evt.type === "stitch-start") stitchStart();
+    if (evt.type === "stitch-progress") setStitchLine(evt.line);
+    if (evt.type === "stitch-done") stitchDone();
+    if (evt.type === "stitch-error") stitchFailed(evt.message);
     if (evt.type === "demo-changed") api.state().then(setState);
   });
   return (

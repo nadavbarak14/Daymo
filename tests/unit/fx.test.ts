@@ -23,7 +23,7 @@ describe("fx.cursorTo", () => {
     const { page } = makeFakePage({ x: 100, y: 200, width: 40, height: 20 });
     const events: RunnerEvent[] = [];
     const fx = createFx(page, events, () => 1234);
-    await fx.cursorTo("button.primary", { duration: 0.5 });
+    await fx.cursorTo("button.primary", "primary button", { duration: 0.5 });
     const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
     expect(calls.some((c: string) => c.includes("__daymo.measure"))).toBe(true);
     expect(calls.some((c: string) => c.includes("__daymo.moveCursor"))).toBe(true);
@@ -33,10 +33,11 @@ describe("fx.cursorTo", () => {
     const { page } = makeFakePage();
     const events: RunnerEvent[] = [];
     const fx = createFx(page, events, () => 999);
-    await fx.cursorTo("button.primary", { duration: 0.5 });
+    await fx.cursorTo("button.primary", "primary button", { duration: 0.5 });
     const fxEvent = events.find((e) => e.kind === "fx" && e.method === "cursorTo");
     expect(fxEvent).toBeDefined();
     expect((fxEvent as any).args[0]).toBe("button.primary");
+    expect((fxEvent as any).args[1]).toBe("primary button");
     expect((fxEvent as any).t).toBe(999);
   });
 
@@ -44,7 +45,14 @@ describe("fx.cursorTo", () => {
     const { page } = makeFakePage(null);
     const events: RunnerEvent[] = [];
     const fx = createFx(page, events, () => 0);
-    await expect(fx.cursorTo("does-not-exist")).rejects.toThrow(/selector .* not found/i);
+    await expect(fx.cursorTo("does-not-exist", "missing")).rejects.toThrow(/selector .* not found/i);
+  });
+
+  it("throws when description is missing or empty", async () => {
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0);
+    await expect(fx.cursorTo("button", "")).rejects.toThrow(/requires a description/);
+    await expect((fx.cursorTo as any)("button")).rejects.toThrow(/requires a description/);
   });
 });
 
@@ -82,14 +90,60 @@ describe("fx.pause", () => {
 });
 
 describe("fx.highlight", () => {
-  it("calls __daymo.highlight on the target and emits an event", async () => {
+  it("calls __daymo.highlight with selector, durationMs, and optional color", async () => {
     const { page } = makeFakePage();
     const events: RunnerEvent[] = [];
     const fx = createFx(page, events, () => 0);
-    await fx.highlight("button", 1.5);
-    const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
-    expect(calls.some((c: string) => c.includes("__daymo.highlight"))).toBe(true);
-    expect(events.find((e) => e.kind === "fx" && e.method === "highlight")).toBeDefined();
+    await fx.highlight("button", "primary button", { duration: 1.5, color: "#22c55e" });
+    const evalCalls = (page.evaluate as any).mock.calls;
+    const highlightCall = evalCalls.find((c: any[]) => String(c[0]).includes("__daymo.highlight"));
+    expect(highlightCall).toBeDefined();
+    const [, args] = highlightCall;
+    expect(args.selector).toBe("button");
+    expect(args.durationMs).toBe(1500);
+    expect(args.color).toBe("#22c55e");
+    const ev = events.find((e) => e.kind === "fx" && e.method === "highlight");
+    expect(ev).toBeDefined();
+    expect((ev as any).args[1]).toBe("primary button");
+  });
+
+  it("defaults duration to 1s when not provided and passes null color", async () => {
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0);
+    await fx.highlight("button", "primary button");
+    const evalCalls = (page.evaluate as any).mock.calls;
+    const args = evalCalls.find((c: any[]) => String(c[0]).includes("__daymo.highlight"))[1];
+    expect(args.durationMs).toBe(1000);
+    expect(args.color).toBeNull();
+  });
+
+  it("throws when description is missing", async () => {
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0);
+    await expect(fx.highlight("button", "")).rejects.toThrow(/requires a description/);
+  });
+});
+
+describe("fx.click", () => {
+  it("invokes page.click and emits an fx event with the description", async () => {
+    const { page } = makeFakePage();
+    const click = vi.fn(async () => {});
+    page.click = click;
+    const events: RunnerEvent[] = [];
+    const fx = createFx(page, events, () => 555);
+    await fx.click("a.cta", "clicking the call-to-action button");
+    expect(click).toHaveBeenCalledWith("a.cta", {});
+    const ev = events.find((e) => e.kind === "fx" && e.method === "click");
+    expect(ev).toBeDefined();
+    expect((ev as any).args[0]).toBe("a.cta");
+    expect((ev as any).args[1]).toBe("clicking the call-to-action button");
+  });
+
+  it("throws when description is missing", async () => {
+    const { page } = makeFakePage();
+    page.click = vi.fn(async () => {});
+    const fx = createFx(page, [], () => 0);
+    await expect(fx.click("a.cta", "")).rejects.toThrow(/requires a description/);
   });
 });
 
