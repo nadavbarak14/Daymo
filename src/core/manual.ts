@@ -80,13 +80,19 @@ export function emitManual(ast: DemoAst): ManualOutput {
       lines.push(s.prose.trim());
       lines.push("");
     }
-    s.steps.forEach((stp, j) => renderStep(stp, n, j, lines));
+    s.steps.forEach((stp, j) => renderStep(stp, n, j, lines, warnings));
   });
 
   return { markdown: lines.join("\n"), warnings };
 }
 
-function renderStep(stp: Step, sceneNum: number, stepIdx: number, out: string[]): void {
+function renderStep(
+  stp: Step,
+  sceneNum: number,
+  stepIdx: number,
+  out: string[],
+  warnings: ManualWarning[],
+): void {
   // Heading — only for explicit steps (stepIdx > 0 and a description set).
   if (stepIdx > 0 && stp.description) {
     out.push(`### ${sceneNum}.${stepIdx} ${stp.description}`);
@@ -101,4 +107,27 @@ function renderStep(stp: Step, sceneNum: number, stepIdx: number, out: string[])
     out.push(`**On-screen:** ${stp.banners[0].text}`);
     out.push("");
   }
+  renderActions(stp, sceneNum, stepIdx, out, warnings);
+}
+
+function renderActions(stp: Step, _sceneNum: number, _stepIdx: number, out: string[], warnings: ManualWarning[]): void {
+  const rows = actionsInSourceOrder(stp);
+  // Fold: drop cursors whose selector also has a click in the same step.
+  const clickSelectors = new Set(rows.filter((r) => r.kind === "click").map((r) => r.selector));
+  const visible = rows.filter((r) => !(r.kind === "cursor" && clickSelectors.has(r.selector)));
+
+  visible.forEach((r, idx) => {
+    const n = idx + 1;
+    let sentence = "";
+    if (r.kind === "click") {
+      sentence = `${n}. Click **${r.description}**.`;
+    } else {
+      return; // remaining kinds handled in later tasks
+    }
+    out.push(sentence);
+  });
+  if (visible.some((r) => r.kind === "click")) {
+    out.push("");
+  }
+  void warnings; // unused until Task 11
 }

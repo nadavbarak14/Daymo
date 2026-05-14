@@ -220,3 +220,48 @@ describe("actionsInSourceOrder", () => {
     expect(rows.map((r) => r.kind)).toEqual(["highlight", "type", "click", "cursor"]);
   });
 });
+
+describe("click action template", () => {
+  it("renders 'Click **<description>**.' for fx.click with description", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            clicks: [{
+              selector: "[data-testid=new]",
+              selectorSpan: { start: 0, end: 0, line: 10 },
+              description: "the new project button",
+              descriptionSpan: { start: 0, end: 0, line: 10 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Click \*\*the new project button\*\*\./);
+  });
+
+  it("folds fx.cursorTo + fx.click on the same selector into a single click line", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            cursors: [{
+              selector: "[data-testid=new]",
+              selectorSpan: { start: 0, end: 0, line: 9 },
+              description: "the new project button",
+              descriptionSpan: { start: 0, end: 0, line: 9 },
+            }],
+            clicks: [{
+              selector: "[data-testid=new]",
+              selectorSpan: { start: 0, end: 0, line: 11 },
+              description: "the new project button",
+              descriptionSpan: { start: 0, end: 0, line: 11 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Click \*\*the new project button\*\*\./);
+    expect(out.markdown).not.toMatch(/Look at /);
+  });
+});
