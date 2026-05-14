@@ -1,8 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type Anthropic from "@anthropic-ai/sdk";
 import type { ChatRequest, ChatResponse, Part, VideoPart } from "../../types.js";
-import { rewriteQuery } from "../rewrite-query.js";
-import { answerWithChunks } from "../answer-llm.js";
 import { retrieve } from "../retrieve.js";
 import { extractKeywords } from "../../indexer/keywords.js";
 import { validateChatResponse } from "../validate-response.js";
@@ -11,9 +8,22 @@ import type { CacheEntry } from "../index-cache.js";
 
 const SCORE_THRESHOLD = 0.55;
 
+export type RewriteQueryFn = (input: {
+  message: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+}) => Promise<string>;
+
+export type AnswerFn = (input: {
+  query: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  chunks: import("../../types.js").IndexedChunk[];
+  locale: string;
+}) => Promise<ChatResponse>;
+
 export interface ChatHandlerDeps {
   loadWidget: (id: string) => Promise<CacheEntry>;
-  anthropicClient: Anthropic;
+  rewriteQueryFn: RewriteQueryFn;
+  answerFn: AnswerFn;
   embedQueryFn: (text: string) => Promise<number[]>;
   baseUrl: string;
 }
@@ -36,7 +46,7 @@ export async function handleChat(
 
   const rewritten = history.length === 0
     ? body.message
-    : await rewriteQuery({ message: body.message, history, client: deps.anthropicClient });
+    : await deps.rewriteQueryFn({ message: body.message, history });
 
   const queryEmbedding = await deps.embedQueryFn(rewritten);
   const queryKeywords = extractKeywords(rewritten);
@@ -50,12 +60,11 @@ export async function handleChat(
     return sendJson(res, 200, noMatchWithSuggestions(entry.config.suggestedQuestions));
   }
 
-  let response = await answerWithChunks({
+  let response = await deps.answerFn({
     query: rewritten,
     history,
     chunks: retrieval.chunks,
     locale,
-    client: deps.anthropicClient,
   });
 
   if (response.kind === "answer") {

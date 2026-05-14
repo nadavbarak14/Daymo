@@ -6,13 +6,12 @@ import path from "node:path";
 import http from "node:http";
 import { startServer } from "../../src/chat-server/server.js";
 import { writeIndexForDemoDir } from "../../src/indexer/write-index.js";
-import Anthropic from "@anthropic-ai/sdk";
 import { embedQuery } from "../../src/indexer/embedder-gemini.js";
+import { rewriteQuery, answerWithChunks } from "../../src/chat-server/llm.js";
 
 const run =
   process.env.RUN_LLM_TESTS === "1" &&
   process.env.RUN_EMBED_TESTS === "1" &&
-  !!process.env.ANTHROPIC_API_KEY &&
   !!process.env.GEMINI_API_KEY;
 
 let browser: Browser;
@@ -69,12 +68,14 @@ beforeAll(async () => {
     ),
   );
 
+  const geminiKey = process.env.GEMINI_API_KEY!;
   backendServer = await startServer({
     port: 0,
     host: "127.0.0.1",
     dataRoot,
-    anthropicClient: new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! }),
-    embedQueryFn: (t) => embedQuery(t, { apiKey: process.env.GEMINI_API_KEY! }),
+    rewriteQueryFn: (input) => rewriteQuery(input, { apiKey: geminiKey }),
+    answerFn: (input) => answerWithChunks(input, { apiKey: geminiKey }),
+    embedQueryFn: (t) => embedQuery(t, { apiKey: geminiKey }),
     baseUrl: "",
   });
   backendPort = (backendServer.address() as { port: number }).port;

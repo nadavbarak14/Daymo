@@ -53,24 +53,20 @@ describe("POST /chat", () => {
     await setupWidget(dataRoot);
 
     const fakeEmbed = vi.fn().mockResolvedValue([1, 0, 0]);
-    const fakeLLM = {
-      messages: {
-        create: vi.fn().mockResolvedValueOnce({
-          content: [{ type: "text", text: JSON.stringify({
-            kind: "answer", parts: [
-              { kind: "text", text: "Click + New project." },
-              { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 1000, endMs: 2000, caption: "Open dialog", mp4Url: "" },
-            ],
-          }) }],
-        }),
-      },
-    };
+    const fakeRewrite = vi.fn().mockResolvedValue("How do I open the dialog?");
+    const fakeAnswer = vi.fn().mockResolvedValue({
+      kind: "answer", parts: [
+        { kind: "text", text: "Click + New project." },
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 1000, endMs: 2000, caption: "Open dialog", mp4Url: "" },
+      ],
+    });
 
     const server = await startServer({
       port: 0,
       host: "127.0.0.1",
       dataRoot,
-      anthropicClient: fakeLLM as never,
+      rewriteQueryFn: fakeRewrite,
+      answerFn: fakeAnswer,
       embedQueryFn: fakeEmbed,
       baseUrl: "https://daymo.dev",
     });
@@ -95,13 +91,12 @@ describe("POST /chat", () => {
     await setupWidget(dataRoot);
 
     const fakeEmbed = vi.fn().mockResolvedValue([0, 1, 0]);
-    const fakeLLM = {
-      messages: { create: vi.fn().mockResolvedValueOnce({ content: [{ type: "text", text: "weird question" }] }) },
-    };
+    const fakeRewrite = vi.fn();
+    const fakeAnswer = vi.fn();
 
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,
-      anthropicClient: fakeLLM as never, embedQueryFn: fakeEmbed, baseUrl: "https://daymo.dev",
+      rewriteQueryFn: fakeRewrite, answerFn: fakeAnswer, embedQueryFn: fakeEmbed, baseUrl: "https://daymo.dev",
     });
     const resp = await postJson(
       (server.address() as { port: number }).port,
@@ -119,7 +114,7 @@ describe("POST /chat", () => {
     await setupWidget(dataRoot);
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,
-      anthropicClient: { messages: { create: vi.fn() } } as never,
+      rewriteQueryFn: vi.fn(), answerFn: vi.fn(),
       embedQueryFn: vi.fn(), baseUrl: "https://x",
     });
     const resp = await postJson(
@@ -137,7 +132,7 @@ describe("POST /chat", () => {
     await setupWidget(dataRoot);
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,
-      anthropicClient: { messages: { create: vi.fn() } } as never,
+      rewriteQueryFn: vi.fn(), answerFn: vi.fn(),
       embedQueryFn: vi.fn(), baseUrl: "https://x",
     });
     const resp = await postJson(
@@ -154,12 +149,11 @@ describe("POST /chat", () => {
     const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
     await setupWidget(dataRoot);
     const fakeEmbed = vi.fn().mockResolvedValue([0, 1, 0]);
-    const fakeLLM = {
-      messages: { create: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "x" }] }) },
-    };
+    const fakeRewrite = vi.fn().mockResolvedValue("x");
+    const fakeAnswer = vi.fn().mockResolvedValue({ kind: "no_match", text: "x" });
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,
-      anthropicClient: fakeLLM as never, embedQueryFn: fakeEmbed, baseUrl: "https://x",
+      rewriteQueryFn: fakeRewrite, answerFn: fakeAnswer, embedQueryFn: fakeEmbed, baseUrl: "https://x",
       rateLimitPerMinute: 2,
     });
     const port = (server.address() as { port: number }).port;

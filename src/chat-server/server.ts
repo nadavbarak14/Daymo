@@ -1,10 +1,10 @@
 import http, { type Server, type IncomingMessage } from "node:http";
-import type Anthropic from "@anthropic-ai/sdk";
 import { createIndexCache } from "./index-cache.js";
 import { createRateLimiter } from "./rate-limit.js";
 import { route } from "./router.js";
 import { checkOrigin, corsHeaders } from "./cors.js";
 import { handleChat } from "./handlers/chat.js";
+import type { RewriteQueryFn, AnswerFn } from "./handlers/chat.js";
 import { handleWidgetConfig } from "./handlers/widget-config.js";
 import { handleMp4 } from "./handlers/mp4.js";
 import { handleAdminReload } from "./handlers/admin-reload.js";
@@ -14,7 +14,8 @@ export interface ServerOpts {
   port: number;
   host: string;
   dataRoot: string;
-  anthropicClient: Anthropic;
+  rewriteQueryFn: RewriteQueryFn;
+  answerFn: AnswerFn;
   embedQueryFn: (text: string) => Promise<number[]>;
   baseUrl: string;
   rateLimitPerMinute?: number;
@@ -146,7 +147,8 @@ export async function startServer(opts: ServerOpts): Promise<Server> {
         for (const [k, v] of Object.entries(corsHeaders(origin))) res.setHeader(k, v);
         await handleChat(req, res, body, {
           loadWidget: cache.load,
-          anthropicClient: opts.anthropicClient,
+          rewriteQueryFn: opts.rewriteQueryFn,
+          answerFn: opts.answerFn,
           embedQueryFn: opts.embedQueryFn,
           baseUrl: opts.baseUrl,
         });
