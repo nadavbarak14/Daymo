@@ -114,3 +114,37 @@ describe("scene standalone prose", () => {
     expect(without.markdown).not.toContain("Hi.");
   });
 });
+
+import type { Step } from "../../src/types.js";
+
+function step(overrides: Partial<Step> = {}): Step {
+  return {
+    says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [],
+    ...overrides,
+  };
+}
+
+describe("step rendering", () => {
+  it("emits H3 for each fx.step (preamble step is implicit, no H3)", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step(),                                       // implicit preamble
+          step({ description: "Open the dialog" }),     // explicit
+          step({ description: "Submit the form" }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("### 1.1 Open the dialog");
+    expect(out.markdown).toContain("### 1.2 Submit the form");
+    // The implicit preamble does NOT get its own H3.
+    expect(out.markdown).not.toMatch(/^### 1\.0/m);
+  });
+
+  it("emits no H3 at all when a scene has only the implicit preamble", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", { steps: [step()] })],
+    }));
+    expect(out.markdown).not.toMatch(/^### /m);
+  });
+});

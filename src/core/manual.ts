@@ -56,6 +56,15 @@ export function emitManual(ast: DemoAst): ManualOutput {
       lines.push(s.prose.trim());
       lines.push("");
     }
+    s.steps.forEach((stp, j) => {
+      if (j > 0 && stp.description) {
+        // Step index: explicit steps are numbered 1.1, 1.2, ... starting from
+        // the first explicit step (j === 1 in the AST since steps[0] is the
+        // implicit preamble).
+        lines.push(`### ${n}.${j} ${stp.description}`);
+        lines.push("");
+      }
+    });
   });
 
   return { markdown: lines.join("\n"), warnings };
