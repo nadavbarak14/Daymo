@@ -129,12 +129,14 @@ function renderActions(stp: Step, _sceneNum: number, _stepIdx: number, out: stri
           detail: `click has no description (selector: ${r.selector})`,
         });
       }
+    } else if (r.kind === "type") {
+      sentence = `${n}. Type **"${r.text.replace(/"/g, '\\"')}"**.`;
     } else {
-      return;
+      return; // highlight, cursor handled in later tasks
     }
     out.push(sentence);
   });
-  if (visible.some((r) => r.kind === "click")) {
+  if (visible.some((r) => r.kind === "click" || r.kind === "type")) {
     out.push("");
   }
 }

@@ -289,3 +289,31 @@ describe("page.click without description", () => {
     ]);
   });
 });
+
+describe("typeWithDelay template", () => {
+  it("renders 'Type **\"<text>\"**.'", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            types: [{ text: "Holiday landing page", span: { start: 0, end: 0, line: 50 } }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Type \*\*"Holiday landing page"\*\*\./);
+  });
+
+  it("escapes embedded double-quotes in the typed text", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            types: [{ text: 'A "quoted" word', span: { start: 0, end: 0, line: 51 } }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain('Type **"A \\"quoted\\" word"**.');
+  });
+});
