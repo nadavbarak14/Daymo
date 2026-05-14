@@ -16,6 +16,8 @@
   },
   "scripts": {
     "build": "tsc && cd editor-ui && npm install && npm run build",
+    "build:widget": "cd widget && npm install && npm run build",
+    "build:all": "npm run build && npm run build:widget",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
