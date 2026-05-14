@@ -10,6 +10,7 @@ import { setProseCommand } from "./commands/set-prose.js";
 import { migrateProseCommand } from "./commands/migrate-prose.js";
 import { indexCommand } from "./commands/index.js";
 import { serveCommand } from "./commands/serve.js";
+import { manualCommand } from "./commands/manual.js";
 
 const cli = cac("daymo");
 
@@ -101,6 +102,13 @@ cli.command("serve", "Run the chat-widget backend HTTP server")
       rateLimitPerMinute: flags.rateLimit !== undefined ? Number(flags.rateLimit) : undefined,
       adminToken: flags.adminToken,
     }),
+  );
+
+cli.command("manual <file>", "Generate manual.md from a .demo file (no browser, no screenshots)")
+  .option("--out <path>", "Custom output path (default: manual.md next to the .demo file)")
+  .option("--stdout", "Print to stdout instead of writing a file")
+  .action((file: string, flags: { out?: string; stdout?: boolean }) =>
+    manualCommand(file, { out: flags.out, stdout: flags.stdout }),
   );
 
 cli.help();
