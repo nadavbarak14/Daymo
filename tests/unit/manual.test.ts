@@ -18,3 +18,23 @@ describe("emitManual", () => {
     expect(Array.isArray(out.warnings)).toBe(true);
   });
 });
+
+describe("frontmatter rendering", () => {
+  it("emits H1 title, italic description, and URL line", () => {
+    const out = emitManual(ast({
+      frontmatter: { title: "Loomly Tour", description: "A walkthrough", url: "http://localhost:8765/", tts: TTS },
+    }));
+    expect(out.markdown).toContain("# Loomly Tour");
+    expect(out.markdown).toContain("*A walkthrough*");
+    expect(out.markdown).toContain("**URL:** http://localhost:8765/");
+  });
+
+  it("omits the italic description line when description is absent", () => {
+    const out = emitManual(ast({
+      frontmatter: { title: "T", url: "u", tts: TTS },
+    }));
+    expect(out.markdown).not.toMatch(/^\*[^*]/m);
+    expect(out.markdown).toContain("# T");
+    expect(out.markdown).toContain("**URL:** u");
+  });
+});
