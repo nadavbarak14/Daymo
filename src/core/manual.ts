@@ -85,7 +85,9 @@ export function emitManual(ast: DemoAst): ManualOutput {
       .map((o) => (typeof o.text === "string" ? o.text.trim() : ""))
       .filter((t) => t.length > 0);
     overlayTexts.forEach((t) => {
-      lines.push(`> ${t}`);
+      for (const line of t.split("\n")) {
+        lines.push(`> ${line}`);
+      }
     });
     if (overlayTexts.length > 0) {
       lines.push("");

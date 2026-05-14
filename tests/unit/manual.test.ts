@@ -370,4 +370,19 @@ describe("overlay rendering", () => {
     expect(out.markdown).toContain("> Three quick stats up top");
     expect(out.markdown.match(/^> /gm)?.length ?? 0).toBe(1);
   });
+
+  it("prefixes every line of a multi-line overlay with '> '", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        overlays: [
+          { type: "callout", target: ".x", text: "First line\nSecond line\nThird line" },
+        ],
+        steps: [step()],
+      })],
+    }));
+    expect(out.markdown).toContain("> First line");
+    expect(out.markdown).toContain("> Second line");
+    expect(out.markdown).toContain("> Third line");
+    expect(out.markdown.match(/^> /gm)?.length).toBe(3);
+  });
 });
