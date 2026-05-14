@@ -317,3 +317,41 @@ describe("typeWithDelay template", () => {
     expect(out.markdown).toContain('Type **"A \\"quoted\\" word"**.');
   });
 });
+
+describe("highlight + cursorTo templates", () => {
+  it("renders 'Notice **<description>**.' for fx.highlight", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            highlights: [{
+              selector: ".stats",
+              selectorSpan: { start: 0, end: 0, line: 60 },
+              description: "the stats panel",
+              descriptionSpan: { start: 0, end: 0, line: 60 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Notice \*\*the stats panel\*\*\./);
+  });
+
+  it("renders 'Look at **<description>**.' for a solo fx.cursorTo (no matching click in step)", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            cursors: [{
+              selector: "[data-testid=row-2]",
+              selectorSpan: { start: 0, end: 0, line: 70 },
+              description: "the Q3 launch row",
+              descriptionSpan: { start: 0, end: 0, line: 70 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Look at \*\*the Q3 launch row\*\*\./);
+  });
+});

@@ -131,12 +131,16 @@ function renderActions(stp: Step, _sceneNum: number, _stepIdx: number, out: stri
       }
     } else if (r.kind === "type") {
       sentence = `${n}. Type **"${r.text.replace(/"/g, '\\"')}"**.`;
+    } else if (r.kind === "highlight") {
+      sentence = `${n}. Notice **${r.description}**.`;
+    } else if (r.kind === "cursor") {
+      sentence = `${n}. Look at **${r.description}**.`;
     } else {
-      return; // highlight, cursor handled in later tasks
+      return;
     }
     out.push(sentence);
   });
-  if (visible.some((r) => r.kind === "click" || r.kind === "type")) {
+  if (visible.length > 0) {
     out.push("");
   }
 }
