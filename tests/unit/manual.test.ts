@@ -265,3 +265,27 @@ describe("click action template", () => {
     expect(out.markdown).not.toMatch(/Look at /);
   });
 });
+
+describe("page.click without description", () => {
+  it("renders fallback text and records a warning", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        sourceLine: 5,
+        steps: [
+          step({
+            clicks: [{
+              selector: "button.primary",
+              selectorSpan: { start: 0, end: 0, line: 42 },
+              description: "",
+              descriptionSpan: { start: 0, end: 0, line: 42 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toMatch(/Click the target element\. \*\(no description — line 42\)\*/);
+    expect(out.warnings).toEqual([
+      { line: 42, detail: "click has no description (selector: button.primary)" },
+    ]);
+  });
+});

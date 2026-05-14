@@ -120,14 +120,21 @@ function renderActions(stp: Step, _sceneNum: number, _stepIdx: number, out: stri
     const n = idx + 1;
     let sentence = "";
     if (r.kind === "click") {
-      sentence = `${n}. Click **${r.description}**.`;
+      if (r.description) {
+        sentence = `${n}. Click **${r.description}**.`;
+      } else {
+        sentence = `${n}. Click the target element. *(no description — line ${r.line})*`;
+        warnings.push({
+          line: r.line,
+          detail: `click has no description (selector: ${r.selector})`,
+        });
+      }
     } else {
-      return; // remaining kinds handled in later tasks
+      return;
     }
     out.push(sentence);
   });
   if (visible.some((r) => r.kind === "click")) {
     out.push("");
   }
-  void warnings; // unused until Task 11
 }
