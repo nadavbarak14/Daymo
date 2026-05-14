@@ -12,6 +12,14 @@ export interface ManualOutput {
   warnings: ManualWarning[];
 }
 
+export function slug(input: string): string {
+  const out = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return out.length === 0 ? "untitled" : out;
+}
+
 export function emitManual(ast: DemoAst): ManualOutput {
   const warnings: ManualWarning[] = [];
   const lines: string[] = [];

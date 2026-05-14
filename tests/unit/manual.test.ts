@@ -38,3 +38,22 @@ describe("frontmatter rendering", () => {
     expect(out.markdown).toContain("**URL:** u");
   });
 });
+
+import { slug } from "../../src/core/manual.js";
+
+describe("slug", () => {
+  it("lowercases and hyphenates words", () => {
+    expect(slug("Open the new-project dialog")).toBe("open-the-new-project-dialog");
+  });
+  it("strips punctuation", () => {
+    expect(slug("Welcome back, Alex!")).toBe("welcome-back-alex");
+  });
+  it("collapses runs of non-alphanumerics", () => {
+    expect(slug("A & B (test)")).toBe("a-b-test");
+  });
+  it("falls back to 'untitled' for empty or all-symbol input", () => {
+    expect(slug("")).toBe("untitled");
+    expect(slug("---")).toBe("untitled");
+    expect(slug("!@#$")).toBe("untitled");
+  });
+});
