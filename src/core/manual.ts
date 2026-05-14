@@ -12,6 +12,30 @@ export interface ManualOutput {
   warnings: ManualWarning[];
 }
 
+export type ActionRow =
+  | { kind: "click"; selector: string; description: string; line: number }
+  | { kind: "highlight"; selector: string; description: string; line: number }
+  | { kind: "cursor"; selector: string; description: string; line: number }
+  | { kind: "type"; text: string; line: number };
+
+export function actionsInSourceOrder(stp: Step): ActionRow[] {
+  const rows: ActionRow[] = [
+    ...stp.clicks.map((a): ActionRow => ({
+      kind: "click", selector: a.selector, description: a.description, line: a.selectorSpan.line,
+    })),
+    ...stp.highlights.map((a): ActionRow => ({
+      kind: "highlight", selector: a.selector, description: a.description, line: a.selectorSpan.line,
+    })),
+    ...stp.cursors.map((a): ActionRow => ({
+      kind: "cursor", selector: a.selector, description: a.description, line: a.selectorSpan.line,
+    })),
+    ...stp.types.map((t): ActionRow => ({
+      kind: "type", text: t.text, line: t.span.line,
+    })),
+  ];
+  return rows.sort((a, b) => a.line - b.line);
+}
+
 export function slug(input: string): string {
   const out = input
     .toLowerCase()

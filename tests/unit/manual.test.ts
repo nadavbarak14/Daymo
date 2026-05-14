@@ -202,3 +202,21 @@ describe("banner (fx.banner)", () => {
     expect(out.markdown).not.toContain("**On-screen:** Welcome.");
   });
 });
+
+import { actionsInSourceOrder } from "../../src/core/manual.js";
+
+describe("actionsInSourceOrder", () => {
+  it("interleaves clicks, types, highlights, cursors by source line", () => {
+    const s = step({
+      clicks:     [{ selector: "#a", selectorSpan: { start: 0, end: 0, line: 30 },
+                     description: "A button", descriptionSpan: { start: 0, end: 0, line: 30 } }],
+      types:      [{ text: "hello", span: { start: 0, end: 0, line: 20 } }],
+      highlights: [{ selector: "#h", selectorSpan: { start: 0, end: 0, line: 10 },
+                     description: "Highlighted area", descriptionSpan: { start: 0, end: 0, line: 10 } }],
+      cursors:    [{ selector: "#c", selectorSpan: { start: 0, end: 0, line: 40 },
+                     description: "Cursor target", descriptionSpan: { start: 0, end: 0, line: 40 } }],
+    });
+    const rows = actionsInSourceOrder(s);
+    expect(rows.map((r) => r.kind)).toEqual(["highlight", "type", "click", "cursor"]);
+  });
+});
