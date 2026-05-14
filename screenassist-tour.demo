@@ -29,8 +29,8 @@ duration: 3s
 
 ```playwright
 await fx.say("The whole site funnels here — every \"Start now\" button drops you into signup. Free during beta, no credit card.");
-await fx.cursorTo("nav.top a[href='/signup']");
-await fx.highlight("nav.top a[href='/signup']", 1.5);
+await fx.cursorTo("nav.top a[href='/signup']", "the Start now link in the top nav");
+await fx.highlight("nav.top a[href='/signup']", "the signup CTA in the top nav", { duration: 1.5 });
 await fx.pause(0.8);
 ```
 
@@ -51,7 +51,7 @@ await fx.say("Five steps from your film to your future — self-tag plays, get i
 await page.locator("#how").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
-await fx.cursorTo("#how h2");
+await fx.cursorTo("#how h2", "the How it works section heading");
 await fx.pause(1.2);
 ```
 
@@ -72,7 +72,7 @@ await fx.say("iPhone bleacher clips, AAU livestream rips, that folder of old MP4
 await page.locator("#wedge").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
-await fx.highlight("#wedge h2", 1.5);
+await fx.highlight("#wedge h2", "the works-on-the-film-you-have section heading", { duration: 1.5 });
 await fx.pause(1.2);
 ```
 
@@ -86,7 +86,7 @@ await fx.say("Players own the reel. Coaches and trainers get the toolkit they ca
 await page.locator("#for-parents-coaches").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.5);
-await fx.cursorTo("#for-parents-coaches h2");
+await fx.cursorTo("#for-parents-coaches h2", "the for-parents-and-coaches section heading");
 await fx.pause(1.2);
 ```
 
@@ -100,8 +100,8 @@ await fx.say("Pricing, FAQ, and one button to start. The pro film room every pla
 await page.locator("#pricing").scrollIntoViewIfNeeded();
 await page.waitForTimeout(400);
 await fx.pause(0.4);
-await fx.cursorTo("#pricing a.btn-primary");
-await fx.highlight("#pricing a.btn-primary", 2);
+await fx.cursorTo("#pricing a.btn-primary", "the Start free button in pricing");
+await fx.highlight("#pricing a.btn-primary", "the Start free button in pricing", { duration: 2 });
 await fx.pause(1.5);
 ```
 
