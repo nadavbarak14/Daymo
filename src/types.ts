@@ -149,3 +149,35 @@ export interface ArtifactPaths {
   events: string;         // events.json
   output: string;         // output.mp4
 }
+
+/** One entry per scene in the stitched output.mp4. globalEndMs is exclusive. */
+export interface SceneIndexEntry {
+  sceneIndex: number;
+  globalStartMs: number;
+  globalEndMs: number;
+  recordingOffsetMs: number;
+}
+
+/** One entry per step (including implicit preamble at stepIndex=0). */
+export interface StepIndexEntry {
+  stepId: string;
+  sceneIndex: number;
+  stepIndex: number;
+  description: string;
+  globalStartMs: number;
+  globalEndMs: number;
+}
+
+export interface StepIndex {
+  demoId: string;
+  mp4DurationMs: number;
+  scenes: SceneIndexEntry[];
+  steps: StepIndexEntry[];
+}
+
+export interface SceneForStepIndex {
+  sceneIndex: number;
+  recordingOffsetMs: number;
+  trimmedDurationMs: number;
+  events: RunnerEvent[];
+}
