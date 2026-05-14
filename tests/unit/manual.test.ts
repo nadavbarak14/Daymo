@@ -174,3 +174,31 @@ describe("narration (fx.say)", () => {
     expect(out.markdown).toContain("Preamble narration.");
   });
 });
+
+describe("banner (fx.banner)", () => {
+  it("renders banner as 'On-screen:' lead-in when there is no fx.say in the step", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({ banners: [{ text: "Welcome to the tour.", span }] }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("**On-screen:** Welcome to the tour.");
+  });
+
+  it("drops banner when fx.say is also present in the same step (say wins)", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            says: [{ text: "Spoken narration.", span }],
+            banners: [{ text: "Welcome.", span }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("Spoken narration.");
+    expect(out.markdown).not.toContain("**On-screen:** Welcome.");
+  });
+});

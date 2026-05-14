@@ -73,4 +73,8 @@ function renderStep(stp: Step, sceneNum: number, stepIdx: number, out: string[])
     out.push(stp.says[0].text);
     out.push("");
   }
+  if (stp.says.length === 0 && stp.banners.length > 0) {
+    out.push(`**On-screen:** ${stp.banners[0].text}`);
+    out.push("");
+  }
 }
