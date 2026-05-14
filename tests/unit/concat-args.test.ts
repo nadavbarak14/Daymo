@@ -25,7 +25,7 @@ describe("buildStitchArgs", () => {
     expect(a).toEqual([
       "-y","-f","concat","-safe","0","-i","/tmp/list.txt",
       "-map","0:v","-map","0:a?",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "/o.mp4",
     ]);
   });
@@ -36,7 +36,7 @@ describe("buildStitchArgs", () => {
       "-i","/m.mp3",
       "-filter_complex","[1:a]volume=0.4[m]",
       "-map","0:v","-map","[m]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
@@ -55,7 +55,7 @@ describe("buildStitchArgs", () => {
       "-filter_complex",
       "[1:a]volume=0.4[bg];[bg][0:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][0:a]amix=inputs=2:duration=first[final]",
       "-map","0:v","-map","[final]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
@@ -68,9 +68,46 @@ describe("buildStitchArgs", () => {
       "-i","/m.mp3",
       "-filter_complex","[1:a]volume=0.4[m]",
       "-map","0:v","-map","[m]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
+  });
+});
+
+describe("buildStitchArgs keyframes", () => {
+  it("passes -g 30 to libx264 when no music is present", () => {
+    const args = buildStitchArgs({
+      listFile: "/tmp/list.txt",
+      music: null,
+      output: "/tmp/out.mp4",
+    });
+    const gIdx = args.indexOf("-g");
+    expect(gIdx).toBeGreaterThan(-1);
+    expect(args[gIdx + 1]).toBe("30");
+    expect(args.indexOf("libx264")).toBeGreaterThan(-1);
+  });
+
+  it("passes -g 30 to libx264 when music is present (no duck)", () => {
+    const args = buildStitchArgs({
+      listFile: "/tmp/list.txt",
+      music: "/tmp/m.mp3",
+      output: "/tmp/out.mp4",
+    });
+    const gIdx = args.indexOf("-g");
+    expect(gIdx).toBeGreaterThan(-1);
+    expect(args[gIdx + 1]).toBe("30");
+  });
+
+  it("passes -g 30 to libx264 when music is present with duck", () => {
+    const args = buildStitchArgs({
+      listFile: "/tmp/list.txt",
+      music: "/tmp/m.mp3",
+      output: "/tmp/out.mp4",
+      musicDuck: true,
+    });
+    const gIdx = args.indexOf("-g");
+    expect(gIdx).toBeGreaterThan(-1);
+    expect(args[gIdx + 1]).toBe("30");
   });
 });
