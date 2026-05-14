@@ -6,7 +6,7 @@ import { validateChatResponse } from "../validate-response.js";
 import { buildMp4Url } from "../mp4-url.js";
 import type { CacheEntry } from "../index-cache.js";
 
-const SCORE_THRESHOLD = 0.55;
+const SCORE_THRESHOLD = 0.35;
 
 export type RewriteQueryFn = (input: {
   message: string;
