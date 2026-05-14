@@ -386,3 +386,29 @@ describe("overlay rendering", () => {
     expect(out.markdown.match(/^> /gm)?.length).toBe(3);
   });
 });
+
+describe("warning list", () => {
+  it("appends a 'Warnings' section at the end when warnings were collected", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({
+            clicks: [{
+              selector: "button.primary",
+              selectorSpan: { start: 0, end: 0, line: 42 },
+              description: "",
+              descriptionSpan: { start: 0, end: 0, line: 42 },
+            }],
+          }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("## Warnings");
+    expect(out.markdown).toContain("- line 42: click has no description (selector: button.primary)");
+  });
+
+  it("omits the 'Warnings' section entirely when there are no warnings", () => {
+    const out = emitManual(ast({ scenes: [scene("S")] }));
+    expect(out.markdown).not.toContain("## Warnings");
+  });
+});

@@ -94,6 +94,17 @@ export function emitManual(ast: DemoAst): ManualOutput {
     }
   });
 
+  if (warnings.length > 0) {
+    lines.push("---");
+    lines.push("");
+    lines.push("## Warnings");
+    lines.push("");
+    for (const w of warnings) {
+      lines.push(`- line ${w.line}: ${w.detail}`);
+    }
+    lines.push("");
+  }
+
   return { markdown: lines.join("\n"), warnings };
 }
 
