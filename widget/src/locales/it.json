@@ -1,0 +1,14 @@
+{
+  "greeting": "Ciao! Chiedimi come fare qualsiasi cosa.",
+  "inputPlaceholder": "Digita una domanda…",
+  "send": "Invia",
+  "open": "Apri aiuto prodotto",
+  "close": "Chiudi",
+  "back": "Indietro",
+  "suggestedHeader": "Prova:",
+  "rateLimitMessage": "Troppe domande — un attimo.",
+  "upstreamErrorMessage": "Impossibile raggiungere l'assistente. Riprova.",
+  "noMatchPrefix": "Non ho quello nelle demo. Prova:",
+  "notConfiguredMessage": "Questo widget di aiuto non è configurato.",
+  "caption": "Didascalia"
+}

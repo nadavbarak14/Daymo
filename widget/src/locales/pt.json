@@ -1,0 +1,14 @@
+{
+  "greeting": "Oi! Pergunte-me como fazer qualquer coisa.",
+  "inputPlaceholder": "Digite uma pergunta…",
+  "send": "Enviar",
+  "open": "Abrir ajuda do produto",
+  "close": "Fechar",
+  "back": "Voltar",
+  "suggestedHeader": "Experimente:",
+  "rateLimitMessage": "Muitas perguntas — dê-me um momento.",
+  "upstreamErrorMessage": "Não consegui contatar o assistente. Tente novamente.",
+  "noMatchPrefix": "Não tenho isso nas demos. Experimente:",
+  "notConfiguredMessage": "Este widget de ajuda não está configurado.",
+  "caption": "Legenda"
+}

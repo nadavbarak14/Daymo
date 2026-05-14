@@ -1,0 +1,14 @@
+{
+  "greeting": "Bonjour ! Demandez-moi comment faire n'importe quoi.",
+  "inputPlaceholder": "Tapez une question…",
+  "send": "Envoyer",
+  "open": "Ouvrir l'aide produit",
+  "close": "Fermer",
+  "back": "Retour",
+  "suggestedHeader": "Essayez :",
+  "rateLimitMessage": "Trop de questions — donnez-moi un instant.",
+  "upstreamErrorMessage": "Impossible de joindre l'assistant. Réessayez.",
+  "noMatchPrefix": "Je n'ai pas ça dans les démos. Essayez :",
+  "notConfiguredMessage": "Ce widget d'aide n'est pas configuré.",
+  "caption": "Légende"
+}
