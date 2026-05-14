@@ -181,3 +181,42 @@ export interface SceneForStepIndex {
   trimmedDurationMs: number;
   events: RunnerEvent[];
 }
+
+export interface IndexedDemo {
+  demoId: string;
+  title: string;
+  description: string;
+  durationMs: number;
+}
+
+export interface IndexedChunk {
+  stepId: string;
+  demoId: string;
+  sceneIndex: number;
+  stepIndex: number;
+  globalStartMs: number;
+  globalEndMs: number;
+  text: string;
+  embedding: number[];
+  keywords: string[];
+}
+
+export interface IndexFile {
+  version: "v1";
+  widgetId: string;
+  embeddingModel: "gemini-embedding-001";
+  embeddingDims: number;
+  createdAt: string;
+  etag: string;
+  demos: IndexedDemo[];
+  chunks: IndexedChunk[];
+}
+
+export interface WidgetConfig {
+  widgetId: string;
+  name: string;
+  brandColor?: string;
+  locale: string;
+  allowedOrigins: string[];
+  suggestedQuestions: string[];
+}
