@@ -97,3 +97,20 @@ describe("scene rendering", () => {
     expect(k).toBeGreaterThan(j);
   });
 });
+
+describe("scene standalone prose", () => {
+  it("renders scene prose verbatim under the H2", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", { prose: "Some intro text.\n\nA second paragraph." })],
+    }));
+    expect(out.markdown).toContain("Some intro text.");
+    expect(out.markdown).toContain("A second paragraph.");
+  });
+
+  it("does not add a prose block when prose is empty", () => {
+    const withProse = emitManual(ast({ scenes: [scene("S", { prose: "Hi." })] }));
+    const without = emitManual(ast({ scenes: [scene("S", { prose: "" })] }));
+    expect(withProse.markdown.length).toBeGreaterThan(without.markdown.length);
+    expect(without.markdown).not.toContain("Hi.");
+  });
+});

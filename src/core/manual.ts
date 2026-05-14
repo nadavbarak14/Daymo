@@ -52,6 +52,10 @@ export function emitManual(ast: DemoAst): ManualOutput {
     const n = i + 1;
     lines.push(`## ${n}. ${s.title} <a id="${n}-${slug(s.title)}"></a>`);
     lines.push("");
+    if (s.prose.trim()) {
+      lines.push(s.prose.trim());
+      lines.push("");
+    }
   });
 
   return { markdown: lines.join("\n"), warnings };
