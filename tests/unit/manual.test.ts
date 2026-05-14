@@ -57,3 +57,43 @@ describe("slug", () => {
     expect(slug("!@#$")).toBe("untitled");
   });
 });
+
+import type { Scene } from "../../src/types.js";
+
+function scene(title: string, overrides: Partial<Scene> = {}): Scene {
+  return {
+    sourceLine: 1,
+    title,
+    prose: "",
+    overlays: [],
+    steps: [{ says: [], banners: [], types: [], highlights: [], clicks: [], cursors: [] }],
+    ...overrides,
+  };
+}
+
+describe("scene rendering", () => {
+  it("emits a TOC with anchored scene links", () => {
+    const out = emitManual(ast({
+      scenes: [scene("Welcome back, Alex"), scene("Browse the list")],
+    }));
+    expect(out.markdown).toContain("## Contents");
+    expect(out.markdown).toContain("1. [Welcome back, Alex](#1-welcome-back-alex)");
+    expect(out.markdown).toContain("2. [Browse the list](#2-browse-the-list)");
+  });
+
+  it("emits an H2 with a matching anchor for each scene", () => {
+    const out = emitManual(ast({ scenes: [scene("Welcome back, Alex")] }));
+    expect(out.markdown).toContain(`<a id="1-welcome-back-alex"></a>`);
+    expect(out.markdown).toContain(`## 1. Welcome back, Alex`);
+  });
+
+  it("includes a horizontal rule between the TOC and the scenes", () => {
+    const out = emitManual(ast({ scenes: [scene("S")] }));
+    const i = out.markdown.indexOf("## Contents");
+    const j = out.markdown.indexOf("---", i);
+    const k = out.markdown.indexOf("## 1.", j);
+    expect(i).toBeGreaterThanOrEqual(0);
+    expect(j).toBeGreaterThan(i);
+    expect(k).toBeGreaterThan(j);
+  });
+});

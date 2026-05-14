@@ -24,6 +24,7 @@ export function emitManual(ast: DemoAst): ManualOutput {
   const warnings: ManualWarning[] = [];
   const lines: string[] = [];
 
+  // ---- frontmatter ----
   lines.push(`# ${ast.frontmatter.title}`);
   lines.push("");
   if (ast.frontmatter.description) {
@@ -32,6 +33,26 @@ export function emitManual(ast: DemoAst): ManualOutput {
   }
   lines.push(`**URL:** ${ast.frontmatter.url}`);
   lines.push("");
+
+  // ---- table of contents ----
+  if (ast.scenes.length > 0) {
+    lines.push("## Contents");
+    lines.push("");
+    ast.scenes.forEach((s, i) => {
+      const n = i + 1;
+      lines.push(`${n}. [${s.title}](#${n}-${slug(s.title)})`);
+    });
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+
+  // ---- scenes ----
+  ast.scenes.forEach((s, i) => {
+    const n = i + 1;
+    lines.push(`## ${n}. ${s.title} <a id="${n}-${slug(s.title)}"></a>`);
+    lines.push("");
+  });
 
   return { markdown: lines.join("\n"), warnings };
 }
