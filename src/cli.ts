@@ -9,6 +9,7 @@ import { stitchCommand } from "./commands/stitch.js";
 import { setProseCommand } from "./commands/set-prose.js";
 import { migrateProseCommand } from "./commands/migrate-prose.js";
 import { indexCommand } from "./commands/index.js";
+import { serveCommand } from "./commands/serve.js";
 
 const cli = cac("daymo");
 
@@ -83,6 +84,24 @@ cli.command("index <demoDir>", "Build a chat-widget index from a directory of .d
       dataRoot: flags.dataRoot,
     });
   });
+
+cli.command("serve", "Run the chat-widget backend HTTP server")
+  .option("--port <n>", "Port to listen on", { default: 8765 })
+  .option("--host <h>", "Host interface to bind", { default: "127.0.0.1" })
+  .option("--data-root <path>", "Override DAYMO_DATA_ROOT for this run")
+  .option("--base-url <url>", "External URL the widget should use for mp4 fetches")
+  .option("--rate-limit <n>", "Max requests per minute per widgetId+IP", { default: 30 })
+  .option("--admin-token <token>", "Bearer token required for /admin/reload (or set DAYMO_ADMIN_TOKEN)")
+  .action((flags: { port: number; host: string; dataRoot?: string; baseUrl?: string; rateLimit?: number; adminToken?: string }) =>
+    serveCommand({
+      port: Number(flags.port),
+      host: flags.host,
+      dataRoot: flags.dataRoot,
+      baseUrl: flags.baseUrl,
+      rateLimitPerMinute: flags.rateLimit !== undefined ? Number(flags.rateLimit) : undefined,
+      adminToken: flags.adminToken,
+    }),
+  );
 
 cli.help();
 cli.version("0.1.0");
