@@ -81,6 +81,15 @@ export function emitManual(ast: DemoAst): ManualOutput {
       lines.push("");
     }
     s.steps.forEach((stp, j) => renderStep(stp, n, j, lines, warnings));
+    const overlayTexts = s.overlays
+      .map((o) => (typeof o.text === "string" ? o.text.trim() : ""))
+      .filter((t) => t.length > 0);
+    overlayTexts.forEach((t) => {
+      lines.push(`> ${t}`);
+    });
+    if (overlayTexts.length > 0) {
+      lines.push("");
+    }
   });
 
   return { markdown: lines.join("\n"), warnings };

@@ -355,3 +355,19 @@ describe("highlight + cursorTo templates", () => {
     expect(out.markdown).toMatch(/Look at \*\*the Q3 launch row\*\*\./);
   });
 });
+
+describe("overlay rendering", () => {
+  it("renders callout/highlight overlays with text as blockquotes after the steps", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        overlays: [
+          { type: "callout", target: ".stats", text: "Three quick stats up top", duration: "2.5s" },
+          { type: "highlight", target: ".x", duration: "1s" }, // no text → skipped
+        ],
+        steps: [step()],
+      })],
+    }));
+    expect(out.markdown).toContain("> Three quick stats up top");
+    expect(out.markdown.match(/^> /gm)?.length ?? 0).toBe(1);
+  });
+});
