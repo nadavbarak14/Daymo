@@ -149,3 +149,38 @@ export interface ArtifactPaths {
   events: string;         // events.json
   output: string;         // output.mp4
 }
+
+/** One entry per scene in the stitched output.mp4. globalEndMs is exclusive. */
+export interface SceneIndexEntry {
+  sceneIndex: number;
+  globalStartMs: number;
+  globalEndMs: number;
+  recordingOffsetMs: number;   // 0 if not present in source
+}
+
+/** One entry per step (including implicit preamble at stepIndex=0). */
+export interface StepIndexEntry {
+  stepId: string;              // "<demoId>:<sceneIndex>:<stepIndex>"
+  sceneIndex: number;
+  stepIndex: number;
+  description: string;         // "(preamble)" for the implicit preamble
+  globalStartMs: number;
+  globalEndMs: number;
+}
+
+export interface StepIndex {
+  demoId: string;
+  mp4DurationMs: number;
+  scenes: SceneIndexEntry[];
+  steps: StepIndexEntry[];
+}
+
+/** Input shape per scene for the step-index builder.
+ *  `events` is the array previously read from per-scene events.json.
+ *  `trimmedDurationMs` is ffprobe(scene.mp4 or mixed.webm) minus recordingOffsetMs. */
+export interface SceneForStepIndex {
+  sceneIndex: number;
+  recordingOffsetMs: number;
+  trimmedDurationMs: number;
+  events: RunnerEvent[];
+}
