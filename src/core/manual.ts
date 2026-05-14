@@ -1,4 +1,4 @@
-import type { DemoAst } from "../types.js";
+import type { DemoAst, Step } from "../types.js";
 
 export interface ManualWarning {
   /** 1-based source line that produced the warning. */
@@ -56,16 +56,21 @@ export function emitManual(ast: DemoAst): ManualOutput {
       lines.push(s.prose.trim());
       lines.push("");
     }
-    s.steps.forEach((stp, j) => {
-      if (j > 0 && stp.description) {
-        // Step index: explicit steps are numbered 1.1, 1.2, ... starting from
-        // the first explicit step (j === 1 in the AST since steps[0] is the
-        // implicit preamble).
-        lines.push(`### ${n}.${j} ${stp.description}`);
-        lines.push("");
-      }
-    });
+    s.steps.forEach((stp, j) => renderStep(stp, n, j, lines));
   });
 
   return { markdown: lines.join("\n"), warnings };
+}
+
+function renderStep(stp: Step, sceneNum: number, stepIdx: number, out: string[]): void {
+  // Heading — only for explicit steps (stepIdx > 0 and a description set).
+  if (stepIdx > 0 && stp.description) {
+    out.push(`### ${sceneNum}.${stepIdx} ${stp.description}`);
+    out.push("");
+  }
+  // Narration (fx.say) — first prose paragraph.
+  if (stp.says.length > 0) {
+    out.push(stp.says[0].text);
+    out.push("");
+  }
 }

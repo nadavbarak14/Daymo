@@ -148,3 +148,29 @@ describe("step rendering", () => {
     expect(out.markdown).not.toMatch(/^### /m);
   });
 });
+
+const span = { start: 0, end: 0, line: 1 };
+
+describe("narration (fx.say)", () => {
+  it("renders fx.say text as a prose paragraph in the step body", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({ description: "Welcome", says: [{ text: "Hello, friend.", span }] }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("Hello, friend.");
+  });
+
+  it("renders narration for the implicit preamble step too", () => {
+    const out = emitManual(ast({
+      scenes: [scene("S", {
+        steps: [
+          step({ says: [{ text: "Preamble narration.", span }] }),
+        ],
+      })],
+    }));
+    expect(out.markdown).toContain("Preamble narration.");
+  });
+});
