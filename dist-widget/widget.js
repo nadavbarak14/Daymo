@@ -1,5 +1,5 @@
 // src/styles.css
-var styles_default = ':host {\n  all: initial;\n  font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;\n  color: #1a1a1f;\n}\n\n*, *::before, *::after { box-sizing: border-box; }\n\n/* ============================================================\n   FLOATING BUBBLE\n   ============================================================ */\n\n.bubble {\n  position: fixed;\n  bottom: 24px;\n  right: 24px;\n  width: 56px;\n  height: 56px;\n  border-radius: 50%;\n  background: linear-gradient(135deg, var(--brand, #6c5ce7) 0%, #a29bfe 100%);\n  color: #fff;\n  border: none;\n  cursor: pointer;\n  box-shadow: 0 8px 24px rgba(108, 92, 231, 0.35), 0 2px 4px rgba(0, 0, 0, 0.06);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 2147483647;\n  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 180ms;\n}\n.bubble:hover {\n  transform: translateY(-2px) scale(1.05);\n  box-shadow: 0 12px 32px rgba(108, 92, 231, 0.45), 0 2px 6px rgba(0, 0, 0, 0.08);\n}\n.bubble:focus-visible {\n  outline: 3px solid rgba(108, 92, 231, 0.5);\n  outline-offset: 3px;\n}\n.bubble svg, .bubble .bubble-icon {\n  width: 24px;\n  height: 24px;\n}\n\n/* ============================================================\n   CHAT PANEL\n   ============================================================ */\n\n.panel {\n  position: fixed;\n  bottom: 96px;\n  right: 24px;\n  width: 380px;\n  height: 600px;\n  max-height: calc(100vh - 120px);\n  background: #ffffff;\n  border-radius: 16px;\n  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.08);\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  z-index: 2147483647;\n  animation: slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);\n}\n@keyframes slideUp {\n  from { transform: translateY(12px); opacity: 0; }\n  to { transform: translateY(0); opacity: 1; }\n}\n\n/* Header */\n.panel-header {\n  background: linear-gradient(135deg, var(--brand, #6c5ce7) 0%, #5849d6 100%);\n  color: #fff;\n  padding: 14px 16px;\n  font-size: 14px;\n  font-weight: 600;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  flex-shrink: 0;\n}\n.panel-header button {\n  background: rgba(255, 255, 255, 0.12);\n  color: #fff;\n  border: 0;\n  width: 28px;\n  height: 28px;\n  border-radius: 50%;\n  cursor: pointer;\n  font-size: 14px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: background 120ms;\n}\n.panel-header button:hover {\n  background: rgba(255, 255, 255, 0.22);\n}\n\n/* Thread */\n.thread {\n  flex: 1;\n  padding: 16px;\n  overflow-y: auto;\n  font-size: 14px;\n  line-height: 1.55;\n  color: #1a1a1f;\n  background: #fafafa;\n}\n.thread::-webkit-scrollbar { width: 6px; }\n.thread::-webkit-scrollbar-track { background: transparent; }\n.thread::-webkit-scrollbar-thumb {\n  background: rgba(0,0,0,0.15);\n  border-radius: 3px;\n}\n.thread::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }\n\n.greeting {\n  color: #4a4a55;\n  margin: 4px 0 16px;\n  font-size: 14px;\n  line-height: 1.5;\n}\n.suggested-header {\n  font-size: 11px;\n  color: #8a8a95;\n  text-transform: uppercase;\n  letter-spacing: 0.6px;\n  font-weight: 600;\n  margin: 12px 0 8px;\n}\n\n/* Message bubbles */\n.msg-user, .msg-assistant {\n  margin: 8px 0;\n  animation: fadeIn 180ms ease-out;\n}\n@keyframes fadeIn {\n  from { opacity: 0; transform: translateY(4px); }\n  to { opacity: 1; transform: translateY(0); }\n}\n.msg-user {\n  background: linear-gradient(135deg, var(--brand, #6c5ce7) 0%, #5849d6 100%);\n  color: #fff;\n  border-radius: 18px 18px 4px 18px;\n  padding: 10px 14px;\n  margin: 8px 0 8px auto;\n  max-width: 80%;\n  width: fit-content;\n  display: block;\n  word-wrap: break-word;\n  font-weight: 500;\n}\n.msg-assistant {\n  margin: 8px 0;\n}\n.msg-assistant p {\n  background: #fff;\n  border: 1px solid #ececf0;\n  border-radius: 18px 18px 18px 4px;\n  padding: 10px 14px;\n  margin: 8px 0;\n  max-width: 92%;\n  width: fit-content;\n  display: block;\n  color: #1a1a1f;\n}\n\n/* Video segment */\n.video-wrap {\n  margin: 10px 0;\n  max-width: 100%;\n}\n.video-wrap video {\n  width: 100%;\n  max-height: 220px;\n  background: #0a0a12;\n  border-radius: 12px;\n  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);\n  display: block;\n}\n.caption {\n  display: block;\n  color: #6e6e7a;\n  font-size: 11px;\n  font-weight: 500;\n  margin-top: 6px;\n  padding: 0 4px;\n}\n\n/* Suggestion chips */\n.suggestions {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  margin: 8px 0 16px;\n}\n.suggestions button {\n  text-align: left;\n  background: #fff;\n  border: 1px solid #ececf0;\n  border-radius: 12px;\n  padding: 10px 14px;\n  font-size: 13px;\n  color: #1a1a1f;\n  cursor: pointer;\n  font-family: inherit;\n  transition: all 120ms;\n}\n.suggestions button:hover {\n  border-color: var(--brand, #6c5ce7);\n  background: #f8f7fe;\n  transform: translateX(2px);\n}\n\n/* Typing indicator */\n.typing {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  padding: 14px 14px;\n  background: #fff;\n  border: 1px solid #ececf0;\n  border-radius: 18px 18px 18px 4px;\n  margin: 8px 0;\n  width: fit-content;\n}\n.typing span {\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: #b8b8c2;\n  animation: typingPulse 1.4s infinite ease-in-out;\n}\n.typing span:nth-child(2) { animation-delay: 0.2s; }\n.typing span:nth-child(3) { animation-delay: 0.4s; }\n@keyframes typingPulse {\n  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }\n  30% { transform: translateY(-4px); opacity: 1; }\n}\n\n/* Input row */\n.input-row {\n  border-top: 1px solid #ececf0;\n  padding: 12px 14px;\n  display: flex;\n  gap: 8px;\n  background: #fff;\n  flex-shrink: 0;\n}\n.input-row input {\n  flex: 1;\n  border: 1px solid #ececf0;\n  border-radius: 12px;\n  padding: 10px 14px;\n  font-size: 14px;\n  font-family: inherit;\n  color: #1a1a1f;\n  background: #fafafa;\n  transition: all 120ms;\n  outline: none;\n}\n.input-row input:focus {\n  border-color: var(--brand, #6c5ce7);\n  background: #fff;\n  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12);\n}\n.input-row input::placeholder {\n  color: #9a9aa5;\n}\n.input-row button {\n  background: linear-gradient(135deg, var(--brand, #6c5ce7) 0%, #5849d6 100%);\n  color: #fff;\n  border: 0;\n  border-radius: 12px;\n  padding: 10px 18px;\n  cursor: pointer;\n  font-family: inherit;\n  font-size: 13px;\n  font-weight: 600;\n  transition: all 120ms;\n}\n.input-row button:hover {\n  transform: translateY(-1px);\n  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);\n}\n.input-row button:disabled {\n  opacity: 0.6;\n  cursor: not-allowed;\n  transform: none;\n  box-shadow: none;\n}\n\n/* Error banner */\n.error-banner {\n  background: #fff5f5;\n  color: #c53030;\n  padding: 10px 14px;\n  font-size: 13px;\n  border-bottom: 1px solid #fed7d7;\n}\n\n/* Mobile fullscreen */\n@media (max-width: 600px) {\n  .bubble { width: 60px; height: 60px; bottom: 20px; right: 16px; }\n  .panel {\n    bottom: 0;\n    right: 0;\n    width: 100%;\n    height: 100dvh;\n    max-height: 100dvh;\n    border-radius: 0;\n    padding-bottom: env(safe-area-inset-bottom);\n    animation: none;\n  }\n  .panel-header { border-radius: 0; }\n}\n';
+var styles_default = ':host {\n  all: initial;\n  font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;\n  color: #0a0a0a;\n  font-feature-settings: "cv11", "ss01";\n}\n\n*, *::before, *::after { box-sizing: border-box; }\n\n/* ============================================================\n   FLOATING BUBBLE\n   ============================================================ */\n\n.bubble {\n  position: fixed;\n  bottom: 24px;\n  right: 24px;\n  width: 56px;\n  height: 56px;\n  border-radius: 50%;\n  background: #0a0a0a;\n  color: #fff;\n  border: none;\n  cursor: pointer;\n  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.06);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 2147483647;\n  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 180ms;\n}\n.bubble:hover {\n  transform: scale(1.05);\n  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n}\n.bubble:focus-visible {\n  outline: 2px solid #0a0a0a;\n  outline-offset: 3px;\n}\n.bubble svg { width: 22px; height: 22px; }\n\n/* ============================================================\n   CHAT PANEL\n   ============================================================ */\n\n.panel {\n  position: fixed;\n  bottom: 96px;\n  right: 24px;\n  width: 460px;\n  height: 660px;\n  max-height: calc(100vh - 120px);\n  background: #fff;\n  border-radius: 16px;\n  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16), 0 8px 16px rgba(0, 0, 0, 0.06);\n  border: 1px solid rgba(0, 0, 0, 0.06);\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  z-index: 2147483647;\n  animation: slideUp 220ms cubic-bezier(0.16, 1, 0.3, 1);\n}\n@keyframes slideUp {\n  from { transform: translateY(12px); opacity: 0; }\n  to { transform: translateY(0); opacity: 1; }\n}\n\n/* Header */\n.panel-header {\n  padding: 14px 18px;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  border-bottom: 1px solid #ececec;\n  flex-shrink: 0;\n  background: #fff;\n}\n.panel-header .title {\n  font-size: 14px;\n  font-weight: 600;\n  color: #0a0a0a;\n  letter-spacing: -0.01em;\n}\n.panel-header button {\n  background: transparent;\n  color: #71717a;\n  border: 0;\n  width: 32px;\n  height: 32px;\n  border-radius: 8px;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: background 120ms, color 120ms;\n}\n.panel-header button:hover {\n  background: #f4f4f5;\n  color: #0a0a0a;\n}\n\n/* Thread */\n.thread {\n  flex: 1;\n  padding: 18px;\n  overflow-y: auto;\n  font-size: 14px;\n  line-height: 1.55;\n  color: #0a0a0a;\n  background: #fff;\n}\n.thread::-webkit-scrollbar { width: 6px; }\n.thread::-webkit-scrollbar-track { background: transparent; }\n.thread::-webkit-scrollbar-thumb {\n  background: rgba(0, 0, 0, 0.12);\n  border-radius: 3px;\n}\n.thread::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.22); }\n\n.greeting {\n  color: #52525b;\n  margin: 4px 0 18px;\n  font-size: 14px;\n  line-height: 1.6;\n}\n.suggested-header {\n  font-size: 11px;\n  color: #71717a;\n  text-transform: uppercase;\n  letter-spacing: 0.6px;\n  font-weight: 600;\n  margin: 16px 0 8px;\n}\n\n/* Messages */\n.msg-user, .msg-assistant {\n  margin: 12px 0;\n  animation: fadeIn 180ms ease-out;\n}\n@keyframes fadeIn {\n  from { opacity: 0; transform: translateY(4px); }\n  to { opacity: 1; transform: translateY(0); }\n}\n.msg-user {\n  background: #f4f4f5;\n  color: #0a0a0a;\n  border-radius: 14px;\n  padding: 10px 14px;\n  margin-left: auto;\n  max-width: 85%;\n  width: fit-content;\n  display: block;\n  word-wrap: break-word;\n  font-weight: 400;\n}\n.msg-assistant {\n  color: #0a0a0a;\n}\n.msg-assistant p {\n  margin: 8px 0;\n  color: #0a0a0a;\n}\n\n/* Video card (clickable tile that opens the lightbox) */\n.video-card {\n  margin: 12px 0 16px;\n  border-radius: 14px;\n  overflow: hidden;\n  background: #0a0a0a;\n  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);\n  border: 1px solid rgba(0, 0, 0, 0.06);\n  padding: 0;\n  width: 100%;\n  text-align: left;\n  font-family: inherit;\n  cursor: pointer;\n  display: block;\n  transition: transform 140ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 140ms;\n}\n.video-card:hover {\n  transform: translateY(-1px);\n  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);\n}\n.video-card:focus-visible {\n  outline: 2px solid var(--brand, #0a0a0a);\n  outline-offset: 2px;\n}\n.video-card-header {\n  background: #fff;\n  padding: 10px 12px;\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  border-bottom: 1px solid #ececec;\n}\n.video-card-header .play-icon {\n  width: 30px;\n  height: 30px;\n  border-radius: 50%;\n  background: var(--brand, #0a0a0a);\n  color: #fff;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex-shrink: 0;\n  transition: transform 140ms;\n}\n.video-card:hover .play-icon {\n  transform: scale(1.08);\n}\n.video-card-header .play-icon svg { width: 14px; height: 14px; margin-left: 2px; }\n.video-card-header .label {\n  font-size: 13px;\n  font-weight: 500;\n  color: #0a0a0a;\n  line-height: 1.35;\n  flex: 1;\n  min-width: 0;\n}\n.video-card-header .duration {\n  font-size: 11px;\n  color: #71717a;\n  font-variant-numeric: tabular-nums;\n  flex-shrink: 0;\n}\n.video-card video {\n  width: 100%;\n  height: 150px;\n  background: #0a0a0a;\n  display: block;\n  object-fit: cover;\n  object-position: center top;\n  pointer-events: none;\n}\n\n/* Lightbox overlay (big video on click) */\n.lightbox {\n  position: fixed;\n  inset: 0;\n  background: rgba(0, 0, 0, 0.88);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 2147483647;\n  animation: lightboxFade 180ms ease-out;\n  padding: 32px;\n}\n@keyframes lightboxFade {\n  from { opacity: 0; }\n  to { opacity: 1; }\n}\n.lightbox-inner {\n  position: relative;\n  width: min(86vw, 1200px);\n  display: flex;\n  flex-direction: column;\n  gap: 14px;\n}\n.lightbox video {\n  width: 100%;\n  aspect-ratio: 16 / 9;\n  background: #000;\n  border-radius: 12px;\n  display: block;\n  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);\n}\n.lightbox-caption {\n  color: #e4e4e7;\n  font-size: 14px;\n  text-align: center;\n  line-height: 1.45;\n}\n.lightbox-close {\n  position: absolute;\n  top: -44px;\n  right: 0;\n  background: rgba(255, 255, 255, 0.10);\n  border: 0;\n  width: 32px;\n  height: 32px;\n  border-radius: 50%;\n  color: #fff;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: background 120ms;\n}\n.lightbox-close:hover { background: rgba(255, 255, 255, 0.22); }\n.lightbox-close svg { width: 16px; height: 16px; }\n\n/* Suggestion chips */\n.suggestions {\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  margin: 8px 0 16px;\n}\n.suggestions button {\n  text-align: left;\n  background: #fff;\n  border: 1px solid #ececec;\n  border-radius: 10px;\n  padding: 10px 12px;\n  font-size: 13px;\n  color: #0a0a0a;\n  cursor: pointer;\n  font-family: inherit;\n  transition: all 120ms;\n  line-height: 1.4;\n}\n.suggestions button:hover {\n  border-color: #d4d4d8;\n  background: #fafafa;\n}\n\n/* Typing */\n.typing {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  padding: 10px 4px;\n  margin: 8px 0;\n  width: fit-content;\n}\n.typing span {\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: #a1a1aa;\n  animation: typingPulse 1.4s infinite ease-in-out;\n}\n.typing span:nth-child(2) { animation-delay: 0.2s; }\n.typing span:nth-child(3) { animation-delay: 0.4s; }\n@keyframes typingPulse {\n  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }\n  30% { transform: translateY(-4px); opacity: 1; }\n}\n\n/* Input row */\n.input-row {\n  border-top: 1px solid #ececec;\n  padding: 12px 14px;\n  background: #fff;\n  flex-shrink: 0;\n  position: relative;\n}\n.input-row input {\n  width: 100%;\n  border: 1px solid #ececec;\n  border-radius: 12px;\n  padding: 12px 48px 12px 14px;\n  font-size: 14px;\n  font-family: inherit;\n  color: #0a0a0a;\n  background: #fff;\n  transition: all 120ms;\n  outline: none;\n}\n.input-row input:focus {\n  border-color: #a1a1aa;\n  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);\n}\n.input-row input::placeholder {\n  color: #a1a1aa;\n}\n.input-row button {\n  position: absolute;\n  right: 22px;\n  top: 50%;\n  transform: translateY(-50%);\n  background: #0a0a0a;\n  color: #fff;\n  border: 0;\n  border-radius: 8px;\n  width: 32px;\n  height: 32px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  transition: all 120ms;\n}\n.input-row button:hover:not(:disabled) {\n  background: #27272a;\n}\n.input-row button:disabled {\n  opacity: 0.35;\n  cursor: not-allowed;\n}\n.input-row button svg { width: 14px; height: 14px; }\n\n/* Error banner */\n.error-banner {\n  background: #fef2f2;\n  color: #991b1b;\n  padding: 10px 14px;\n  font-size: 13px;\n  border-bottom: 1px solid #fee2e2;\n}\n\n/* Mobile */\n@media (max-width: 600px) {\n  .bubble { width: 56px; height: 56px; bottom: 20px; right: 16px; }\n  .panel {\n    bottom: 0;\n    right: 0;\n    width: 100%;\n    height: 100dvh;\n    max-height: 100dvh;\n    border-radius: 0;\n    padding-bottom: env(safe-area-inset-bottom);\n    animation: none;\n  }\n}\n';
 
 // src/chat-state.ts
 var MAX_TURNS = 2;
@@ -115,7 +115,7 @@ function createApi(opts) {
 }
 
 // src/render-parts.ts
-function renderParts(root, parts) {
+function renderParts(root, parts, onPlay) {
   while (root.firstChild) root.removeChild(root.firstChild);
   for (const part of parts) {
     if (part.kind === "text") {
@@ -123,29 +123,46 @@ function renderParts(root, parts) {
       p.textContent = part.text;
       root.appendChild(p);
     } else {
-      root.appendChild(renderVideoPart(part));
+      root.appendChild(renderVideoPart(part, onPlay));
     }
   }
 }
-function renderVideoPart(part) {
-  const wrap = document.createElement("div");
-  wrap.className = "video-wrap";
-  const v = document.createElement("video");
+function formatDuration(ms) {
+  const s = Math.max(0, Math.round(ms / 1e3));
+  const mm = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+function renderVideoPart(part, onPlay) {
+  const card = document.createElement("button");
+  card.className = "video-card";
+  card.type = "button";
+  card.setAttribute("aria-label", `Play clip: ${part.caption}`);
   const startSec = (part.startMs / 1e3).toFixed(3).replace(/\.?0+$/, "");
-  const endSec = (part.endMs / 1e3).toFixed(3).replace(/\.?0+$/, "");
-  v.src = `${part.mp4Url}#t=${startSec},${endSec}`;
-  v.setAttribute("preload", "metadata");
-  v.setAttribute("playsinline", "");
-  v.controls = true;
-  v.addEventListener("timeupdate", () => {
-    if (v.currentTime >= part.endMs / 1e3) v.pause();
-  });
-  wrap.appendChild(v);
-  const caption = document.createElement("small");
-  caption.className = "caption";
-  caption.textContent = part.caption;
-  wrap.appendChild(caption);
-  return wrap;
+  const duration = formatDuration(part.endMs - part.startMs);
+  const header = document.createElement("div");
+  header.className = "video-card-header";
+  const playIcon = document.createElement("span");
+  playIcon.className = "play-icon";
+  playIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = part.caption;
+  const dur = document.createElement("span");
+  dur.className = "duration";
+  dur.textContent = duration;
+  header.appendChild(playIcon);
+  header.appendChild(label);
+  header.appendChild(dur);
+  const thumb = document.createElement("video");
+  thumb.src = `${part.mp4Url}#t=${startSec}`;
+  thumb.setAttribute("preload", "metadata");
+  thumb.setAttribute("playsinline", "");
+  thumb.muted = true;
+  card.addEventListener("click", () => onPlay(part));
+  card.appendChild(header);
+  card.appendChild(thumb);
+  return card;
 }
 
 // src/locales/en.json
@@ -334,6 +351,64 @@ async function mount(opts) {
   let input = null;
   let errorBanner = null;
   let sendBtn = null;
+  let lightbox = null;
+  let lightboxVideo = null;
+  let lightboxCaption = null;
+  let lightboxClipEnd = null;
+  function buildLightbox() {
+    lightbox = document.createElement("div");
+    lightbox.className = "lightbox";
+    lightbox.style.display = "none";
+    lightbox.setAttribute("role", "dialog");
+    lightbox.setAttribute("aria-modal", "true");
+    const inner = document.createElement("div");
+    inner.className = "lightbox-inner";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "lightbox-close";
+    closeBtn.setAttribute("aria-label", strings.close);
+    closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    closeBtn.addEventListener("click", closeLightbox);
+    inner.appendChild(closeBtn);
+    lightboxVideo = document.createElement("video");
+    lightboxVideo.controls = true;
+    lightboxVideo.setAttribute("playsinline", "");
+    lightboxVideo.addEventListener("timeupdate", () => {
+      if (lightboxClipEnd !== null && lightboxVideo.currentTime >= lightboxClipEnd) {
+        lightboxVideo.pause();
+      }
+    });
+    inner.appendChild(lightboxVideo);
+    lightboxCaption = document.createElement("div");
+    lightboxCaption.className = "lightbox-caption";
+    inner.appendChild(lightboxCaption);
+    lightbox.appendChild(inner);
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    shadow.appendChild(lightbox);
+  }
+  function openLightbox(part) {
+    if (!lightbox) buildLightbox();
+    const startSec = part.startMs / 1e3;
+    const endSec = part.endMs / 1e3;
+    lightboxClipEnd = endSec;
+    lightboxVideo.src = `${part.mp4Url}#t=${startSec.toFixed(3)},${endSec.toFixed(3)}`;
+    lightboxCaption.textContent = part.caption;
+    lightbox.style.display = "flex";
+    lightboxVideo.currentTime = startSec;
+    lightboxVideo.play().catch(() => {
+    });
+  }
+  function closeLightbox() {
+    if (!lightbox || !lightboxVideo) return;
+    lightboxVideo.pause();
+    lightbox.style.display = "none";
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightbox && lightbox.style.display !== "none") {
+      closeLightbox();
+    }
+  });
   function buildPanel() {
     panel = document.createElement("div");
     panel.className = "panel";
@@ -343,6 +418,7 @@ async function mount(opts) {
     header.className = "panel-header";
     const title = document.createElement("span");
     title.id = "chat-title";
+    title.className = "title";
     title.textContent = config?.name ?? opts.widgetId;
     panel.setAttribute("aria-labelledby", "chat-title");
     header.appendChild(title);
@@ -367,7 +443,8 @@ async function mount(opts) {
     input.placeholder = strings.inputPlaceholder;
     input.setAttribute("aria-label", strings.inputPlaceholder);
     sendBtn = document.createElement("button");
-    sendBtn.textContent = strings.send;
+    sendBtn.setAttribute("aria-label", strings.send);
+    sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
     inputRow.appendChild(input);
     inputRow.appendChild(sendBtn);
     panel.appendChild(inputRow);
@@ -426,7 +503,7 @@ async function mount(opts) {
         wrap.className = "msg-assistant";
         if (isLast && s.lastResponse) {
           if (s.lastResponse.kind === "answer") {
-            renderParts(wrap, s.lastResponse.parts);
+            renderParts(wrap, s.lastResponse.parts, openLightbox);
           } else {
             const p = document.createElement("p");
             p.textContent = `${strings.noMatchPrefix} ${s.lastResponse.text}`;

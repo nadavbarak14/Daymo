@@ -3,7 +3,7 @@ import { createChatState } from "./chat-state.js";
 import { createApi, ApiError } from "./api.js";
 import { renderParts } from "./render-parts.js";
 import { getStrings, resolveLocale, type SupportedLocale } from "./locale.js";
-import type { ChatResponse, WidgetConfigResp } from "./types.js";
+import type { ChatResponse, VideoPart, WidgetConfigResp } from "./types.js";
 
 export interface MountOpts {
   widgetId: string;
@@ -50,6 +50,74 @@ export async function mount(opts: MountOpts): Promise<void> {
   let errorBanner: HTMLDivElement | null = null;
   let sendBtn: HTMLButtonElement | null = null;
 
+  let lightbox: HTMLDivElement | null = null;
+  let lightboxVideo: HTMLVideoElement | null = null;
+  let lightboxCaption: HTMLDivElement | null = null;
+  let lightboxClipEnd: number | null = null;
+
+  function buildLightbox(): void {
+    lightbox = document.createElement("div");
+    lightbox.className = "lightbox";
+    lightbox.style.display = "none";
+    lightbox.setAttribute("role", "dialog");
+    lightbox.setAttribute("aria-modal", "true");
+
+    const inner = document.createElement("div");
+    inner.className = "lightbox-inner";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "lightbox-close";
+    closeBtn.setAttribute("aria-label", strings.close);
+    closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    closeBtn.addEventListener("click", closeLightbox);
+    inner.appendChild(closeBtn);
+
+    lightboxVideo = document.createElement("video");
+    lightboxVideo.controls = true;
+    lightboxVideo.setAttribute("playsinline", "");
+    lightboxVideo.addEventListener("timeupdate", () => {
+      if (lightboxClipEnd !== null && lightboxVideo!.currentTime >= lightboxClipEnd) {
+        lightboxVideo!.pause();
+      }
+    });
+    inner.appendChild(lightboxVideo);
+
+    lightboxCaption = document.createElement("div");
+    lightboxCaption.className = "lightbox-caption";
+    inner.appendChild(lightboxCaption);
+
+    lightbox.appendChild(inner);
+    lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    shadow.appendChild(lightbox);
+  }
+
+  function openLightbox(part: VideoPart): void {
+    if (!lightbox) buildLightbox();
+    const startSec = part.startMs / 1000;
+    const endSec = part.endMs / 1000;
+    lightboxClipEnd = endSec;
+    lightboxVideo!.src = `${part.mp4Url}#t=${startSec.toFixed(3)},${endSec.toFixed(3)}`;
+    lightboxCaption!.textContent = part.caption;
+    lightbox!.style.display = "flex";
+    lightboxVideo!.currentTime = startSec;
+    lightboxVideo!.play().catch(() => { /* user can press native play */ });
+  }
+
+  function closeLightbox(): void {
+    if (!lightbox || !lightboxVideo) return;
+    lightboxVideo.pause();
+    lightbox.style.display = "none";
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightbox && lightbox.style.display !== "none") {
+      closeLightbox();
+    }
+  });
+
   function buildPanel(): void {
     panel = document.createElement("div");
     panel.className = "panel";
@@ -60,6 +128,7 @@ export async function mount(opts: MountOpts): Promise<void> {
     header.className = "panel-header";
     const title = document.createElement("span");
     title.id = "chat-title";
+    title.className = "title";
     title.textContent = config?.name ?? opts.widgetId;
     panel.setAttribute("aria-labelledby", "chat-title");
     header.appendChild(title);
@@ -87,7 +156,8 @@ export async function mount(opts: MountOpts): Promise<void> {
     input.placeholder = strings.inputPlaceholder;
     input.setAttribute("aria-label", strings.inputPlaceholder);
     sendBtn = document.createElement("button");
-    sendBtn.textContent = strings.send;
+    sendBtn.setAttribute("aria-label", strings.send);
+    sendBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
     inputRow.appendChild(input);
     inputRow.appendChild(sendBtn);
     panel.appendChild(inputRow);
@@ -146,7 +216,7 @@ export async function mount(opts: MountOpts): Promise<void> {
         wrap.className = "msg-assistant";
         if (isLast && s.lastResponse) {
           if (s.lastResponse.kind === "answer") {
-            renderParts(wrap, s.lastResponse.parts);
+            renderParts(wrap, s.lastResponse.parts, openLightbox);
           } else {
             const p = document.createElement("p");
             p.textContent = `${strings.noMatchPrefix} ${s.lastResponse.text}`;
