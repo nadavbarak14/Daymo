@@ -1,0 +1,14 @@
+{
+  "greeting": "Hi! Ask me how to do anything.",
+  "inputPlaceholder": "Type a question…",
+  "send": "Send",
+  "open": "Open product help",
+  "close": "Close",
+  "back": "Back",
+  "suggestedHeader": "Try:",
+  "rateLimitMessage": "Too many questions — give me a moment.",
+  "upstreamErrorMessage": "Couldn't reach the assistant. Try again.",
+  "noMatchPrefix": "I don't have that in the demos. Try:",
+  "notConfiguredMessage": "This help widget is not configured.",
+  "caption": "Caption"
+}

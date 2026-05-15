@@ -1,0 +1,14 @@
+{
+  "greeting": "こんにちは！何でも質問してください。",
+  "inputPlaceholder": "質問を入力…",
+  "send": "送信",
+  "open": "ヘルプを開く",
+  "close": "閉じる",
+  "back": "戻る",
+  "suggestedHeader": "例:",
+  "rateLimitMessage": "質問が多すぎます — 少し待ってください。",
+  "upstreamErrorMessage": "アシスタントに接続できませんでした。再試行してください。",
+  "noMatchPrefix": "デモにそれが見つかりません。お試しください:",
+  "notConfiguredMessage": "このヘルプウィジェットは設定されていません。",
+  "caption": "キャプション"
+}

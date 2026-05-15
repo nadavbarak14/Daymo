@@ -16,18 +16,23 @@
   },
   "scripts": {
     "build": "tsc && cd editor-ui && npm install && npm run build",
+    "build:widget": "cd widget && npm install && npm run build",
+    "build:all": "npm run build && npm run build:widget",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.22",
+    "ai": "^4.3.19",
     "cac": "^6.7.14",
     "chokidar": "^4.0.3",
     "execa": "^9.5.2",
     "gray-matter": "^4.0.3",
     "msedge-tts": "^2.0.5",
     "playwright": "^1.49.1",
-    "yaml": "^2.8.4"
+    "yaml": "^2.8.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/jsdom": "^28.0.1",

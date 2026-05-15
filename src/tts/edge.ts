@@ -1,6 +1,7 @@
 // src/tts/edge.ts
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import type { TtsProvider, SynthesizeInput, SynthesizeOutput, WordTiming } from "./provider.js";
+import { alignTimingsToAudio } from "./post-process.js";
 
 interface BoundaryEvent {
   Metadata?: Array<{
@@ -27,6 +28,10 @@ function ssmlRateToDecimal(rate: string): number {
 
 export class EdgeTtsProvider implements TtsProvider {
   readonly id = "edge";
+  // cacheVersion bumped to 2 when alignTimingsToAudio was added — Edge TTS
+  // reports first-word WordBoundary ~100ms ahead of audible onset, so we now
+  // shift timings to match the audio. Old v1 cache entries become orphans.
+  readonly cacheVersion = 2;
 
   async synthesize(input: SynthesizeInput): Promise<SynthesizeOutput> {
     const tts = new MsEdgeTTS();
@@ -68,7 +73,9 @@ export class EdgeTtsProvider implements TtsProvider {
       audioStream.on("error", reject);
     });
 
-    return { audio: Buffer.concat(audioChunks), timings };
+    const rawAudio = Buffer.concat(audioChunks);
+    const aligned = await alignTimingsToAudio(rawAudio, timings);
+    return { audio: aligned.audio, timings: aligned.timings };
   }
 }
 

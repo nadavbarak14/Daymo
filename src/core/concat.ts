@@ -22,6 +22,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
         "-map", "0:v",
         "-map", "[final]",
         "-c:v", "libx264",
+        "-g", "30",
         "-c:a", "aac",
         "-shortest",
         opts.output,
@@ -33,6 +34,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
         "-map", "0:v",
         "-map", "[m]",
         "-c:v", "libx264",
+        "-g", "30",
         "-c:a", "aac",
         "-shortest",
         opts.output,
@@ -45,6 +47,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
       "-map", "0:v",
       "-map", "0:a?",
       "-c:v", "libx264",
+      "-g", "30",
       "-c:a", "aac",
       opts.output,
     );

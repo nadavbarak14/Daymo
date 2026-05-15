@@ -1,0 +1,14 @@
+{
+  "greeting": "你好！请问如何操作？",
+  "inputPlaceholder": "输入问题…",
+  "send": "发送",
+  "open": "打开产品帮助",
+  "close": "关闭",
+  "back": "返回",
+  "suggestedHeader": "试试：",
+  "rateLimitMessage": "问题太多 — 请稍候。",
+  "upstreamErrorMessage": "无法连接到助手。请重试。",
+  "noMatchPrefix": "演示中没有相关内容。试试：",
+  "notConfiguredMessage": "此帮助小部件未配置。",
+  "caption": "字幕"
+}

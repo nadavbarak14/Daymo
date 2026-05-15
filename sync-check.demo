@@ -1,0 +1,27 @@
+---
+title: Karaoke sync check
+description: Renders short narration so audio + subtitle word sync can be eyeballed.
+url: http://localhost:8765/
+viewport: { width: 1280, height: 720 }
+mocks:
+  - source: inline
+    routes:
+      "GET /api/me": { "name": "Sync Tester" }
+      "GET /api/projects": []
+---
+
+# Hello, world
+
+```playwright
+await fx.say("Hello, world. The quick brown fox jumps over the lazy dog.");
+await fx.pause(4.5);
+```
+
+---
+
+# Pauses and punctuation
+
+```playwright
+await fx.say("First clause. Second clause, with a comma. And, finally, the end.");
+await fx.pause(5);
+```

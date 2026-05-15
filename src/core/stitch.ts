@@ -16,6 +16,11 @@ export interface SceneInput {
   recordingOffsetMs?: number;
 }
 
+export interface StitchResult {
+  outputPath: string;
+  mixedScenePaths: string[];
+}
+
 export interface StitchOpts {
   scenes: SceneInput[];
   music: string | null;
@@ -49,7 +54,7 @@ function runFfmpegWithLines(args: string[], prefix: string, onLine?: (line: stri
   return proc.then(() => undefined);
 }
 
-export async function stitch(opts: StitchOpts): Promise<string> {
+export async function stitch(opts: StitchOpts): Promise<StitchResult> {
   // Per-scene audio mix
   const mixedScenes: string[] = [];
   for (let i = 0; i < opts.scenes.length; i++) {
@@ -112,5 +117,5 @@ export async function stitch(opts: StitchOpts): Promise<string> {
   });
   opts.onLine?.("[final] concatenating scenes + mixing music…");
   await runFfmpegWithLines(args, "[final]", opts.onLine);
-  return opts.output;
+  return { outputPath: opts.output, mixedScenePaths: mixedScenes };
 }

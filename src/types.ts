@@ -149,3 +149,97 @@ export interface ArtifactPaths {
   events: string;         // events.json
   output: string;         // output.mp4
 }
+
+/** One entry per scene in the stitched output.mp4. globalEndMs is exclusive. */
+export interface SceneIndexEntry {
+  sceneIndex: number;
+  globalStartMs: number;
+  globalEndMs: number;
+  recordingOffsetMs: number;
+}
+
+/** One entry per step (including implicit preamble at stepIndex=0). */
+export interface StepIndexEntry {
+  stepId: string;
+  sceneIndex: number;
+  stepIndex: number;
+  description: string;
+  globalStartMs: number;
+  globalEndMs: number;
+}
+
+export interface StepIndex {
+  demoId: string;
+  mp4DurationMs: number;
+  scenes: SceneIndexEntry[];
+  steps: StepIndexEntry[];
+}
+
+export interface SceneForStepIndex {
+  sceneIndex: number;
+  recordingOffsetMs: number;
+  trimmedDurationMs: number;
+  events: RunnerEvent[];
+}
+
+export interface IndexedDemo {
+  demoId: string;
+  title: string;
+  description: string;
+  durationMs: number;
+}
+
+export interface IndexedChunk {
+  stepId: string;
+  demoId: string;
+  sceneIndex: number;
+  stepIndex: number;
+  globalStartMs: number;
+  globalEndMs: number;
+  text: string;
+  embedding: number[];
+  keywords: string[];
+}
+
+export interface IndexFile {
+  version: "v1";
+  widgetId: string;
+  embeddingModel: "gemini-embedding-001";
+  embeddingDims: number;
+  createdAt: string;
+  etag: string;
+  demos: IndexedDemo[];
+  chunks: IndexedChunk[];
+}
+
+export interface WidgetConfig {
+  widgetId: string;
+  name: string;
+  brandColor?: string;
+  locale: string;
+  allowedOrigins: string[];
+  suggestedQuestions: string[];
+}
+
+export interface ChatRequest {
+  widgetId: string;
+  message: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  locale?: string;
+}
+
+export type TextPart = { kind: "text"; text: string };
+export type VideoPart = {
+  kind: "video";
+  stepId: string;
+  demoId: string;
+  startMs: number;
+  endMs: number;
+  caption: string;
+  mp4Url: string;
+};
+export type Part = TextPart | VideoPart;
+
+export type ChatResponse =
+  | { kind: "answer"; parts: Part[] }
+  | { kind: "no_match"; text: string; suggestions?: string[] };

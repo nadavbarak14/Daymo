@@ -18,5 +18,10 @@ editor-ui/tailwind.config.js
 .daymo/
 # Rendered demo outputs
 /output.mp4
+/captions.vtt
+# Per-tour bundle workspace (capture + stitch scratch dir)
+/demo-bundle/
+# Chat server runtime data (cached widget index + served media)
+/.daymo-chat-data/
 # Music files (BYO)
 /tour-music.mp3

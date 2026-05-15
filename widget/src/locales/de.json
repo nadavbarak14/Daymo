@@ -1,0 +1,14 @@
+{
+  "greeting": "Hi! Frag mich, wie man etwas macht.",
+  "inputPlaceholder": "Stelle eine Frage…",
+  "send": "Senden",
+  "open": "Produkthilfe öffnen",
+  "close": "Schließen",
+  "back": "Zurück",
+  "suggestedHeader": "Versuche:",
+  "rateLimitMessage": "Zu viele Fragen — gib mir einen Moment.",
+  "upstreamErrorMessage": "Konnte den Assistenten nicht erreichen. Versuche es erneut.",
+  "noMatchPrefix": "Ich habe das nicht in den Demos. Versuche:",
+  "notConfiguredMessage": "Dieses Hilfe-Widget ist nicht konfiguriert.",
+  "caption": "Untertitel"
+}

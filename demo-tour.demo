@@ -3,7 +3,6 @@ title: Loomly Tour
 description: A walkthrough of the Loomly dashboard, captured per scene by the visual editor.
 url: http://localhost:8765/
 viewport: { width: 1280, height: 720 }
-music: tour-music.mp3
 mocks:
   - source: inline
     routes:
@@ -18,11 +17,12 @@ mocks:
 
 
 ```playwright
+await fx.step("Land on the dashboard");
 await fx.say("This is your Loomly dashboard — a snapshot of every project in flight.");
 await page.waitForSelector("h1:has-text('Projects')");
 await page.waitForSelector("[data-testid='project-row']");
 await fx.pause(0.6);
-await fx.highlight(".stats", 1.6);
+await fx.highlight(".stats", "the stats row", { duration: 1.6 });
 await fx.pause(2);
 ```
 
@@ -39,11 +39,12 @@ duration: 2.5s
 
 
 ```playwright
+await fx.step("Scan the project list");
 await fx.say("Each row shows the brief, owner, status, and the next deadline.");
 await page.waitForSelector("[data-testid='project-row']");
 await fx.pause(0.4);
-await fx.cursorTo("[data-testid='project-row']:nth-child(2)");
-await fx.highlight("[data-testid='project-row']:nth-child(2)", 1.6);
+await fx.cursorTo("[data-testid='project-row']:nth-child(2)", "the second project row");
+await fx.highlight("[data-testid='project-row']:nth-child(2)", "the at-risk project row", { duration: 1.6 });
 await fx.pause(2);
 ```
 
@@ -60,11 +61,12 @@ duration: 2.5s
 
 
 ```playwright
-await fx.say("Click **+ New project** to start a fresh one.");
+await fx.step("Open the new-project dialog");
+await fx.say("Click + New project to start a fresh one.");
 await page.waitForSelector("[data-testid='new-project-btn']");
 await fx.pause(0.5);
-await fx.cursorTo("[data-testid='new-project-btn']");
-await fx.highlight("[data-testid='new-project-btn']", 1);
+await fx.cursorTo("[data-testid='new-project-btn']", "the new-project button");
+await fx.highlight("[data-testid='new-project-btn']", "the new-project button", { duration: 1 });
 await page.click("[data-testid='new-project-btn']");
 await page.waitForSelector("[data-testid='new-project-dialog'][open]");
 await fx.pause(1);
@@ -72,24 +74,28 @@ await fx.pause(1);
 
 ---
 
-# Fill it in and create
+# Fill in and create a project
 
 
 ```playwright
-await fx.say("Type a name and a brief, then hit Create. The new row appears at the top.");
+await fx.step("Type the project name");
 await page.click("[data-testid='new-project-btn']");
 await page.waitForSelector("[data-testid='new-project-dialog'][open]");
-await fx.cursorTo("[data-testid='project-name-input']");
+await fx.cursorTo("[data-testid='project-name-input']", "the name input");
+await fx.say("Type a name and a brief, then hit Create.");
 await fx.typeWithDelay("[data-testid='project-name-input']", "Holiday landing page", 22);
 await fx.pause(0.3);
-await fx.cursorTo("[data-testid='project-desc-input']");
+await fx.step("Type the description");
+await fx.cursorTo("[data-testid='project-desc-input']", "the description input");
 await fx.typeWithDelay("[data-testid='project-desc-input']", "Festive variant for the homepage hero", 22);
 await fx.pause(0.4);
-await fx.cursorTo("[data-testid='create-btn']");
+await fx.step("Submit the form");
+await fx.cursorTo("[data-testid='create-btn']", "the Create button");
+await fx.say("The new row appears at the top.");
 await fx.pause(0.3);
 await page.click("[data-testid='create-btn']");
 await fx.pause(0.6);
-await fx.highlight("[data-testid='project-row']:first-child", 1.6);
+await fx.highlight("[data-testid='project-row']:first-child", "the newly-added project row", { duration: 1.6 });
 await fx.pause(1.5);
 ```
 

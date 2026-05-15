@@ -1,0 +1,8 @@
+[
+  { "q": "How do I create a new project?", "expectedStepId": "tour:2:0" },
+  { "q": "How do I see project status?", "expectedStepId": "tour:1:0" },
+  { "q": "How do I fill in a project name?", "expectedStepId": "tour:3:0" },
+  { "q": "How do I delete a project?", "expected": "no_match" },
+  { "q": "How do I export data?", "expected": "no_match" },
+  { "q": "¿Cómo creo un nuevo proyecto?", "expectedStepId": "tour:2:0" }
+]

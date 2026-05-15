@@ -18,5 +18,10 @@ export interface SynthesizeOutput {
 
 export interface TtsProvider {
   readonly id: string;    // e.g. "edge"
+  /** Bumped when the synthesis pipeline changes in a way that should
+   *  invalidate cached outputs (e.g. post-processing added, voice swapped).
+   *  Folded into the cache key by CachedTtsProvider. Defaults to 1 when
+   *  unset — older providers stay backward-compatible. */
+  readonly cacheVersion?: number;
   synthesize(input: SynthesizeInput): Promise<SynthesizeOutput>;
 }
