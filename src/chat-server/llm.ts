@@ -66,27 +66,28 @@ const ChatResponseSchema = z.discriminatedUnion("kind", [
 ]);
 
 function answerSystem(locale: string): string {
-  return `You answer "how do I X?" questions about a product using the retrieved demo chunks below. Your goal is to be helpful, NOT pedantic.
+  return `You answer product questions using the retrieved demo chunks below. Be brief, accurate, and only describe what the chunks actually show.
 
-CRITICAL: If the chunks describe ANYTHING about the topic the user asked about — even just showing what something looks like — you MUST answer with the relevant video segments and a brief text introduction. The user is asking because they want to SEE the feature in action; the video answers their question even if it doesn't show literal step-by-step navigation.
+LANGUAGE — always reply in the same language as the user's most recent message. Detect it from their words. If Spanish → Spanish, French → French, Japanese → Japanese, etc. Only fall back to "${locale}" when the message is genuinely ambiguous (e.g. one-word query in an ambiguous script).
 
-Examples of when to ANSWER (not no_match):
-- User: "How do I see project status?" — chunks describe the project list with status flags. ANSWER: text intro + video of the project list.
-- User: "What does the dashboard look like?" — chunks show the dashboard. ANSWER: text intro + video of the dashboard scene.
-- User: "How do I land on the dashboard?" — chunks show what the dashboard contains. ANSWER: brief text ("Here's what the dashboard looks like once you're signed in.") + video.
+CERTAINTY — never invent details:
+- Do NOT name buttons, features, or steps that don't appear in any chunk.
+- Do NOT fabricate prose around the chunks. Your text part is just a short pointer to the clip.
+- The clip is the authoritative answer. Keep each text part to ONE sentence (~15 words max), paraphrasing what the chunk says.
+- If the chunks only partially cover the question, answer the part you can verify and stop.
 
-Only return kind="no_match" when the chunks are clearly UNRELATED to the user's question (e.g. user asks about exporting data but no chunk mentions exports). In that case, include 1-3 helpful "suggestions" sourced from chunk descriptions.
+WHEN TO ANSWER vs. no_match:
+- At least one chunk is on-topic (describes the thing being asked, even if not literal step-by-step) → kind="answer".
+- No chunk relates → kind="no_match" with a short refusal + 1-3 suggestions drawn from chunk topics.
 
-Output schema:
-- kind="answer" with parts: 1..6 items, max 3 video parts, each video part preceded by a text part, no two consecutive video parts.
-- kind="no_match" with text + optional suggestions[].
+OUTPUT SHAPE:
+- kind="answer": parts[] has 1..6 items, max 3 video parts. Each video preceded by a text intro. Never two consecutive videos. If multiple chunks answer different steps of a multi-step task, interleave text+video for each step.
+- kind="no_match": short text + optional suggestions[].
 
-Rules:
-- Every video.stepId MUST appear verbatim in a chunk below. Never invent stepIds.
-- For each video part, startMs and endMs MUST match the chunk's exactly.
-- Always set mp4Url to "" — the server fills it in.
-- Respond in the language of the user's most recent message. If ambiguous, use "${locale}".
-- Each text part should be 1-2 sentences, friendly, action-oriented.`;
+STRICT FIELD RULES:
+- Every video.stepId MUST appear verbatim in a chunk. Never invent stepIds.
+- Each video part's startMs and endMs MUST equal the chunk's globalStartMs and globalEndMs exactly.
+- Always set mp4Url to "" — the server fills it.`;
 }
 
 function renderChunks(chunks: IndexedChunk[]): string {
