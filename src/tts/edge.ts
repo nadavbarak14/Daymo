@@ -1,6 +1,7 @@
 // src/tts/edge.ts
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import type { TtsProvider, SynthesizeInput, SynthesizeOutput, WordTiming } from "./provider.js";
+import { alignTimingsToAudio } from "./post-process.js";
 
 interface BoundaryEvent {
   Metadata?: Array<{
@@ -26,7 +27,11 @@ function ssmlRateToDecimal(rate: string): number {
 }
 
 export class EdgeTtsProvider implements TtsProvider {
-  readonly id = "edge";
+  // "edge-v2" — bumped from "edge" when leading-silence trim was added.
+  // Edge TTS reports the first word's WordBoundary offset ~100ms ahead of the
+  // actual audible phoneme onset, so we trim the silence and shift timings.
+  // Cache key includes providerId, so v1 entries become orphans automatically.
+  readonly id = "edge-v2";
 
   async synthesize(input: SynthesizeInput): Promise<SynthesizeOutput> {
     const tts = new MsEdgeTTS();
@@ -68,7 +73,9 @@ export class EdgeTtsProvider implements TtsProvider {
       audioStream.on("error", reject);
     });
 
-    return { audio: Buffer.concat(audioChunks), timings };
+    const rawAudio = Buffer.concat(audioChunks);
+    const aligned = await alignTimingsToAudio(rawAudio, timings);
+    return { audio: aligned.audio, timings: aligned.timings };
   }
 }
 
