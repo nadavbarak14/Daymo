@@ -27,11 +27,11 @@ function ssmlRateToDecimal(rate: string): number {
 }
 
 export class EdgeTtsProvider implements TtsProvider {
-  // "edge-v2" — bumped from "edge" when leading-silence trim was added.
-  // Edge TTS reports the first word's WordBoundary offset ~100ms ahead of the
-  // actual audible phoneme onset, so we trim the silence and shift timings.
-  // Cache key includes providerId, so v1 entries become orphans automatically.
-  readonly id = "edge-v2";
+  readonly id = "edge";
+  // cacheVersion bumped to 2 when alignTimingsToAudio was added — Edge TTS
+  // reports first-word WordBoundary ~100ms ahead of audible onset, so we now
+  // shift timings to match the audio. Old v1 cache entries become orphans.
+  readonly cacheVersion = 2;
 
   async synthesize(input: SynthesizeInput): Promise<SynthesizeOutput> {
     const tts = new MsEdgeTTS();
