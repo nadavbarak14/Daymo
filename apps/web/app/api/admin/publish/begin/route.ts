@@ -26,6 +26,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return await generateClientTokenFromReadWriteToken({
       token: blobToken,
       pathname: `companies/${body.companyId}/${relPath}`,
+      addRandomSuffix: false,
       validUntil: Date.now() + 60 * 60 * 1000,
     });
   }

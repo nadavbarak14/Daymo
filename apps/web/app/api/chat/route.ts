@@ -22,7 +22,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!config) return NextResponse.json({ error: "unknown_company" }, { status: 404 });
 
   const origin = req.headers.get("origin") ?? "";
-  const isHostedManual = origin === `https://${req.headers.get("host")}` || origin === process.env.DAYMO_HOSTED_ORIGIN;
+  const proto = req.headers.get("x-forwarded-proto") ?? "http";
+  const host = req.headers.get("host");
+  const isHostedManual =
+    (host ? `${proto}://${host}` === origin : false) ||
+    origin === process.env.DAYMO_HOSTED_ORIGIN;
   if (!isHostedManual && !config.allowedOrigins.includes(origin)) {
     return NextResponse.json({ error: "origin_not_allowed" }, { status: 403 });
   }
@@ -40,9 +44,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       request: body, index, gemini,
       mp4UrlFor: (demoId) => mp4Url(body.companyId, demoId),
     });
-    const headers: Record<string, string> = {};
-    if (isHostedManual) headers["Access-Control-Allow-Origin"] = origin;
-    else headers["Access-Control-Allow-Origin"] = origin;
+    const headers: Record<string, string> = {
+      "Access-Control-Allow-Origin": origin,
+      "Vary": "Origin",
+    };
     return NextResponse.json(response, { headers });
   } catch (e) {
     console.error("chat error", e);
@@ -59,6 +64,7 @@ export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "content-type",
       "Access-Control-Max-Age": "86400",
+      "Vary": "Origin",
     },
   });
 }
