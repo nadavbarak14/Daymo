@@ -25,7 +25,7 @@ describe("buildStitchArgs", () => {
     expect(a).toEqual([
       "-y","-f","concat","-safe","0","-i","/tmp/list.txt",
       "-map","0:v","-map","0:a?",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "/o.mp4",
     ]);
   });
@@ -36,7 +36,7 @@ describe("buildStitchArgs", () => {
       "-i","/m.mp3",
       "-filter_complex","[1:a]volume=0.4[m]",
       "-map","0:v","-map","[m]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
@@ -55,7 +55,7 @@ describe("buildStitchArgs", () => {
       "-filter_complex",
       "[1:a]volume=0.4[bg];[bg][0:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[ducked][0:a]amix=inputs=2:duration=first[final]",
       "-map","0:v","-map","[final]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
@@ -68,7 +68,7 @@ describe("buildStitchArgs", () => {
       "-i","/m.mp3",
       "-filter_complex","[1:a]volume=0.4[m]",
       "-map","0:v","-map","[m]",
-      "-c:v","libx264","-c:a","aac",
+      "-c:v","libx264","-g","30","-c:a","aac",
       "-shortest",
       "/o.mp4",
     ]);
