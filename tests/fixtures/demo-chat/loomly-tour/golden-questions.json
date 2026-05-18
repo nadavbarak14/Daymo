@@ -1,0 +1,5 @@
+[
+  { "q": "How do I create a project?",           "expectedStepIdPrefix": "tour:1" },
+  { "q": "How do I see my dashboard?",           "expectedStepIdPrefix": "tour:0" },
+  { "q": "How do I delete my account permanently?", "expected": "no_match" }
+]

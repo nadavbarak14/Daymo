@@ -245,6 +245,22 @@ Prints `✓ Published Acme Inc to https://daymo.dev/acme/help`.
 The customer also needs to be added to the company's `allowedOrigins` via a
 `--allowed-origin` flag at publish time.
 
+## Testing
+
+Unit and integration tests run with:
+
+```bash
+npm test
+```
+
+### Daymo Chat E2E (requires Gemini key + locally-running Vercel dev server)
+
+```bash
+GEMINI_API_KEY=... DAYMO_ADMIN_TOKEN=... E2E_ENDPOINT=http://localhost:3000 RUN_E2E_CHAT=1 npm test
+```
+
+The E2E suite is skipped by default (`RUN_E2E_CHAT` unset). It runs the full pipeline — render → stitch → publish → `/api/chat` — against a real Gemini API and a locally-running Vercel dev server (`vercel dev`), then asserts golden questions return expected `stepId`s or `no_match`.
+
 ## Tips for AI agents authoring `.demo` files
 
 - Prefer accessible selectors (`getByRole`, `[aria-label=...]`) over brittle `[data-testid=...]` chains when the codebase uses them.

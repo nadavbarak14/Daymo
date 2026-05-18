@@ -1,0 +1,30 @@
+---
+title: Loomly Tour
+description: Walks a new user through the Loomly dashboard.
+url: about:blank
+viewport: { width: 800, height: 600 }
+---
+
+# Welcome
+
+The dashboard greets the user when they first log in.
+
+```playwright
+await fx.step("Welcome the user");
+await fx.say("Welcome back, Alex. This is your project dashboard.");
+await fx.pause(1);
+```
+
+---
+
+# Create a project
+
+```playwright
+await fx.step("Open the new project dialog");
+await fx.say("Click here to start a new project.");
+await fx.pause(1);
+
+await fx.step("Name the project");
+await fx.say("Give it a name and press Submit.");
+await fx.pause(1);
+```
