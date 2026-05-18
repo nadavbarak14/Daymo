@@ -8,6 +8,7 @@ import { captureCommand } from "./commands/capture.js";
 import { stitchCommand } from "./commands/stitch.js";
 import { setProseCommand } from "./commands/set-prose.js";
 import { migrateProseCommand } from "./commands/migrate-prose.js";
+import { publishCommand } from "./commands/publish.js";
 
 const cli = cac("daymo");
 
@@ -56,6 +57,27 @@ cli.command("set-prose <file>", "Rewrite a scene's prose markdown")
 
 cli.command("migrate-prose <file>", "Wrap each scene's prose into fx.say() and remove from markdown body")
   .action((file: string) => migrateProseCommand(file));
+
+cli.command("publish <input>", "Build an index for one or more .demo files and upload to a Daymo backend")
+  .option("--company <id>", "Company identifier (kebab-case)")
+  .option("--name <name>", "Display name shown in the manual header")
+  .option("--brand-color <hex>", "Brand color for the header rule")
+  .option("--locale <bcp47>", "Default locale", { default: "en" })
+  .option("--allowed-origin <origin>", "Allowed origin for widget requests (repeatable)")
+  .option("--endpoint <url>", "Daymo backend endpoint", { default: "https://daymo.dev" })
+  .option("--token <token>", "Admin token (else DAYMO_ADMIN_TOKEN env)")
+  .action((input: string, flags: any) => {
+    if (!flags.company) throw new Error("--company is required");
+    return publishCommand(input, {
+      company: flags.company,
+      name: flags.name,
+      brandColor: flags.brandColor,
+      locale: flags.locale,
+      allowedOrigin: flags.allowedOrigin ? (Array.isArray(flags.allowedOrigin) ? flags.allowedOrigin : [flags.allowedOrigin]) : undefined,
+      endpoint: flags.endpoint,
+      token: flags.token,
+    });
+  });
 
 cli.help();
 cli.version("0.1.0");
