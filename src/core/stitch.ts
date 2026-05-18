@@ -14,7 +14,9 @@ async function ffprobeDurationMs(filePath: string): Promise<number> {
     "-of", "csv=p=0",
     filePath,
   ]);
-  return Math.round(parseFloat(stdout.trim()) * 1000);
+  const ms = Math.round(parseFloat(stdout.trim()) * 1000);
+  if (!Number.isFinite(ms)) throw new Error(`ffprobe returned non-numeric duration for ${filePath}: ${JSON.stringify(stdout)}`);
+  return ms;
 }
 
 export interface SceneInput {
