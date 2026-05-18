@@ -6,6 +6,17 @@ import { buildConcatList, buildStitchArgs } from "./concat.js";
 import { buildSceneAudioArgs, type SayEvent } from "./scene-audio.js";
 import { buildAss } from "./subtitles.js";
 
+/** ffprobe the duration of a media file; returns milliseconds. */
+async function ffprobeDurationMs(filePath: string): Promise<number> {
+  const { stdout } = await execa("ffprobe", [
+    "-v", "error",
+    "-show_entries", "format=duration",
+    "-of", "csv=p=0",
+    filePath,
+  ]);
+  return Math.round(parseFloat(stdout.trim()) * 1000);
+}
+
 export interface SceneInput {
   webm: string;
   sayEvents: SayEvent[];   // [] if scene has no narration
@@ -14,6 +25,11 @@ export interface SceneInput {
    *  `t=0`. Audio adelay + subtitle Dialogue use events-time, so the webm
    *  must be trimmed by this offset for them to align. */
   recordingOffsetMs?: number;
+}
+
+export interface StitchResult {
+  outputPath: string;
+  scenes: Array<{ trimmedDurationMs: number; recordingOffsetMs: number }>;
 }
 
 export interface StitchOpts {
@@ -49,14 +65,17 @@ function runFfmpegWithLines(args: string[], prefix: string, onLine?: (line: stri
   return proc.then(() => undefined);
 }
 
-export async function stitch(opts: StitchOpts): Promise<string> {
+export async function stitch(opts: StitchOpts): Promise<StitchResult> {
   // Per-scene audio mix
   const mixedScenes: string[] = [];
+  // Track recordingOffsetMs per scene so we can include it in the result
+  const recordingOffsets: number[] = [];
   for (let i = 0; i < opts.scenes.length; i++) {
     const sc = opts.scenes[i];
     const trimMs = sc.recordingOffsetMs ?? 0;
     const sceneTag = `[scene ${i + 1}/${opts.scenes.length}]`;
     const tag = String(i + 1).padStart(3, "0");
+    recordingOffsets.push(trimMs);
     if (sc.sayEvents.length === 0) {
       // No narration: if we still need to trim the page-load prefix, run a
       // copy-mode ffmpeg pass; otherwise pass through.
@@ -112,5 +131,18 @@ export async function stitch(opts: StitchOpts): Promise<string> {
   });
   opts.onLine?.("[final] concatenating scenes + mixing music…");
   await runFfmpegWithLines(args, "[final]", opts.onLine);
-  return opts.output;
+
+  // ffprobe each mixed/trimmed scene webm to get its actual duration.
+  // By the time we reach here, every entry in mixedScenes already has the
+  // recordingOffset removed (either by the -ss trim pass or by ffmpeg's
+  // videoStartOffsetMs inside buildSceneAudioArgs), so the probed duration
+  // is the trimmed duration directly.
+  const sceneResults = await Promise.all(
+    mixedScenes.map(async (scenePath, i) => ({
+      trimmedDurationMs: await ffprobeDurationMs(scenePath),
+      recordingOffsetMs: recordingOffsets[i],
+    })),
+  );
+
+  return { outputPath: opts.output, scenes: sceneResults };
 }

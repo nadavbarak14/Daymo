@@ -22,6 +22,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
         "-map", "0:v",
         "-map", "[final]",
         "-c:v", "libx264",
+        "-g", "30",
         "-c:a", "aac",
         "-shortest",
         opts.output,
@@ -33,6 +34,7 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
         "-map", "0:v",
         "-map", "[m]",
         "-c:v", "libx264",
+        "-g", "30",
         "-c:a", "aac",
         "-shortest",
         opts.output,
@@ -41,10 +43,13 @@ export function buildStitchArgs(opts: BuildStitchArgsOpts): string[] {
   } else {
     // No bg music: passthrough scene audio (if any) and re-encode video to h264.
     // Use ? on the audio map so concat without audio streams still works.
+    // -g 30 sets GOP size to 30 frames (≈0.5s at 60fps) so video.currentTime
+    // seeks land within 500ms of the requested position (spec requirement).
     argv.push(
       "-map", "0:v",
       "-map", "0:a?",
       "-c:v", "libx264",
+      "-g", "30",
       "-c:a", "aac",
       opts.output,
     );

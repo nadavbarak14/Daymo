@@ -206,7 +206,7 @@ export async function startEditor(opts: StartEditorOpts): Promise<EditorHandle> 
     const out = path.join(baseDir, "output.mp4");
     sse.publish({ type: "stitch-start", sceneCount: scenes.length });
     try {
-      await stitch({
+      const { outputPath: _out } = await stitch({
         scenes,
         music,
         output: out,
