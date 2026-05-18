@@ -2,6 +2,12 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 export default defineConfig({
+  // Use the React automatic JSX runtime so that .tsx files imported in tests
+  // (e.g. the HelpPage server component) don't need `import React from "react"`.
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   resolve: {
     // Allow tests that import from apps/web/... to resolve next/server and
     // other Next.js / Vercel packages that live in apps/web/node_modules.
