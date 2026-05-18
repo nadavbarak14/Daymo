@@ -37,6 +37,8 @@ daymo stitch <file>                              Compose all captured scenes int
 daymo state <file> [--json]                      Show scene status table (or JSON)
 daymo set-prose <file> --scene N --text "…"      Rewrite a scene's prose markdown
 daymo migrate-prose <file>                       Wrap existing prose into fx.say() calls
+
+daymo publish <input> --company <id>             Build an index and upload to a Daymo backend
 ```
 
 Outputs land in `./artifacts/<id>/` for `daymo render`, or in `<demo-dir>/output.mp4` for `daymo stitch`. The state directory `<demo-dir>/.daymo/` holds per-scene captures (`captures/`), state (`state.json`), and the TTS audio cache (`tts/`).
@@ -207,6 +209,41 @@ await fx.step("Submit");
 await page.click("button[type=submit]");
 ```
 ````
+
+## Hosted manual + widget (Daymo Chat v1)
+
+Once a demo is rendered (and stitched), `daymo publish` uploads it to a Daymo
+backend so users can ask questions and get back interleaved text + video
+answers.
+
+### One-time setup (Daymo team)
+
+- Deploy the Next.js app under `apps/web/` to Vercel.
+- Set env vars: `GEMINI_API_KEY`, `DAYMO_ADMIN_TOKEN`, `BLOB_READ_WRITE_TOKEN`,
+  and the Vercel KV vars.
+
+### Publishing a customer's demos
+
+```bash
+export DAYMO_ADMIN_TOKEN=...
+export GEMINI_API_KEY=...
+
+daymo publish ./customer-demos \
+  --company acme \
+  --name "Acme Inc" \
+  --endpoint https://daymo.dev
+```
+
+Prints `✓ Published Acme Inc to https://daymo.dev/acme/help`.
+
+### Embedding the widget on a customer's site
+
+```html
+<script async src="https://daymo.dev/widget.js" data-company-id="acme"></script>
+```
+
+The customer also needs to be added to the company's `allowedOrigins` via a
+`--allowed-origin` flag at publish time.
 
 ## Tips for AI agents authoring `.demo` files
 
