@@ -18,5 +18,9 @@ editor-ui/tailwind.config.js
 .daymo/
 # Rendered demo outputs
 /output.mp4
+/demo/*.mp4
 # Music files (BYO)
 /tour-music.mp3
+apps/web/node_modules
+apps/web/.next
+apps/web/public/widget.js

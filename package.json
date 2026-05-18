@@ -15,7 +15,7 @@
     "node": ">=20.10"
   },
   "scripts": {
-    "build": "tsc && cd editor-ui && npm install && npm run build",
+    "build": "tsc && cd editor-ui && npm install && npm run build && cd ../apps/web && npm install && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
