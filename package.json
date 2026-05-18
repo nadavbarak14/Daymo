@@ -21,6 +21,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cac": "^6.7.14",
     "chokidar": "^4.0.3",
     "execa": "^9.5.2",
