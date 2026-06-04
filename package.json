@@ -6,6 +6,10 @@
   "bin": {
     "daymo": "./dist/cli.js"
   },
+  "exports": {
+    ".": "./dist/index.js",
+    "./next": "./dist/next/index.js"
+  },
   "files": [
     "dist",
     "README.md",
