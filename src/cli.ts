@@ -10,6 +10,7 @@ import { setProseCommand } from "./commands/set-prose.js";
 import { migrateProseCommand } from "./commands/migrate-prose.js";
 import { indexCommand } from "./commands/index.js";
 import { serveCommand } from "./commands/serve.js";
+import { publishCommand } from "./commands/publish.js";
 
 const cli = cac("daymo");
 
@@ -102,6 +103,22 @@ cli.command("serve", "Run the chat-widget backend HTTP server")
       adminToken: flags.adminToken,
     }),
   );
+
+cli.command("publish", "Upload an indexed widget's manifest, index, and videos to a bucket/dir")
+  .option("--widget-id <id>", "Widget identifier (required)")
+  .option("--out <dir>", "Output directory for the default uploader (required)")
+  .option("--version <v>", "Version tag written into manifest.json", { default: "v1" })
+  .option("--data-root <path>", "Override DAYMO_DATA_ROOT for this run")
+  .action((flags: { widgetId?: string; out?: string; version?: string; dataRoot?: string }) => {
+    if (!flags.widgetId) throw new Error("--widget-id is required");
+    if (!flags.out) throw new Error("--out is required");
+    return publishCommand({
+      widgetId: flags.widgetId,
+      out: flags.out,
+      version: flags.version,
+      dataRoot: flags.dataRoot,
+    });
+  });
 
 cli.help();
 cli.version("0.1.0");

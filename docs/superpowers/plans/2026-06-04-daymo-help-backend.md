@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-04-daymo-self-hosted-help-integration-design.md`
 
+**Execution deviations (2026-06-04):** Tasks 1–3 landed as one commit (adding a required `videoBaseUrl` to `IndexFile` forces `write-index.ts` to change in the same commit, so `src` stays compiling). **Task 7 (legacy `handleChat` refactor) was skipped** — re-pointing the multi-tenant `daymo serve` at the new `videoBaseUrl`-based core conflicts with its dynamic per-serve `baseUrl`, risking the existing server/tests for no feature gain; the legacy handler is left untouched and the new self-hosted path uses the chat-core. The embedder was kept on raw `fetch` (model made configurable only), per Net-new #4. Verification gate is `tsc --noEmit` for `src` (tests are not in the tsc program) plus `vitest`. Pre-existing unrelated failure: `tests/integration/stitch-keyframes.test.ts` (ffmpeg GOP count, environment-dependent).
+
 **Out of scope (separate plans):** `daymo publish` CLI + R2 upload + `manifest.json` (Plan A2); `daymo/react` `<HelpCenter>` + vanilla build (Plan A3); typenote integration + CI render/publish (Plan B).
 
 ---
