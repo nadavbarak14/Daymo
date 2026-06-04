@@ -11,6 +11,7 @@ import { migrateProseCommand } from "./commands/migrate-prose.js";
 import { indexCommand } from "./commands/index.js";
 import { serveCommand } from "./commands/serve.js";
 import { publishCommand } from "./commands/publish.js";
+import { manualCommand } from "./commands/manual.js";
 
 const cli = cac("daymo");
 
@@ -119,6 +120,13 @@ cli.command("publish", "Upload an indexed widget's manifest, index, and videos t
       dataRoot: flags.dataRoot,
     });
   });
+
+cli.command("manual <file>", "Generate manual.md from a .demo file (no browser, no screenshots)")
+  .option("--out <path>", "Custom output path (default: manual.md next to the .demo file)")
+  .option("--stdout", "Print to stdout instead of writing a file")
+  .action((file: string, flags: { out?: string; stdout?: boolean }) =>
+    manualCommand(file, { out: flags.out, stdout: flags.stdout }),
+  );
 
 cli.help();
 cli.version("0.1.0");
