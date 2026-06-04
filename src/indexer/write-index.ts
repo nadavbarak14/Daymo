@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { parse } from "../parser.js";
 import { buildChunks } from "./chunk-builder.js";
 import { extractKeywords } from "./keywords.js";
-import { embedBatch } from "./embedder-gemini.js";
+import { embedBatch, DEFAULT_EMBEDDING_MODEL } from "./embedder-gemini.js";
 import { pickSuggestedQuestions } from "./suggested-questions.js";
 import type { RunnerEvent, StepIndex, IndexFile, IndexedChunk, IndexedDemo, WidgetConfig } from "../types.js";
 
@@ -17,6 +17,8 @@ export interface WriteIndexOpts {
   brandColor?: string;
   dataRoot: string;
   geminiApiKey: string;
+  embeddingModel?: string;
+  videoBaseUrl?: string;
   fetchFn?: typeof fetch;
 }
 
@@ -84,9 +86,10 @@ export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> 
     }
   }
 
+  const embeddingModel = opts.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
   const embeddings = await embedBatch(
     allChunks.map((c) => c.text),
-    { apiKey: opts.geminiApiKey, fetchFn: opts.fetchFn },
+    { apiKey: opts.geminiApiKey, model: embeddingModel, fetchFn: opts.fetchFn },
   );
   for (let i = 0; i < allChunks.length; i++) allChunks[i].embedding = embeddings[i];
 
@@ -97,8 +100,9 @@ export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> 
   const indexFile: IndexFile = {
     version: "v1",
     widgetId: opts.widgetId,
-    embeddingModel: "gemini-embedding-001",
+    embeddingModel,
     embeddingDims,
+    videoBaseUrl: opts.videoBaseUrl ?? "",
     createdAt,
     etag,
     demos,

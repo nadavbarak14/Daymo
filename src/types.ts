@@ -204,8 +204,9 @@ export interface IndexedChunk {
 export interface IndexFile {
   version: "v1";
   widgetId: string;
-  embeddingModel: "gemini-embedding-001";
+  embeddingModel: string;
   embeddingDims: number;
+  videoBaseUrl: string;
   createdAt: string;
   etag: string;
   demos: IndexedDemo[];

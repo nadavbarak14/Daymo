@@ -1,9 +1,10 @@
-const MODEL = "gemini-embedding-001";
+export const DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001";
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const BATCH_SIZE = 100;
 
 export interface EmbedderOpts {
   apiKey: string;
+  model?: string;
   fetchFn?: typeof fetch;
 }
 
@@ -30,13 +31,14 @@ async function postJson<T>(url: string, body: unknown, fetchFn: typeof fetch): P
 
 export async function embedBatch(inputs: string[], opts: EmbedderOpts): Promise<number[][]> {
   const fetchFn = opts.fetchFn ?? fetch;
+  const model = opts.model ?? DEFAULT_EMBEDDING_MODEL;
   const out: number[][] = [];
   for (let i = 0; i < inputs.length; i += BATCH_SIZE) {
     const slice = inputs.slice(i, i + BATCH_SIZE);
-    const url = `${BASE}/${MODEL}:batchEmbedContents?key=${encodeURIComponent(opts.apiKey)}`;
+    const url = `${BASE}/${model}:batchEmbedContents?key=${encodeURIComponent(opts.apiKey)}`;
     const body = {
       requests: slice.map((text) => ({
-        model: `models/${MODEL}`,
+        model: `models/${model}`,
         content: { parts: [{ text }] },
         taskType: "RETRIEVAL_DOCUMENT",
       })),
@@ -52,9 +54,10 @@ export async function embedBatch(inputs: string[], opts: EmbedderOpts): Promise<
 
 export async function embedQuery(text: string, opts: EmbedderOpts): Promise<number[]> {
   const fetchFn = opts.fetchFn ?? fetch;
-  const url = `${BASE}/${MODEL}:embedContent?key=${encodeURIComponent(opts.apiKey)}`;
+  const model = opts.model ?? DEFAULT_EMBEDDING_MODEL;
+  const url = `${BASE}/${model}:embedContent?key=${encodeURIComponent(opts.apiKey)}`;
   const body = {
-    model: `models/${MODEL}`,
+    model: `models/${model}`,
     content: { parts: [{ text }] },
     taskType: "RETRIEVAL_QUERY",
   };

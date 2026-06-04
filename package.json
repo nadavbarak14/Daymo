@@ -6,6 +6,18 @@
   "bin": {
     "daymo": "./dist/cli.js"
   },
+  "exports": {
+    ".": "./dist/index.js",
+    "./next": "./dist/next/index.js",
+    "./react": "./dist/react/index.js",
+    "./help-center": "./dist/help-center/mount.js"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
   "files": [
     "dist",
     "README.md",
@@ -37,8 +49,10 @@
   "devDependencies": {
     "@types/jsdom": "^28.0.1",
     "@types/node": "^22.10.5",
+    "@types/react": "^19.2.16",
     "eventsource": "^4.1.0",
     "jsdom": "^29.1.1",
+    "react": "^19.2.7",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
   },
