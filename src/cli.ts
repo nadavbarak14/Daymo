@@ -68,6 +68,8 @@ cli.command("index <demoDir>", "Build a chat-widget index from a directory of .d
   .option("--allowed-origins <list>", "Comma-separated list of allowed origin URLs")
   .option("--brand-color <hex>", "Optional hex color for the widget bubble")
   .option("--data-root <path>", "Override DAYMO_DATA_ROOT for this run")
+  .option("--video-base-url <url>", "Public URL prefix where rendered videos are hosted (baked into index.json)")
+  .option("--embedding-model <model>", "Embedding model id to use (default: gemini-embedding-001)")
   .action((demoDir: string, flags: {
     widgetId?: string;
     widgetName?: string;
@@ -75,6 +77,8 @@ cli.command("index <demoDir>", "Build a chat-widget index from a directory of .d
     allowedOrigins?: string;
     brandColor?: string;
     dataRoot?: string;
+    videoBaseUrl?: string;
+    embeddingModel?: string;
   }) => {
     if (!flags.widgetId) throw new Error("--widget-id is required");
     return indexCommand(demoDir, {
@@ -84,6 +88,8 @@ cli.command("index <demoDir>", "Build a chat-widget index from a directory of .d
       allowedOrigins: flags.allowedOrigins,
       brandColor: flags.brandColor,
       dataRoot: flags.dataRoot,
+      videoBaseUrl: flags.videoBaseUrl,
+      embeddingModel: flags.embeddingModel,
     });
   });
 

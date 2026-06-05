@@ -9,6 +9,8 @@ export interface IndexCommandOpts {
   allowedOrigins?: string;
   brandColor?: string;
   dataRoot?: string;
+  videoBaseUrl?: string;
+  embeddingModel?: string;
 }
 
 export async function indexCommand(demoDir: string, opts: IndexCommandOpts): Promise<void> {
@@ -33,6 +35,8 @@ export async function indexCommand(demoDir: string, opts: IndexCommandOpts): Pro
     brandColor: opts.brandColor,
     dataRoot,
     geminiApiKey: apiKey,
+    videoBaseUrl: opts.videoBaseUrl,
+    embeddingModel: opts.embeddingModel,
   });
   process.stdout.write(`indexed -> ${path.join(dataRoot, "widgets", opts.widgetId)}\n`);
 }
