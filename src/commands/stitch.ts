@@ -7,6 +7,7 @@ import { stitch, type SceneInput } from "../core/stitch.js";
 import { buildStepIndex } from "../core/step-index.js";
 import { buildWebVtt, type SayEventForVtt } from "../core/captions-vtt.js";
 import { probeDurationMs } from "../core/ffprobe.js";
+import { extractPoster } from "../core/poster.js";
 import type { SayEvent } from "../core/scene-audio.js";
 import type { RunnerEvent, SceneForStepIndex } from "../types.js";
 
@@ -63,6 +64,10 @@ export async function stitchCommand(file: string): Promise<void> {
     musicDuck: ast.frontmatter.tts.music_duck,
     onLine: () => {},
   });
+
+  // Poster frame for the gallery thumbnail (best-effort). The publish manifest
+  // references <videoBaseUrl>/<demoId>/poster.jpg; `daymo index` copies it.
+  await extractPoster(output, path.join(baseDir, "poster.jpg"));
 
   const sceneForStepIndex: SceneForStepIndex[] = [];
   for (let i = 0; i < scenes.length; i++) {

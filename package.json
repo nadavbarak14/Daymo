@@ -10,7 +10,8 @@
     ".": "./dist/index.js",
     "./next": "./dist/next/index.js",
     "./react": "./dist/react/index.js",
-    "./help-center": "./dist/help-center/mount.js"
+    "./help-center": "./dist/help-center/mount.js",
+    "./help-center.css": "./styles/help-center.css"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -20,6 +21,7 @@
   },
   "files": [
     "dist",
+    "styles",
     "README.md",
     "LICENSE"
   ],

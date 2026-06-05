@@ -1,0 +1,175 @@
+/* Default styling for the Daymo help center (the vanilla `mountHelpCenter`
+ * UI and the React <HelpCenter> wrapper). Optional — import it for a usable
+ * baseline, or skip it and target the .daymo-help* classes yourself.
+ *
+ *   import "daymo/help-center.css";
+ */
+
+.daymo-help {
+  --daymo-fg: #18181b;
+  --daymo-muted: #71717a;
+  --daymo-border: #e4e4e7;
+  --daymo-accent: #6355c0;
+  --daymo-bubble: #f4f4f5;
+  color: var(--daymo-fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.daymo-help-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+}
+
+/* --- Gallery --- */
+.daymo-help-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.daymo-help-card {
+  border: 1px solid var(--daymo-border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #fff;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.daymo-help-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.daymo-help-poster,
+.daymo-help-card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #000;
+}
+
+.daymo-help-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.75rem 0.875rem 0.25rem;
+}
+.daymo-help-card p {
+  font-size: 0.875rem;
+  color: var(--daymo-muted);
+  margin: 0 0.875rem 0.5rem;
+}
+.daymo-help-card small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--daymo-muted);
+  margin: 0 0.875rem 0.875rem;
+}
+
+/* --- Chat --- */
+.daymo-help-chat {
+  border: 1px solid var(--daymo-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.daymo-help-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.daymo-help-thread:empty {
+  display: none;
+}
+
+.daymo-help-user,
+.daymo-help-assistant {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 85%;
+}
+.daymo-help-user {
+  align-self: flex-end;
+  background: var(--daymo-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.daymo-help-assistant {
+  align-self: flex-start;
+  background: var(--daymo-bubble);
+  border-bottom-left-radius: 4px;
+}
+
+.daymo-help-thread video {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 10px;
+  background: #000;
+}
+.daymo-help-thread small {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  color: var(--daymo-muted);
+}
+
+.daymo-help-error {
+  align-self: flex-start;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.daymo-help-chip {
+  align-self: flex-start;
+  border: 1px solid var(--daymo-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.daymo-help-chip:hover {
+  border-color: var(--daymo-accent);
+  color: var(--daymo-accent);
+}
+
+.daymo-help-chat form {
+  display: flex;
+  gap: 0.5rem;
+}
+.daymo-help-input {
+  flex: 1;
+  border: 1px solid var(--daymo-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+}
+.daymo-help-input:focus {
+  border-color: var(--daymo-accent);
+  box-shadow: 0 0 0 2px rgba(99, 85, 192, 0.2);
+}
+.daymo-help-chat form button {
+  border: none;
+  background: var(--daymo-accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.daymo-help-chat form button:hover {
+  background: #554aad;
+}
