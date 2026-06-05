@@ -22,11 +22,27 @@ export interface WriteIndexOpts {
   fetchFn?: typeof fetch;
 }
 
+/** Find every `.demo` file under `dir`, recursively. Each demo keeps its own
+ *  `.daymo/` + `output.mp4` in its own folder, so a folder-per-demo layout lets
+ *  one `daymo index <dir>` build a whole widget without demos clobbering each
+ *  other's working state. Top-level `.demo` files (single-demo dirs) still work. */
+async function findDemoFiles(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      if (e.name === ".daymo" || e.name === "node_modules" || e.name.startsWith(".")) continue;
+      out.push(...(await findDemoFiles(full)));
+    } else if (e.isFile() && e.name.endsWith(".demo")) {
+      out.push(full);
+    }
+  }
+  return out.sort();
+}
+
 export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> {
-  const entries = await fs.readdir(opts.demoDir, { withFileTypes: true });
-  const demoFiles = entries
-    .filter((e) => e.isFile() && e.name.endsWith(".demo"))
-    .map((e) => path.join(opts.demoDir, e.name));
+  const demoFiles = await findDemoFiles(opts.demoDir);
   if (demoFiles.length === 0) {
     throw new Error(`no .demo files found in ${opts.demoDir}`);
   }
@@ -34,10 +50,16 @@ export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> 
   const demos: IndexedDemo[] = [];
   const allChunks: IndexedChunk[] = [];
   const allStepDescriptions: string[] = [];
+  // demoId → the demo's own directory, so we can copy its stitched video later.
+  const demoBaseDirs = new Map<string, string>();
 
   for (const demoFile of demoFiles) {
     const demoId = path.basename(demoFile, path.extname(demoFile));
     const baseDir = path.dirname(demoFile);
+    if (demoBaseDirs.has(demoId)) {
+      throw new Error(`duplicate demo id "${demoId}" (${demoBaseDirs.get(demoId)} and ${baseDir}); give each .demo a unique filename`);
+    }
+    demoBaseDirs.set(demoId, baseDir);
     const dotDir = path.join(baseDir, ".daymo");
 
     const demoText = await fs.readFile(demoFile, "utf8");
@@ -122,6 +144,24 @@ export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> 
     suggestedQuestions: pickSuggestedQuestions(allStepDescriptions),
   };
   await fs.writeFile(path.join(widgetDir, "config.json"), JSON.stringify(config, null, 2));
+
+  // Copy each demo's stitched video + captions into the widget dir, where
+  // `daymo publish` reads them (`<widget>/demos/<demoId>/output.{mp4,vtt}`).
+  // `daymo stitch` writes output.mp4 and captions.vtt into the demo's own dir.
+  for (const [demoId, baseDir] of demoBaseDirs) {
+    const destDir = path.join(widgetDir, "demos", demoId);
+    await fs.mkdir(destDir, { recursive: true });
+    try {
+      await fs.copyFile(path.join(baseDir, "output.mp4"), path.join(destDir, "output.mp4"));
+    } catch {
+      // No video rendered yet — publish will report this demo's video missing.
+    }
+    try {
+      await fs.copyFile(path.join(baseDir, "captions.vtt"), path.join(destDir, "output.vtt"));
+    } catch {
+      // Captions are optional.
+    }
+  }
 }
 
 function computeEtag(chunks: IndexedChunk[], demos: IndexedDemo[]): string {
