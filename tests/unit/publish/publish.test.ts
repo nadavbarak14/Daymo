@@ -25,6 +25,7 @@ describe("publish", () => {
     await fs.mkdir(path.join(wdir, "demos", "d"), { recursive: true });
     await fs.writeFile(path.join(wdir, "index.json"), JSON.stringify(index));
     await fs.writeFile(path.join(wdir, "demos", "d", "output.mp4"), Buffer.from("FAKEMP4"));
+    await fs.writeFile(path.join(wdir, "demos", "d", "poster.jpg"), Buffer.from("FAKEJPG"));
 
     const puts: string[] = [];
     const uploader: Uploader = { async put(key) { puts.push(key); } };
@@ -34,6 +35,7 @@ describe("publish", () => {
     expect(puts).toContain("manifest.json");
     expect(puts).toContain("index.json");
     expect(puts).toContain("d/output.mp4");
+    expect(puts).toContain("d/poster.jpg");
     expect(summary.videoCount).toBe(1);
     expect(summary.missingVideos).toEqual([]);
   });

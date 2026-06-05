@@ -100,6 +100,7 @@ await fx.say("Welcome to the dashboard.");
       }));
       await fs.writeFile(path.join(demoDir, "output.mp4"), `MP4:${name}`);
       await fs.writeFile(path.join(demoDir, "captions.vtt"), `WEBVTT ${name}`);
+      await fs.writeFile(path.join(demoDir, "poster.jpg"), `JPG:${name}`);
     }
 
     await scaffold("create-course", "Create a course", "Click new course.");
@@ -138,5 +139,6 @@ await fx.say("Welcome to the dashboard.");
     expect(await fs.readFile(path.join(widget, "create-course/output.mp4"), "utf8")).toBe("MP4:create-course");
     expect(await fs.readFile(path.join(widget, "share-course/output.mp4"), "utf8")).toBe("MP4:share-course");
     expect(await fs.readFile(path.join(widget, "create-course/output.vtt"), "utf8")).toBe("WEBVTT create-course");
+    expect(await fs.readFile(path.join(widget, "create-course/poster.jpg"), "utf8")).toBe("JPG:create-course");
   });
 });

@@ -46,6 +46,12 @@ export async function publish(opts: PublishOpts): Promise<PublishSummary> {
     } catch {
       /* captions are optional */
     }
+    try {
+      const poster = await fs.readFile(path.join(demoDir, "poster.jpg"));
+      await opts.uploader.put(`${demo.demoId}/poster.jpg`, poster, "image/jpeg");
+    } catch {
+      /* poster is optional */
+    }
   }
   log(`published ${videoCount} video(s); manifest + index uploaded`);
   return { videoCount, missingVideos };

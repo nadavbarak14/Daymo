@@ -161,6 +161,11 @@ export async function writeIndexForDemoDir(opts: WriteIndexOpts): Promise<void> 
     } catch {
       // Captions are optional.
     }
+    try {
+      await fs.copyFile(path.join(baseDir, "poster.jpg"), path.join(destDir, "poster.jpg"));
+    } catch {
+      // Poster is optional.
+    }
   }
 }
 
