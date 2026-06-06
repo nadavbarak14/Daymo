@@ -96,7 +96,16 @@ export class Controller {
         const cfg = this.opts.ttsConfig ?? { voice: "en-US-AriaNeural", rate: "+0%" };
         await Promise.all(calls.map(async (c) => {
           const out = await this.opts.ttsProvider!.synthesize({ text: c.text, voice: cfg.voice, rate: cfg.rate });
-          const hash = computeKey({ text: c.text, voice: cfg.voice, rate: cfg.rate, providerId: this.opts.ttsProvider!.id });
+          const hash = computeKey({
+            text: c.text,
+            voice: cfg.voice,
+            rate: cfg.rate,
+            providerId: this.opts.ttsProvider!.id,
+            // Must mirror CachedTtsProvider's key exactly, including the
+            // provider's cacheVersion — otherwise the event hash and the
+            // cached "<key>.mp3" filename diverge and stitch can't find it.
+            cacheVersion: this.opts.ttsProvider!.cacheVersion,
+          });
           const totalMs = out.timings.length ? out.timings[out.timings.length - 1].endMs : 0;
           sayTable[hash] = { durationMs: totalMs, words: out.timings };
           hashByText[c.text] = hash;
