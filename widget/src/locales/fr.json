@@ -10,5 +10,8 @@
   "upstreamErrorMessage": "Impossible de joindre l'assistant. Réessayez.",
   "noMatchPrefix": "Je n'ai pas ça dans les démos. Essayez :",
   "notConfiguredMessage": "Ce widget d'aide n'est pas configuré.",
-  "caption": "Légende"
+  "caption": "Légende",
+  "subtitle": "Assistant d'aide",
+  "greetingSub": "Posez une question et je vous montrerai le moment exact dans une courte démonstration.",
+  "footerNote": "Réponses sous forme de clips — propulsé par"
 }

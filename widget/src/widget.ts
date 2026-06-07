@@ -12,12 +12,14 @@ function init() {
   const baseUrl = script.getAttribute("data-base-url")
     ?? new URL(script.src).origin;
   const locale = script.getAttribute("data-locale") ?? undefined;
+  const theme = script.getAttribute("data-theme") ?? undefined;
+  const manifestUrl = script.getAttribute("data-manifest-url") ?? undefined;
   if (!widgetId) {
     // eslint-disable-next-line no-console
     console.warn("[daymo-widget] data-widget-id is required");
     return;
   }
-  mount({ widgetId, baseUrl, localeOverride: locale ?? undefined }).catch((err) => {
+  mount({ widgetId, baseUrl, localeOverride: locale ?? undefined, theme, manifestUrl }).catch((err) => {
     // eslint-disable-next-line no-console
     console.error("[daymo-widget] mount failed:", err);
   });

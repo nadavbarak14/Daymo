@@ -264,6 +264,77 @@ Stable class names (the restyling surface): `daymo-help` (root),
 `-player`, `-player-top`, `-player-title`, `-player-close`, `-stage`,
 `-steps`, `-step`, `-step-ix`, `-step-lb` (all prefixed `daymo-help`).
 
+## The chat widget template
+
+The embeddable widget (floating bubble → chat panel that answers with video
+clips) ships as a themeable template too: every visual reads from a `--dw-*`
+theme token, so it drops into any site and matches the brand. Install is one
+script tag:
+
+```html
+<script async src="https://your-server.example/widget.js"
+  data-widget-id="acme"
+  data-theme="lume"
+  data-manifest-url="/help/manifest.json"></script>
+```
+
+Script-tag attributes: `data-widget-id` (required), `data-base-url` (API
+origin; defaults to the script's origin), `data-locale`, `data-theme`,
+`data-manifest-url`. The last two can also come from the server via
+`config.json` (`theme`, `manifestUrl`) so the embed snippet never changes.
+
+### Shipped themes
+
+Three themes are built in — same component, different token blocks:
+
+- **`aurelia`** — warm editorial luxury (ivory, serif display, antique gold)
+- **`lume`** — minimal mono (white, grotesk, monochrome)
+- **`onyx`** — dark luxe (charcoal, gold accent)
+
+Omit `data-theme` for the neutral default. Theme font stacks use Cormorant
+Garamond / Hanken Grotesk / Schibsted Grotesk when your page loads them and
+fall back to the system stack — the widget makes no font requests of its own.
+
+### Making it match your brand
+
+- **90% case:** set `brandColor` in the widget's `config.json` — it re-tints
+  the accent and bubble of the default theme.
+- **Everything else:** override tokens from your page CSS. Custom properties
+  inherit through the widget's shadow root, and page rules on the host
+  element beat the built-in token blocks:
+
+  ```css
+  #daymo-widget-root {
+    --dw-accent: #4f46e5;
+    --dw-surface: #ffffff;
+    --dw-ink: #0c0c0d;
+    --dw-radius: 16px;
+    --dw-font: "Inter", sans-serif;
+  }
+  ```
+
+Theme tokens (set any subset): geometry `--dw-panel-w`, `--dw-panel-h`,
+`--dw-bubble-size`, `--dw-edge`, `--dw-radius`, `--dw-radius-sm`,
+`--dw-radius-pill`, `--dw-mark-radius`; type `--dw-font`,
+`--dw-font-display`, `--dw-font-mono`, `--dw-greeting-size`,
+`--dw-title-weight`, `--dw-title-tracking`; color `--dw-surface`,
+`--dw-surface-2`, `--dw-header-bg`, `--dw-ink`, `--dw-muted`, `--dw-border`,
+`--dw-accent`, `--dw-accent-fg`, `--dw-bubble-bg`, `--dw-bubble-fg`,
+`--dw-bubble-border`, `--dw-user-bg`, `--dw-user-fg`, `--dw-online`,
+`--dw-error-bg`, `--dw-error-fg`, `--dw-error-border`; effects `--dw-ring`,
+`--dw-ease`, `--dw-shadow`, `--dw-shadow-bubble`. The rules in
+`widget/src/styles.css` never change between themes — only token values do.
+
+### Sharing videos with the help center
+
+If you also run the help-center page, point the widget at the same published
+manifest (`data-manifest-url` or `manifestUrl` in `config.json` — same value
+as the help center's `manifestUrl` option; relative URLs resolve against the
+host page). `daymo publish` writes `manifest.json` next to the videos, so
+both surfaces read from one place: answer cards get the help page's poster
+thumbnails, and clips play from the exact same `output.mp4` files. Without a
+manifest the widget falls back to the clip URLs the chat backend returns.
+
 ## Tips for AI agents authoring `.demo` files
 
 - Prefer accessible selectors (`getByRole`, `[aria-label=...]`) over brittle `[data-testid=...]` chains when the codebase uses them.

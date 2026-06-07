@@ -10,5 +10,8 @@
   "upstreamErrorMessage": "アシスタントに接続できませんでした。再試行してください。",
   "noMatchPrefix": "デモにそれが見つかりません。お試しください:",
   "notConfiguredMessage": "このヘルプウィジェットは設定されていません。",
-  "caption": "キャプション"
+  "caption": "キャプション",
+  "subtitle": "操作ガイドアシスタント",
+  "greetingSub": "質問すると、短いウォークスルーの該当箇所をピンポイントでご案内します。",
+  "footerNote": "回答はクリップで表示 — 提供:"
 }

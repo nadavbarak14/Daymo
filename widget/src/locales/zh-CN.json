@@ -10,5 +10,8 @@
   "upstreamErrorMessage": "无法连接到助手。请重试。",
   "noMatchPrefix": "演示中没有相关内容。试试：",
   "notConfiguredMessage": "此帮助小部件未配置。",
-  "caption": "字幕"
+  "caption": "字幕",
+  "subtitle": "操作指南助手",
+  "greetingSub": "提出问题，我会带你直达短视频演示中的确切时刻。",
+  "footerNote": "回答以片段形式呈现 — 技术支持："
 }
