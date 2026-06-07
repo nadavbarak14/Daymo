@@ -1,175 +1,1039 @@
-/* Default styling for the Daymo help center (the vanilla `mountHelpCenter`
- * UI and the React <HelpCenter> wrapper). Optional — import it for a usable
- * baseline, or skip it and target the .daymo-help* classes yourself.
- *
- *   import "daymo/help-center.css";
- */
+/* =====================================================================
+   Daymo Help Center — default template stylesheet.
+   Generic, drop-in, responsive. Neutral zinc surfaces + ONE brand color:
+   set --daymo-accent (or HelpCenterOptions.brandColor) and every tint
+   derives from it via color-mix. Import it:
+
+       import "daymo/help-center.css";
+
+   …or copy this file into your project and own it. Markup class names
+   (.daymo-help-*) are a stable API: restyle freely, the behavior in
+   `mountHelpCenter` never depends on these styles.
+
+   NOTE for light brand colors (yellow/lime/pastel): also override
+   --daymo-accent-ink (the text color used ON accent surfaces).
+
+   Fonts: no third-party @import here by design. Geist is used when the
+   host loads it; otherwise the system stack applies.
+   ===================================================================== */
+
+.daymo-help,
+.daymo-help-modal {
+  --daymo-accent: #6355c0;
+  --daymo-accent-ink: #ffffff;
+  --daymo-a-weak: color-mix(in srgb, var(--daymo-accent) 12%, transparent);
+  --daymo-a-weak2: color-mix(in srgb, var(--daymo-accent) 7%, transparent);
+  --daymo-a-line: color-mix(in srgb, var(--daymo-accent) 26%, transparent);
+  --daymo-a-hover: color-mix(in srgb, var(--daymo-accent) 90%, #000);
+
+  --daymo-bg: #ffffff;
+  --daymo-bg-2: #fafafa;
+  --daymo-surface: #ffffff;
+  --daymo-fg: #18181b;
+  --daymo-fg-2: #3f3f46;
+  --daymo-muted: #71717a;
+  --daymo-border: #e7e7ea;
+  --daymo-border-2: #f1f1f3;
+
+  --daymo-r: 14px;
+  --daymo-r-sm: 9px;
+  --daymo-r-lg: 18px;
+  --daymo-shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.05);
+  --daymo-shadow: 0 6px 22px -10px rgba(24, 24, 27, 0.18);
+  --daymo-shadow-lg: 0 24px 70px -24px rgba(24, 24, 27, 0.32);
+  --daymo-maxw: 1080px;
+  --daymo-gap: 18px;
+  --daymo-z-modal: 80;
+  --daymo-z-fab: 60;
+  --daymo-z-appbar: 30;
+
+  --daymo-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --daymo-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+[data-daymo-theme="dark"] .daymo-help,
+[data-daymo-theme="dark"] .daymo-help-modal,
+.daymo-help[data-daymo-theme="dark"],
+.daymo-help-modal[data-daymo-theme="dark"] {
+  --daymo-accent-ink: #0c0c0f;
+  --daymo-bg: #0d0d10;
+  --daymo-bg-2: #121216;
+  --daymo-surface: #17171c;
+  --daymo-fg: #f4f4f5;
+  --daymo-fg-2: #d4d4d8;
+  --daymo-muted: #a1a1aa;
+  --daymo-border: #2a2a31;
+  --daymo-border-2: #202026;
+  --daymo-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --daymo-shadow: 0 8px 26px -10px rgba(0, 0, 0, 0.6);
+  --daymo-shadow-lg: 0 28px 80px -24px rgba(0, 0, 0, 0.8);
+}
 
 .daymo-help {
-  --daymo-fg: #18181b;
-  --daymo-muted: #71717a;
-  --daymo-border: #e4e4e7;
-  --daymo-accent: #6355c0;
-  --daymo-bubble: #f4f4f5;
+  font-family: var(--daymo-font);
+  background: var(--daymo-bg);
   color: var(--daymo-fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  max-width: 1100px;
-  margin: 0 auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
-
-.daymo-help-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 1.25rem;
-}
-
-/* --- Gallery --- */
-.daymo-help-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 2.5rem;
-}
-
-.daymo-help-card {
-  border: 1px solid var(--daymo-border);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  background: #fff;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-.daymo-help-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
-.daymo-help-poster,
-.daymo-help-card video {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  background: #000;
-}
-
-.daymo-help-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0.75rem 0.875rem 0.25rem;
-}
-.daymo-help-card p {
-  font-size: 0.875rem;
-  color: var(--daymo-muted);
-  margin: 0 0.875rem 0.5rem;
-}
-.daymo-help-card small {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--daymo-muted);
-  margin: 0 0.875rem 0.875rem;
-}
-
-/* --- Chat --- */
-.daymo-help-chat {
-  border: 1px solid var(--daymo-border);
-  border-radius: 12px;
-  padding: 1rem;
-  background: #fff;
-}
-
-.daymo-help-thread {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.875rem;
-  max-height: 480px;
-  overflow-y: auto;
-}
-.daymo-help-thread:empty {
-  display: none;
-}
-
-.daymo-help-user,
-.daymo-help-assistant {
+.daymo-help *,
+.daymo-help-modal * {
+  box-sizing: border-box;
   margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  max-width: 85%;
+  padding: 0;
 }
-.daymo-help-user {
-  align-self: flex-end;
-  background: var(--daymo-accent);
-  color: #fff;
-  border-bottom-right-radius: 4px;
+.daymo-help svg,
+.daymo-help-modal svg {
+  display: block;
 }
-.daymo-help-assistant {
-  align-self: flex-start;
-  background: var(--daymo-bubble);
-  border-bottom-left-radius: 4px;
+.daymo-help ::selection {
+  background: var(--daymo-a-weak);
+}
+.daymo-help a {
+  color: inherit;
+}
+.daymo-help button {
+  font: inherit;
+  color: inherit;
 }
 
-.daymo-help-thread video {
-  align-self: flex-start;
-  width: 100%;
-  max-width: 480px;
-  border-radius: 10px;
-  background: #000;
+/* ---------------- appbar ---------------- */
+.daymo-help-appbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--daymo-z-appbar);
+  background: color-mix(in srgb, var(--daymo-bg) 86%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--daymo-border);
 }
-.daymo-help-thread small {
-  align-self: flex-start;
-  font-size: 0.75rem;
+.daymo-help-appbar-in {
+  max-width: var(--daymo-maxw);
+  margin: 0 auto;
+  padding: 13px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.daymo-help-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.daymo-help-mk {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--daymo-accent);
+  color: var(--daymo-accent-ink);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: var(--daymo-shadow-sm);
+  overflow: hidden;
+}
+.daymo-help-mk svg {
+  width: 17px;
+  height: 17px;
+}
+.daymo-help-mk img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.daymo-help-nm {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.daymo-help-nm span {
+  color: var(--daymo-muted);
+  font-weight: 500;
+}
+.daymo-help-spacer {
+  flex: 1;
+}
+.daymo-help-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.daymo-help-nav-link {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--daymo-muted);
+  text-decoration: none;
+  padding: 8px 11px;
+  border-radius: var(--daymo-r-sm);
+  transition: 0.14s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.daymo-help-nav-link:hover {
+  color: var(--daymo-fg);
+  background: var(--daymo-bg-2);
+}
+.daymo-help-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+  font-weight: 540;
+  font-size: 13.5px;
+  line-height: 1;
+  border-radius: var(--daymo-r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+  border: 1px solid var(--daymo-border);
+  background: var(--daymo-surface);
+  color: var(--daymo-fg);
+  padding: 0 14px;
+  height: 36px;
+  text-decoration: none;
+}
+.daymo-help-btn:hover {
+  background: var(--daymo-bg-2);
+}
+.daymo-help-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------------- shell ---------------- */
+.daymo-help-wrap {
+  max-width: var(--daymo-maxw);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------------- hero / ask ---------------- */
+.daymo-help-hero {
+  position: relative;
+  padding: 60px 0 30px;
+  overflow: hidden;
+}
+.daymo-help-hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image: radial-gradient(var(--daymo-a-line) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 72%);
+  mask-image: linear-gradient(180deg, #000, transparent 72%);
+}
+.daymo-help-hero .daymo-help-wrap {
+  position: relative;
+}
+.daymo-help-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--daymo-accent);
+  margin-bottom: 15px;
+}
+.daymo-help-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--daymo-accent);
+}
+.daymo-help-h1 {
+  font-size: clamp(28px, 4.2vw, 42px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  max-width: 14ch;
+}
+.daymo-help-lede {
+  margin-top: 14px;
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--daymo-muted);
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+.daymo-help-ask {
+  margin-top: 26px;
+  max-width: 660px;
+}
+.daymo-help-askbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 16px;
+  background: var(--daymo-surface);
+  border: 1.5px solid var(--daymo-border);
+  border-radius: var(--daymo-r-lg);
+  box-shadow: var(--daymo-shadow);
+  transition: 0.16s;
+}
+.daymo-help-askbar:focus-within {
+  border-color: var(--daymo-accent);
+  box-shadow: var(--daymo-shadow-lg);
+}
+.daymo-help-lead {
+  flex-shrink: 0;
+  color: var(--daymo-accent);
+}
+.daymo-help-lead svg {
+  width: 19px;
+  height: 19px;
+}
+.daymo-help-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: 15.5px;
+  color: var(--daymo-fg);
+  padding: 11px 0;
+}
+.daymo-help-input::placeholder {
   color: var(--daymo-muted);
 }
-
-.daymo-help-error {
-  align-self: flex-start;
-  color: #b91c1c;
-  font-size: 0.85rem;
-}
-
-.daymo-help-chip {
-  align-self: flex-start;
-  border: 1px solid var(--daymo-border);
-  background: #fff;
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
+.daymo-help-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--daymo-accent);
+  color: var(--daymo-accent-ink);
+  font-weight: 560;
+  font-size: 14px;
   cursor: pointer;
+  transition: 0.15s;
+  flex-shrink: 0;
+}
+.daymo-help-send:hover {
+  background: var(--daymo-a-hover);
+}
+.daymo-help-send svg {
+  width: 16px;
+  height: 16px;
+}
+.daymo-help-suggest {
+  margin-top: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.daymo-help-suggest-lbl {
+  font-size: 12.5px;
+  color: var(--daymo-muted);
+}
+.daymo-help-chip {
+  border: 1px solid var(--daymo-border);
+  background: var(--daymo-surface);
+  color: var(--daymo-fg-2);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.14s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .daymo-help-chip:hover {
   border-color: var(--daymo-accent);
   color: var(--daymo-accent);
+  background: var(--daymo-a-weak2);
 }
 
-.daymo-help-chat form {
+/* ---------------- answer thread ---------------- */
+.daymo-help-thread {
+  max-width: 720px;
+  margin: 6px auto 0;
+}
+.daymo-help-thread:empty {
+  display: none;
+}
+.daymo-help-qa + .daymo-help-qa {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--daymo-border-2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .daymo-help-qa {
+    animation: daymo-help-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes daymo-help-rise {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: none;
+  }
+}
+.daymo-help-q-row {
   display: flex;
-  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 13px;
 }
-.daymo-help-input {
-  flex: 1;
-  border: 1px solid var(--daymo-border);
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-  outline: none;
-}
-.daymo-help-input:focus {
-  border-color: var(--daymo-accent);
-  box-shadow: 0 0 0 2px rgba(99, 85, 192, 0.2);
-}
-.daymo-help-chat form button {
-  border: none;
+.daymo-help-q-bubble {
   background: var(--daymo-accent);
-  color: #fff;
-  border-radius: 8px;
-  padding: 0.6rem 1.1rem;
-  font-size: 0.9rem;
+  color: var(--daymo-accent-ink);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 15px;
+  border-radius: 14px 14px 4px 14px;
+  max-width: 82%;
+}
+.daymo-help-a-row {
+  display: flex;
+  gap: 12px;
+}
+.daymo-help-a-av {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--daymo-a-weak);
+  color: var(--daymo-accent);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.daymo-help-a-av svg {
+  width: 17px;
+  height: 17px;
+}
+.daymo-help-a-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.daymo-help-a-body {
+  flex: 1;
+  min-width: 0;
+}
+.daymo-help-a-name {
+  font-size: 12px;
   font-weight: 600;
+  color: var(--daymo-muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.daymo-help-a-tag {
+  font-family: var(--daymo-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--daymo-accent);
+  border: 1px solid var(--daymo-a-line);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.daymo-help-a-text {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--daymo-fg);
+  text-wrap: pretty;
+}
+.daymo-help-a-p + .daymo-help-a-p {
+  margin-top: 8px;
+}
+.daymo-help-a-chips {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.daymo-help-error {
+  color: #b91c1c;
+  font-size: 13.5px;
+}
+
+/* clip citation (ChatResponse VideoPart) */
+.daymo-help-clip {
+  margin-top: 12px;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--daymo-border);
+  border-radius: var(--daymo-r);
+  overflow: hidden;
+  background: var(--daymo-surface);
+  max-width: 440px;
+  width: 100%;
+  cursor: pointer;
+  transition: 0.15s;
+  text-align: left;
+  padding: 0;
+}
+.daymo-help-clip:hover {
+  border-color: var(--daymo-accent);
+  box-shadow: var(--daymo-shadow);
+}
+.daymo-help-clip-thumb {
+  width: 108px;
+  flex-shrink: 0;
+  position: relative;
+  background: var(--daymo-bg-2);
+}
+.daymo-help-clip-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.daymo-help-clip-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--daymo-shadow);
+}
+.daymo-help-clip-play svg {
+  width: 12px;
+  height: 12px;
+  color: var(--daymo-accent);
+  margin-left: 1px;
+}
+.daymo-help-clip-ci {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.daymo-help-clip-cap {
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.3;
+}
+.daymo-help-clip-sub {
+  font-family: var(--daymo-font-mono);
+  font-size: 10.5px;
+  color: var(--daymo-muted);
+}
+.daymo-help-clip-sub b {
+  color: var(--daymo-accent);
+  font-weight: 600;
+}
+.daymo-help-clip-fallback {
+  margin-top: 12px;
+}
+.daymo-help-clip-fallback video {
+  width: 100%;
+  max-width: 440px;
+  border-radius: var(--daymo-r);
+  background: #000;
+  display: block;
+}
+.daymo-help-clip-fallback small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--daymo-muted);
+}
+
+/* typing indicator */
+.daymo-help-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 7px 0;
+}
+.daymo-help-typing i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--daymo-muted);
+  opacity: 0.5;
+  animation: daymo-help-blink 1.2s infinite;
+}
+.daymo-help-typing i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.daymo-help-typing i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes daymo-help-blink {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* ---------------- gallery ---------------- */
+.daymo-help-section {
+  padding: 26px 0 12px;
+}
+.daymo-help-sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.daymo-help-sec-head h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.daymo-help-sec-head p {
+  font-size: 13.5px;
+  color: var(--daymo-muted);
+  margin-top: 3px;
+}
+.daymo-help-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--daymo-gap);
+}
+.daymo-help-card {
+  text-align: left;
+  border: 1px solid var(--daymo-border);
+  background: var(--daymo-surface);
+  border-radius: var(--daymo-r);
+  overflow: hidden;
+  cursor: pointer;
+  transition: 0.18s;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.daymo-help-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--daymo-shadow);
+  border-color: var(--daymo-a-line);
+}
+.daymo-help-poster {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--daymo-bg-2);
+  display: block;
+}
+.daymo-help-poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.daymo-help-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--daymo-shadow);
+  transition: 0.18s;
+}
+.daymo-help-play svg {
+  width: 17px;
+  height: 17px;
+  color: var(--daymo-accent);
+  margin-left: 2px;
+}
+.daymo-help-card:hover .daymo-help-play {
+  transform: translate(-50%, -50%) scale(1.09);
+}
+.daymo-help-dur {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-family: var(--daymo-font-mono);
+  font-size: 10.5px;
+  color: #fff;
+  background: rgba(12, 12, 15, 0.74);
+  padding: 3px 7px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+.daymo-help-card-meta {
+  padding: 13px 15px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.daymo-help-card-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.daymo-help-card-desc {
+  font-size: 12.5px;
+  color: var(--daymo-muted);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.daymo-help-card-foot {
+  margin-top: auto;
+  padding-top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--daymo-muted);
+}
+.daymo-help-card-foot svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------------- footer ---------------- */
+.daymo-help-footer {
+  margin-top: 40px;
+  border-top: 1px solid var(--daymo-border);
+}
+.daymo-help-footer-in {
+  max-width: var(--daymo-maxw);
+  margin: 0 auto;
+  padding: 22px 24px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.daymo-help-foot-links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.daymo-help-foot-links a {
+  font-size: 13px;
+  color: var(--daymo-muted);
+  text-decoration: none;
   cursor: pointer;
 }
-.daymo-help-chat form button:hover {
-  background: #554aad;
+.daymo-help-foot-links a:hover {
+  color: var(--daymo-fg);
+}
+.daymo-help-built {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--daymo-muted);
+}
+.daymo-help-built .daymo-help-mk {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+}
+.daymo-help-built .daymo-help-mk svg {
+  width: 12px;
+  height: 12px;
+}
+.daymo-help-built b {
+  color: var(--daymo-fg);
+  font-weight: 600;
+}
+
+/* ---------------- mobile ask FAB ---------------- */
+.daymo-help-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: var(--daymo-z-fab);
+  display: none;
+  align-items: center;
+  gap: 9px;
+  height: 50px;
+  padding: 0 18px 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--daymo-accent);
+  color: var(--daymo-accent-ink);
+  font-weight: 560;
+  font-size: 14.5px;
+  cursor: pointer;
+  box-shadow: var(--daymo-shadow-lg);
+}
+.daymo-help-fab svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* ---------------- player modal ---------------- */
+.daymo-help-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--daymo-z-modal);
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 12, 15, 0.5);
+  backdrop-filter: blur(4px);
+  font-family: var(--daymo-font);
+  color: var(--daymo-fg);
+}
+.daymo-help-modal.open {
+  display: grid;
+  animation: daymo-help-fade 0.2s ease;
+}
+@keyframes daymo-help-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.daymo-help-player {
+  width: min(900px, 100%);
+  max-height: 92dvh;
+  overflow: hidden;
+  background: var(--daymo-surface);
+  border: 1px solid var(--daymo-border);
+  border-radius: var(--daymo-r-lg);
+  box-shadow: var(--daymo-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: daymo-help-pop 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+@keyframes daymo-help-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.daymo-help-player-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--daymo-border-2);
+}
+.daymo-help-player-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.daymo-help-player-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--daymo-border);
+  background: var(--daymo-surface);
+  color: var(--daymo-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: 0.14s;
+}
+.daymo-help-player-close:hover {
+  background: var(--daymo-bg-2);
+  color: var(--daymo-fg);
+}
+.daymo-help-player-close svg {
+  width: 17px;
+  height: 17px;
+}
+.daymo-help-player-body {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  min-height: 0;
+}
+.daymo-help-stage {
+  background: #000;
+  display: grid;
+}
+.daymo-help-stage video {
+  width: 100%;
+  height: 100%;
+  max-height: 70dvh;
+  object-fit: contain;
+  display: block;
+}
+.daymo-help-steps {
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 70dvh;
+  border-left: 1px solid var(--daymo-border-2);
+}
+.daymo-help-steps-h {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--daymo-muted);
+  padding: 9px 10px 6px;
+}
+.daymo-help-step {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: var(--daymo-r-sm);
+  cursor: pointer;
+  transition: 0.13s;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--daymo-fg);
+}
+.daymo-help-step:hover {
+  background: var(--daymo-a-weak2);
+}
+.daymo-help-step.active {
+  background: var(--daymo-a-weak);
+}
+.daymo-help-step-ix {
+  font-family: var(--daymo-font-mono);
+  font-size: 11px;
+  width: 36px;
+  flex-shrink: 0;
+  color: var(--daymo-muted);
+}
+.daymo-help-step.active .daymo-help-step-ix {
+  color: var(--daymo-accent);
+  font-weight: 600;
+}
+.daymo-help-step-lb {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.daymo-help-step.active .daymo-help-step-lb {
+  font-weight: 560;
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 900px) {
+  .daymo-help-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .daymo-help-player-body {
+    grid-template-columns: 1fr;
+  }
+  .daymo-help-steps {
+    border-left: 0;
+    border-top: 1px solid var(--daymo-border-2);
+    max-height: 34dvh;
+  }
+  .daymo-help-stage video {
+    max-height: 52dvh;
+  }
+}
+@media (max-width: 640px) {
+  .daymo-help-appbar-in {
+    padding: 11px 16px;
+    gap: 10px;
+  }
+  .daymo-help-nav {
+    display: none;
+  }
+  .daymo-help-contact {
+    display: none;
+  }
+  .daymo-help-wrap {
+    padding: 0 16px;
+  }
+  .daymo-help-hero {
+    padding: 30px 0 18px;
+  }
+  .daymo-help-h1 {
+    font-size: 27px;
+  }
+  .daymo-help-lede {
+    font-size: 15px;
+  }
+  .daymo-help-ask {
+    margin-top: 20px;
+  }
+  .daymo-help-askbar {
+    padding: 5px 5px 5px 14px;
+  }
+  .daymo-help-input {
+    font-size: 15px;
+  }
+  .daymo-help-send .daymo-help-send-tx {
+    display: none;
+  }
+  .daymo-help-send {
+    padding: 0;
+    width: 42px;
+    justify-content: center;
+  }
+  .daymo-help-gallery {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+  .daymo-help-sec-head {
+    align-items: flex-start;
+  }
+  .daymo-help-fab {
+    display: inline-flex;
+  }
+  .daymo-help-footer-in {
+    padding: 20px 16px 90px;
+  }
+  /* full-screen player */
+  .daymo-help-modal {
+    padding: 0;
+  }
+  .daymo-help-player {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    border: 0;
+  }
+  .daymo-help-player-body {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: 1fr auto;
+  }
+  .daymo-help-stage video {
+    max-height: none;
+  }
+  .daymo-help-steps {
+    max-height: 30dvh;
+  }
+}
+@media (max-width: 380px) {
+  .daymo-help-nm span {
+    display: none;
+  }
 }

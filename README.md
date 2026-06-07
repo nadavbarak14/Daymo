@@ -208,6 +208,62 @@ await page.click("button[type=submit]");
 ```
 ````
 
+## The help center page
+
+Daymo ships a full help-center template: a responsive page with an ask bar
+(answers cite the exact video moment), a video-guide gallery, and a player
+with a clickable step timeline.
+
+```tsx
+// app/help/page.tsx
+"use client";
+import { HelpCenter } from "daymo/react";
+import "daymo/help-center.css";
+
+export default function HelpPage() {
+  return (
+    <HelpCenter
+      manifestUrl="/help/manifest.json"
+      chatEndpoint="/api/help/chat"
+      name="Acme"
+      brandColor="#0ea5e9"
+      suggestedQuestions={["How do I create a project?", "How do I invite my team?"]}
+      contactHref="mailto:support@acme.io"
+    />
+  );
+}
+```
+
+No React? `import { mountHelpCenter } from "daymo/help-center"` renders the
+same page into any element and returns an unmount function.
+
+### Making it match your product
+
+- **90% case:** set `brandColor` — every accent tint derives from it. Light
+  brand colors should also override `--daymo-accent-ink` (the text color used
+  on accent surfaces). Dark mode: put `data-daymo-theme="dark"` on any
+  ancestor.
+- **Voice / i18n:** every visible string is overridable via `strings`
+  (e.g. `strings={{ galleryHeading: "Tutorials", lede: "…" }}`).
+- **Own layout:** `chrome={false}` drops the appbar, footer and mobile FAB so
+  you can embed the hero + gallery inside your own page shell.
+- **Everything else:** copy `node_modules/daymo/styles/help-center.css` into
+  your project and let your coding agent restyle it — class names are a
+  stable API and the behavior never depends on the styles. The font stack
+  uses Geist when your app loads it, your system stack otherwise (the
+  stylesheet makes no third-party requests).
+
+Stable class names (the restyling surface): `daymo-help` (root),
+`-appbar`, `-brand`, `-mk`, `-nm`, `-nav-link`, `-contact`, `-hero`,
+`-hero-bg`, `-eyebrow`, `-h1`, `-lede`, `-askbar`, `-input`, `-send`,
+`-suggest`, `-chip`, `-thread`, `-qa`, `-q-bubble`, `-a-av`, `-a-name`,
+`-a-tag`, `-a-text`, `-clip`, `-clip-thumb`, `-clip-cap`, `-clip-sub`,
+`-typing`, `-error`, `-section`, `-sec-head`, `-gallery`, `-card`,
+`-poster`, `-play`, `-dur`, `-card-meta`, `-card-title`, `-card-desc`,
+`-card-foot`, `-footer`, `-foot-links`, `-built`, `-fab`, `-modal`,
+`-player`, `-player-top`, `-player-title`, `-player-close`, `-stage`,
+`-steps`, `-step`, `-step-ix`, `-step-lb` (all prefixed `daymo-help`).
+
 ## Tips for AI agents authoring `.demo` files
 
 - Prefer accessible selectors (`getByRole`, `[aria-label=...]`) over brittle `[data-testid=...]` chains when the codebase uses them.
