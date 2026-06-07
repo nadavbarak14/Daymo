@@ -26,7 +26,7 @@ export interface WriteIndexOpts {
  *  `.daymo/` + `output.mp4` in its own folder, so a folder-per-demo layout lets
  *  one `daymo index <dir>` build a whole widget without demos clobbering each
  *  other's working state. Top-level `.demo` files (single-demo dirs) still work. */
-async function findDemoFiles(dir: string): Promise<string[]> {
+export async function findDemoFiles(dir: string): Promise<string[]> {
   const out: string[] = [];
   const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const e of entries) {

@@ -16,9 +16,16 @@ export interface ControllerOpts {
   viewport?: { width: number; height: number };
   mocks?: MockSourceConfig[];
   storageStatePath?: string;
-  artifactsDir: string;
+  /** Required in "capture" mode; ignored in "check" mode (nothing is written). */
+  artifactsDir?: string;
   ttsProvider?: TtsProvider;
   ttsConfig?: { voice: string; rate: string };
+  /** "capture" (default) records video + narration. "check" runs the flow with
+   *  no recording/TTS/overlays — used by `daymo check` to verify scripts. */
+  mode?: "capture" | "check";
+  /** Per-action + navigation timeout (ms). Applied in check mode so a broken
+   *  selector or an unreachable app fails fast instead of hanging. */
+  timeout?: number;
 }
 
 function parseDurationSeconds(s: string | undefined, defaultSec: number): number {
@@ -45,16 +52,28 @@ export class Controller {
   ) {}
 
   static async start(opts: ControllerOpts): Promise<Controller> {
-    await fs.mkdir(opts.artifactsDir, { recursive: true });
+    const check = opts.mode === "check";
+    const viewport = opts.viewport ?? { width: 1440, height: 900 };
+    if (!check) {
+      if (!opts.artifactsDir) throw new Error("artifactsDir is required in capture mode");
+      await fs.mkdir(opts.artifactsDir, { recursive: true });
+    }
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       baseURL: opts.url,
-      viewport: opts.viewport ?? { width: 1440, height: 900 },
+      viewport,
       storageState: opts.storageStatePath,
-      recordVideo: { dir: opts.artifactsDir, size: opts.viewport ?? { width: 1440, height: 900 } },
+      // No video in check mode — the whole point is "is the script still valid",
+      // not producing a reviewable clip.
+      ...(check ? {} : { recordVideo: { dir: opts.artifactsDir!, size: viewport } }),
     });
     await context.addInitScript({ content: OVERLAY_INIT_SCRIPT });
     const page = await context.newPage();
+    if (check && opts.timeout) {
+      // Set before goto so an unreachable app fails the initial navigation fast.
+      page.setDefaultTimeout(opts.timeout);
+      page.setDefaultNavigationTimeout(opts.timeout);
+    }
     // recordVideo begins capturing from page creation. Mark this moment so
     // stitch can trim the page-load prefix off the front of the webm.
     const recordingStartedWall = Date.now();
@@ -70,6 +89,13 @@ export class Controller {
 
   private now(): number {
     return Date.now() - this.startWall;
+  }
+
+  /** In-memory event log (step/fx/error/…). `daymo check` reads this to report
+   *  which step a demo broke on; in capture mode it is also flushed to disk by
+   *  stop(). */
+  get recordedEvents(): RunnerEvent[] {
+    return this.events;
   }
 
   async runScene(scene: Scene, sceneIndex: number): Promise<void> {
@@ -119,7 +145,7 @@ export class Controller {
       if (scene.playwrightCode) {
         let stepCounter = 0;
         const stepCtx = { sceneIndex, nextStepIndex: () => ++stepCounter };
-        const fx = createFx(this.page, this.events, () => this.now(), sayCtx, stepCtx);
+        const fx = createFx(this.page, this.events, () => this.now(), sayCtx, stepCtx, this.opts.mode ?? "capture");
         const console = {
           log: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "log", args }),
           warn: (...args: unknown[]) => this.events.push({ kind: "log", t: this.now(), level: "warn", args }),
@@ -130,7 +156,7 @@ export class Controller {
           { page: this.page, fx, console },
         );
       }
-      for (const directive of scene.overlays) {
+      for (const directive of this.opts.mode === "check" ? [] : scene.overlays) {
         const bbox = directive.target
           ? ((await this.page
               .evaluate((s) => (window as any).__daymo.measure(s), directive.target)) as
@@ -167,16 +193,19 @@ export class Controller {
   async stop(): Promise<void> {
     await this.context.close();
     await this.browser.close();
-    const files = await fs.readdir(this.opts.artifactsDir);
+    // Check mode records nothing — no webm to rename, no events.json to write.
+    if (this.opts.mode === "check" || !this.opts.artifactsDir) return;
+    const dir = this.opts.artifactsDir;
+    const files = await fs.readdir(dir);
     const webm = files.find((f) => f.endsWith(".webm") && f !== "raw_page.webm");
     if (webm) {
       await fs.rename(
-        path.join(this.opts.artifactsDir, webm),
-        path.join(this.opts.artifactsDir, "raw_page.webm"),
+        path.join(dir, webm),
+        path.join(dir, "raw_page.webm"),
       );
     }
     await fs.writeFile(
-      path.join(this.opts.artifactsDir, "events.json"),
+      path.join(dir, "events.json"),
       JSON.stringify(this.events, null, 2),
     );
   }

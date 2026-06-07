@@ -82,8 +82,10 @@ export const OVERLAY_INIT_SCRIPT = String.raw`
     cursor.style.transform = "translate(" + (x - 2) + "px," + (y - 2) + "px)";
   }
 
-  function highlight(selector, durationMs, color) {
-    const el = document.querySelector(selector);
+  function highlight(target, durationMs, color) {
+    // target is either a CSS-selector string (legacy) or a resolved DOM element
+    // handed in by the runner (so Playwright text/xpath selectors work).
+    const el = typeof target === "string" ? document.querySelector(target) : target;
     if (!el) return false;
     if (color) {
       // Inline override (beats the .__daymo-highlight rule on specificity tie
@@ -125,7 +127,7 @@ export const OVERLAY_INIT_SCRIPT = String.raw`
     callouts.appendChild(bubble);
     let x = 32, y = 32;
     if (target) {
-      const el = document.querySelector(target);
+      const el = typeof target === "string" ? document.querySelector(target) : target;
       if (el) {
         const r = el.getBoundingClientRect();
         x = r.left + r.width / 2 - 140;
@@ -141,18 +143,20 @@ export const OVERLAY_INIT_SCRIPT = String.raw`
     }, durationMs);
   }
 
-  function zoom(selector, factor, durationMs) {
-    const el = selector ? document.querySelector(selector) : document.documentElement;
+  function zoom(target, factor, durationMs) {
+    const el = target
+      ? (typeof target === "string" ? document.querySelector(target) : target)
+      : document.documentElement;
     if (!el) return false;
-    const target = el === document.documentElement ? document.body : el;
-    target.style.transition = "transform " + (durationMs / 1000) + "s ease";
-    target.style.transformOrigin = "center center";
-    target.style.transform = factor === 1 ? "" : "scale(" + factor + ")";
+    const node = el === document.documentElement ? document.body : el;
+    node.style.transition = "transform " + (durationMs / 1000) + "s ease";
+    node.style.transformOrigin = "center center";
+    node.style.transform = factor === 1 ? "" : "scale(" + factor + ")";
     return true;
   }
 
-  function measure(selector) {
-    const el = document.querySelector(selector);
+  function measure(target) {
+    const el = typeof target === "string" ? document.querySelector(target) : target;
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return { x: r.left, y: r.top, width: r.width, height: r.height };

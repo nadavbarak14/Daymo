@@ -5,6 +5,7 @@ import { doctorCommand } from "./commands/doctor.js";
 import { editCommand } from "./commands/edit.js";
 import { stateCommand } from "./commands/state.js";
 import { captureCommand } from "./commands/capture.js";
+import { checkCommand } from "./commands/check.js";
 import { stitchCommand } from "./commands/stitch.js";
 import { setProseCommand } from "./commands/set-prose.js";
 import { migrateProseCommand } from "./commands/migrate-prose.js";
@@ -44,6 +45,18 @@ cli.command("capture <file>", "Capture one scene (--scene N) or all scenes (--al
     captureCommand(file, {
       scene: flags.scene !== undefined ? Number(flags.scene) : undefined,
       all: !!flags.all,
+    }),
+  );
+
+cli.command("check [path]", "Run demos without recording; fail if a script no longer matches the UI")
+  .option("--base-url <url>", "Override the origin of each demo's frontmatter url")
+  .option("--timeout <ms>", "Per-action timeout in ms", { default: 15000 })
+  .option("--json", "Emit the report as JSON instead of the text table")
+  .action((targetPath: string | undefined, flags: { baseUrl?: string; timeout?: number | string; json?: boolean }) =>
+    checkCommand(targetPath ?? "demos", {
+      baseUrl: flags.baseUrl,
+      timeout: flags.timeout !== undefined ? Number(flags.timeout) : undefined,
+      json: !!flags.json,
     }),
   );
 

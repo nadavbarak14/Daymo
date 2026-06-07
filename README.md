@@ -34,12 +34,40 @@ daymo edit <file>                                Open the visual editor for a .d
 
 daymo capture <file> --scene N | --all           Capture one scene (1-indexed) or all scenes
 daymo stitch <file>                              Compose all captured scenes into output.mp4
+daymo check [path]                               Run demos with no recording; fail if a script broke
 daymo state <file> [--json]                      Show scene status table (or JSON)
 daymo set-prose <file> --scene N --text "…"      Rewrite a scene's prose markdown
 daymo migrate-prose <file>                       Wrap existing prose into fx.say() calls
 ```
 
 Outputs land in `./artifacts/<id>/` for `daymo render`, or in `<demo-dir>/output.mp4` for `daymo stitch`. The state directory `<demo-dir>/.daymo/` holds per-scene captures (`captures/`), state (`state.json`), and the TTS audio cache (`tts/`).
+
+## Keeping demos valid in CI (`daymo check`)
+
+Rendered videos are **content** — you author them, watch them, and commit the result; they rarely change. So you don't re-render in CI. But a how-to script can silently go stale when the UI moves (a renamed button, a changed field id). `daymo check` is the canary: it runs every demo through the *real* flow — clicks, typing, waits, and selector resolution for every `fx.cursorTo`/`highlight`/`zoom` — with **recording, narration, overlays, and pauses stripped**. It records nothing; it just fails fast when a selector no longer resolves.
+
+Because it drives the real app, run it in the e2e job you already have, after the app is up and seeded — no extra infrastructure:
+
+```yaml
+# e.g. in your existing Playwright/e2e job, once the app is serving:
+- run: npx daymo check demos/ --base-url "$APP_URL"
+```
+
+- `[path]` defaults to `./demos`; accepts a directory (searched recursively) or a single `.demo`.
+- `--base-url <url>` swaps the **origin** of each demo's frontmatter `url` (keeping its path/query) so CI can point demos at whatever host/port it serves on.
+- `--timeout <ms>` is the per-action + navigation timeout (default 15000) — a broken selector fails in seconds instead of hanging.
+- `--json` emits `{ ok, demos: [...] }` for CI annotations.
+
+Exit code is `0` only if every demo passes; any break exits `1`. A failure names the demo, the `fx.step` it broke on, the selector, and the source `file:line`:
+
+```
+✓ 01-create-course      4 steps  1.9s
+✗ 03-create-document    step 2 "Title it"
+    selector not found: #title
+    demos/03-create-document/03-create-document.demo:22
+
+1 of 4 demos broken → exit 1
+```
 
 ## The `.demo` file format
 
