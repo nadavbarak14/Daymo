@@ -37,8 +37,20 @@ copy-paste template files (forks, no upgrades) and a React-first rewrite
 | `logoUrl` | no | built-in play-glyph SVG | appbar/footer mark image |
 | `suggestedQuestions` | no | `[]` (row hidden) | "Popular:" chips under the ask bar; also reused by no-match answers |
 | `contactHref` | no | unset (hidden) | appbar Contact button + footer "Contact support" link |
-| `chrome` | no | `true` | `false` drops appbar + footer for hosts with their own layout |
+| `chrome` | no | `true` | `false` drops appbar, footer **and the mobile FAB** for hosts with their own layout |
+| `strings` | no | design copy | `Partial<HelpCenterStrings>` — every visible string (lede, ask placeholder, eyebrow, gallery heading/sub, popular label, nav labels, FAB label, assistant tag, steps heading, error text, footer labels). Closes brand-voice + i18n without forking |
 | `fetchImpl` | no | global fetch | test injection (existing) |
+
+`name` default rendering: when unset, the brand text is just "Help" as the
+primary label (the ≤380px rule that hides the "Help" suffix only applies when
+`name` is present, so the brand never renders empty).
+
+`logoUrl` replaces the appbar mark **and the assistant avatar**; the footer
+"Built with Daymo" badge always uses the Daymo glyph (supported removal path:
+`.daymo-help-built { display: none }`).
+
+Suggestions precedence in no-match answers: render `resp.suggestions` when the
+server provides them, else fall back to the `suggestedQuestions` option.
 
 ## Page structure (full-page default)
 
@@ -60,11 +72,19 @@ Matches the design's markup, all classes `daymo-help-*`:
      `<video src="…#t=s,e" controls>` like today.
    - `no_match` → text + suggestion chips that re-ask on click.
    - fetch error → `.daymo-help-error` line (existing behavior).
-   - history: keep current `{role, content}` accumulation, send last 2 turns.
+   - history: the request's `history` contains only turns *prior* to the
+     current message (push the user turn after building the request body —
+     fixes the current double-send of the question in `message` + `history`),
+     truncated to the last 2 turns.
+   - the thread is an `aria-live="polite"` region so answers (and the typing
+     indicator's replacement) are announced.
 4. **Video guides gallery** — section head ("Video guides" + sub), 3-col grid
-   (2-col ≤900px, 1-col ≤640px). Card: real poster `<img>` with hover-scaling
-   play overlay + mono duration badge, title, description, footer
-   "m:ss · N steps". Click → player modal. No category filters (cut).
+   (2-col ≤900px, 1-col ≤640px). Card: a real `<button>` (keyboard-operable)
+   containing the poster `<img>` with hover-scaling play overlay + mono
+   duration badge, title, description, footer "m:ss · N steps". Click →
+   player modal. No category filters (cut). When the manifest fails to load
+   or has zero demos, the whole gallery section and its nav/footer jump links
+   are hidden (no orphaned heading).
 5. **Footer** — "All videos" jump + optional "Contact support", right-aligned
    "Built with **Daymo**" mark. Hidden with `chrome:false` (appbar too).
 6. **Mobile ask FAB** — fixed "Ask a question" pill ≤640px; scrolls to top and
@@ -80,9 +100,16 @@ The design's simulated stage becomes a real player:
   below the video ≤900px, full-screen sheet ≤640px.
 - Step click → `video.currentTime = startMs/1000`, keeps playing state.
 - Active step tracks `timeupdate` (last step whose `startMs` ≤ current time).
-- Clip-card open: cue to `startMs`, autoplay, one-shot pause at `endMs`
-  (cleared on any user seek/step click).
-- Close: button, backdrop click, Escape. Body scroll locked while open.
+- Clip-card open: cue to `startMs`, autoplay, one-shot pause at `endMs`.
+  The pause is cleared on *user* seeks/step clicks only — programmatic cue
+  seeks are flagged so the initial `currentTime` assignment doesn't clear it.
+- Close: button, backdrop click, Escape — and closing **pauses the video**.
+  Body scroll locked while open.
+- Focus management: focus moves to the close button on open, Tab is trapped
+  inside the dialog, and focus is restored to the opener on close.
+- The modal element is appended to `document.body` (escapes host stacking
+  contexts when embedded) and removed on unmount. Z-indices are tokens
+  (`--daymo-z-modal`, `--daymo-z-fab`).
 - No custom scrubber/cursor choreography — native video controls (the
   prototype simulated video; we have the real thing).
 
@@ -90,15 +117,20 @@ The design's simulated stage becomes a real player:
 
 Full design CSS, adapted:
 
-- Tokens renamed to `--daymo-*` (`--daymo-accent`, `--daymo-bg`, `--daymo-fg`,
-  `--daymo-border`, radii, shadows…), declared on `.daymo-help` so they're
-  overridable per-host. Accent tints derive with `color-mix(in srgb, …)`.
+- Tokens renamed to `--daymo-*` (`--daymo-accent`, **`--daymo-accent-ink`**
+  (text on accent surfaces — *not* derivable from an arbitrary brand color;
+  light brands need to override it, documented in the README), `--daymo-bg`,
+  `--daymo-fg`, `--daymo-border`, radii, shadows, z-indices…), declared on
+  `.daymo-help` so they're overridable per-host. Accent tints derive with
+  `color-mix(in srgb, …)`.
 - Dark theme: `[data-daymo-theme="dark"] .daymo-help` (and
   `.daymo-help[data-daymo-theme="dark"]`) variable overrides, per the design's
   dark palette.
-- Font: `@import` Geist + Geist Mono from Google Fonts with
-  `ui-sans-serif/system-ui` fallbacks; hosts can drop the import by overriding
-  `font-family`.
+- Font: **no third-party `@import`** (GDPR/offline/render-blocking liability
+  in a default skeleton). Ship the design's metrics on a system stack
+  (`'Geist', ui-sans-serif, system-ui, …` so Geist is used if the host loads
+  it); "add your brand font" is the first documented copy-and-own
+  customization.
 - Breakpoints exactly as designed: 900px (gallery 2-col, player stacks),
   640px (single column, icon-only Ask, FAB, full-screen player), 380px
   (brand "Help" suffix hidden).
@@ -120,8 +152,19 @@ option knobs:
 - Options exist only for content CSS can't express (brand name, logo, chat
   endpoint, suggested questions…). No layout/variant options.
 - README gains a "Making it match your product" section: set `brandColor` for
-  90% of cases; copy the stylesheet and let your coding agent restyle for the
-  rest.
+  90% of cases (plus `--daymo-accent-ink` for light brand colors); copy the
+  stylesheet and let your coding agent restyle for the rest. It includes a
+  **class-name inventory** — that's the agent's API surface for copy-and-own
+  restyling — and markup/class changes are semver-meaningful.
+
+**Mount hygiene** (the design prototype's global wiring must not survive):
+
+- No `id` attributes, no `document.querySelector` — all element refs scoped to
+  the mount root (as today). Multiple mounts must coexist.
+- `brandColor` sets `--daymo-accent` inline on the root element, never `:root`.
+- Unmount removes every document/body-level side effect: the Escape keydown
+  listener, the body scroll lock, and the body-appended modal — safe under
+  React 18 StrictMode double-mount and when unmounted with the modal open.
 
 ## Files touched
 
@@ -130,8 +173,8 @@ option knobs:
 - `src/help-center/gallery-model.ts` — unchanged (reuse `formatDuration`,
   `buildGalleryModel`).
 - `src/react/help-center.tsx` — remount when options change, keyed by
-  `JSON.stringify` of the serializable options (replaces the hand-listed
-  effect deps).
+  `JSON.stringify` of the serializable options (`fetchImpl` excluded).
+  Documented caveat: a remount discards the chat thread.
 - `styles/help-center.css` — replaced.
 - `README.md` — refresh the help-center usage snippet/screenshot wording.
 
@@ -140,16 +183,34 @@ option knobs:
 Update/extend the existing vitest suites (happy-dom):
 
 - mount renders appbar/hero/gallery/footer; `chrome:false` removes
-  appbar+footer; options wire through (brand name, accent var, chips,
-  contact visibility).
-- gallery renders cards from a manifest fixture; card click opens the modal
-  with that demo's video and steps.
-- step click seeks; clip card cues `startMs` and sets up `endMs` pause
-  (timeupdate dispatch in test).
+  appbar+footer+FAB; options wire through (brand name, `title`, accent var,
+  `logoUrl` on appbar mark + avatar, chips, contact visibility, `strings`
+  overrides).
+- gallery renders cards (as `<button>`s) from a manifest fixture; card click
+  opens the modal with that demo's video and steps; empty/failed manifest
+  hides the gallery section.
+- step click seeks; clip card cues `startMs` and sets up `endMs` pause; the
+  programmatic cue seek does NOT clear the pause, a user seek does
+  (timeupdate/seek events dispatched in test); close pauses the video and
+  restores focus.
 - chat: typing indicator appears then is replaced; text/video/no-match/error
-  paths; no-match chips re-ask; history still truncates to last 2.
+  paths; no-match chips re-ask; server `resp.suggestions` win over the option;
+  `history` excludes the current message and truncates to last 2.
+- unmount cleanup: keydown listener, scroll lock, and body-appended modal all
+  removed (StrictMode-style mount→unmount→mount leaves no residue).
+- note: happy-dom's `<video>` lacks real `play()`/`currentTime` semantics —
+  the suite stubs them.
 
 ## Out of scope
 
 Category filters, feedback (helpful/not-quite) buttons, toast, the prototype's
-Tweaks panel, simulated cursor/highlight choreography, KaTeX.
+Tweaks panel, simulated cursor/highlight choreography, KaTeX. Also explicitly
+deferred (decisions, not omissions): container-query breakpoints (breakpoints
+are viewport `@media`, so a narrow embedded container in a wide window gets
+the desktop layout), Android back-button closing the full-screen mobile
+player, and auto-contrast for `--daymo-accent-ink`.
+
+Note: the wire format the mount POSTs (`{message, history}`) matches
+`createHelpChatRoute`'s contract, not the legacy `ChatRequest` type (which
+requires `widgetId`); aligning that type is pre-existing drift, out of scope
+here.
