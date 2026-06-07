@@ -5,15 +5,23 @@ import type { RunnerEvent } from "../../src/types.js";
 
 function makeFakePage(measureResult: { x: number; y: number; width: number; height: number } | null = { x: 100, y: 200, width: 50, height: 20 }) {
   const calls: { fn: string; args: unknown[] }[] = [];
+  // fx now resolves targets through Playwright's locator engine: cursorTo/measure
+  // via `.first().boundingBox()`, highlight/zoom via `.first().elementHandle()`.
+  // A null measureResult models a selector that matches nothing.
+  const handle = measureResult ? { dispose: vi.fn(async () => {}) } : null;
   const page = {
     evaluate: vi.fn(async (fn: any, ...args: any[]) => {
-      const src = String(fn);
-      if (src.includes("__daymo.measure")) return measureResult;
-      calls.push({ fn: src, args });
+      calls.push({ fn: String(fn), args });
       return undefined;
     }),
     waitForTimeout: vi.fn(async () => {}),
-    locator: vi.fn(() => ({ pressSequentially: vi.fn(async () => {}) })),
+    locator: vi.fn(() => ({
+      first: () => ({
+        boundingBox: vi.fn(async () => measureResult),
+        elementHandle: vi.fn(async () => handle),
+      }),
+      pressSequentially: vi.fn(async () => {}),
+    })),
   } as any;
   return { page, calls };
 }
@@ -24,8 +32,10 @@ describe("fx.cursorTo", () => {
     const events: RunnerEvent[] = [];
     const fx = createFx(page, events, () => 1234);
     await fx.cursorTo("button.primary", "primary button", { duration: 0.5 });
+    // The target is resolved via Playwright's locator (supports text=/:has-text());
+    // the cursor move is still issued in-page via __daymo.moveCursor.
+    expect(page.locator).toHaveBeenCalledWith("button.primary");
     const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
-    expect(calls.some((c: string) => c.includes("__daymo.measure"))).toBe(true);
     expect(calls.some((c: string) => c.includes("__daymo.moveCursor"))).toBe(true);
   });
 
@@ -99,7 +109,9 @@ describe("fx.highlight", () => {
     const highlightCall = evalCalls.find((c: any[]) => String(c[0]).includes("__daymo.highlight"));
     expect(highlightCall).toBeDefined();
     const [, args] = highlightCall;
-    expect(args.selector).toBe("button");
+    // The resolved element handle is passed (not a selector string) so Playwright
+    // text/xpath selectors work in-page.
+    expect(args.el).toBeDefined();
     expect(args.durationMs).toBe(1500);
     expect(args.color).toBe("#22c55e");
     const ev = events.find((e) => e.kind === "fx" && e.method === "highlight");
@@ -121,6 +133,16 @@ describe("fx.highlight", () => {
     const { page } = makeFakePage();
     const fx = createFx(page, [], () => 0);
     await expect(fx.highlight("button", "")).rejects.toThrow(/requires a description/);
+  });
+
+  it("resolves Playwright text selectors via the locator engine (regression)", async () => {
+    // :has-text() is a Playwright pseudo, invalid for document.querySelector.
+    // The fix routes resolution through page.locator() so it works for cursor +
+    // highlight, not just page.click — these demos are the common case.
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0);
+    await fx.highlight("button:has-text('New Course')", "the New Course button");
+    expect(page.locator).toHaveBeenCalledWith("button:has-text('New Course')");
   });
 });
 
@@ -168,6 +190,68 @@ describe("fx.zoom", () => {
     const calls = (page.evaluate as any).mock.calls.map((c: any[]) => String(c[0]));
     expect(calls.some((c: string) => c.includes("__daymo.zoom"))).toBe(true);
     expect(events.find((e) => e.kind === "fx" && e.method === "zoom")).toBeDefined();
+  });
+});
+
+describe("fx check mode", () => {
+  it("cursorTo/highlight/zoom assert the selector resolves but draw nothing", async () => {
+    for (const run of [
+      (fx: any) => fx.cursorTo("button", "a button"),
+      (fx: any) => fx.highlight("button", "a button"),
+      (fx: any) => fx.zoom("button"),
+    ]) {
+      const { page } = makeFakePage();
+      const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+      await run(fx);
+      // The selector was resolved via the locator engine…
+      expect(page.locator).toHaveBeenCalledWith("button");
+      // …but no in-page __daymo.* draw was issued.
+      expect(page.evaluate).not.toHaveBeenCalled();
+    }
+  });
+
+  it("cursorTo/highlight/zoom throw a selector-tagged error when the selector misses", async () => {
+    for (const run of [
+      (fx: any) => fx.cursorTo("ghost", "x"),
+      (fx: any) => fx.highlight("ghost", "x"),
+      (fx: any) => fx.zoom("ghost"),
+    ]) {
+      const { page } = makeFakePage(null);
+      const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+      await expect(run(fx)).rejects.toThrow(/selector not found: ghost/);
+      // The error carries the selector so `daymo check` need not parse the message.
+      const err = await run(fx).catch((e: any) => e);
+      expect(err.selector).toBe("ghost");
+    }
+  });
+
+  it("zoom with no selector is a no-op (full-page zoom) and never throws", async () => {
+    const { page } = makeFakePage(null);
+    const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+    await expect(fx.zoom()).resolves.toBeUndefined();
+    expect(page.evaluate).not.toHaveBeenCalled();
+  });
+
+  it("say returns without throwing even with no sayCtx", async () => {
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+    await expect(fx.say("narration that has no audio in check mode")).resolves.toBeUndefined();
+  });
+
+  it("pause is capped to 100ms", async () => {
+    const { page } = makeFakePage();
+    const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+    await fx.pause(5);
+    expect((page.waitForTimeout as any).mock.calls[0][0]).toBe(100);
+  });
+
+  it("typeWithDelay types with zero delay", async () => {
+    const { page } = makeFakePage();
+    const press = vi.fn(async () => {});
+    page.locator = vi.fn(() => ({ pressSequentially: press }));
+    const fx = createFx(page, [], () => 0, undefined, undefined, "check");
+    await fx.typeWithDelay("input", "hi", 5);
+    expect(press).toHaveBeenCalledWith("hi", { delay: 0 });
   });
 });
 
