@@ -78,18 +78,39 @@ daymo check [path]
 | `auth.storageState` + `mocks` | honored | **honored** (logged-in demos + AI mock still work) |
 
 The core assertion of the whole feature: in check mode `fx.cursorTo` /
-`fx.highlight` / `fx.zoom` resolve their selector via
-`page.locator(sel).first().boundingBox()` and **throw if it is null/absent**,
-instead of drawing. That turns every cursor/highlight/zoom into a selector
-liveness assertion, on top of the real clicks/types/waits.
+`fx.highlight` / `fx.zoom` resolve their selector and **throw if it is
+null/absent**, instead of drawing. That turns every cursor/highlight/zoom into a
+selector liveness assertion, on top of the real clicks/types/waits. Note the two
+resolution paths in the current code (post-fix):
+
+- `cursorTo` resolves via `page.locator(sel).first().boundingBox()` and already
+  throws on null.
+- `highlight` resolves via `page.locator(sel).first().elementHandle()` and
+  already throws on null.
+- `zoom` resolves via `elementHandle()` **but a null selector means full-page
+  zoom, so it does NOT throw today**. In check mode, when `zoom` was given a
+  selector and `elementHandle()` returns null, it must throw
+  `selector not found: <sel>` — otherwise a broken `zoom` selector silently
+  degrades to a full-page zoom and the check passes when it shouldn't.
 
 ## Components
 
 ### `src/core/check.ts` — `checkDemo(ast, opts)`
 Mirrors `core/capture.ts`. Resolves `storageState`/`mocks` paths relative to the
-demo dir (same as capture), applies `--base-url` origin override to
-`ast.frontmatter.url`, starts a `Controller` in `mode: "check"`, runs every
-scene, and returns:
+demo dir (same as capture, `core/capture.ts:48-50`), applies the `--base-url`
+**origin** override to `ast.frontmatter.url` (net-new code — nothing does this
+today): keep the frontmatter path/query, swap protocol+host, i.e.
+`const u = new URL(frontmatter.url); const o = new URL(baseUrl); u.protocol = o.protocol; u.host = o.host;`
+and use `u.toString()`. When `--base-url` is absent, use `frontmatter.url`
+unchanged. Then starts a `Controller` in `mode: "check"`, runs every scene, and
+returns:
+
+`demoId` is derived exactly as `index`/`stitch` do —
+`path.basename(demoFile, path.extname(demoFile))` (e.g.
+`demos/03-create-document/03-create-document.demo` → `03-create-document`, the
+`NN-` prefix is **kept**). `CheckStep.label` is sourced from the recorded `step`
+event's `description` field (the event has no `label` field; `checkDemo` maps
+`description → label`).
 
 ```ts
 interface CheckStep { sceneIndex: number; stepIndex: number; label: string }
@@ -115,8 +136,13 @@ A thrown error is caught here, mapped to `CheckFailure` (carrying the current
 (only on programmer error like a missing file).
 
 ### `src/commands/check.ts` — `checkCommand(path, flags)`
-Discovers `.demo` files (recursive; reuse the discovery helper `index` uses —
-extract it if it is currently inline in `commands/index.ts`). Runs `checkDemo`
+Discovers `.demo` files (recursive) by reusing the existing discovery helper.
+That helper is currently a **private, non-exported** `findDemoFiles` in
+`src/indexer/write-index.ts` (it skips dot-dirs + `node_modules`, sorts results,
+and throws `no .demo files found in <dir>` on zero — which satisfies our
+"exit 1 on zero demos" requirement). Export it from `write-index.ts` (or move it
+to `src/core/discover.ts` and have write-index import it), then reuse — do not
+reimplement. Runs `checkDemo`
 for each **sequentially** (a shared seeded app is stateful; parallel runs would
 race — e.g. the create-course demo mutating data another demo reads). Catching
 per demo means one break does not mask later demos. Prints the report; exits `1`
@@ -125,22 +151,38 @@ if any `!ok`, else `0`.
 Default `path` is `./demos`.
 
 ### `Controller` / `createFx` changes
-- `ControllerOpts` gains `mode?: "capture" | "check"` (default `"capture"`).
-- `Controller.start`: when `mode === "check"`, omit `recordVideo` from
-  `context = browser.newContext({...})`; skip the TTS pre-synthesis block in
-  `runScene`; skip the `scene.overlays` directive loop; do not write
-  `events.json`/rename webm in `stop()` (nothing to write).
+- `ControllerOpts` gains `mode?: "capture" | "check"` (default `"capture"`) and
+  `timeout?: number`.
+- `ControllerOpts.artifactsDir` becomes optional. In check mode there are no
+  artifacts: skip `fs.mkdir(artifactsDir)` in `start()`, omit `recordVideo` from
+  `browser.newContext({...})`, and in `stop()` skip the `readdir`/webm-rename and
+  the `events.json` write entirely (just close context + browser).
+- `Controller.start`: when `mode === "check"`, after creating the page call
+  `page.setDefaultTimeout(timeout)` and `page.setDefaultNavigationTimeout(timeout)`
+  **before** `page.goto` (default 15000) — so an unreachable app fails the
+  initial goto in seconds rather than hanging 30s. Skip the TTS pre-synthesis
+  block in `runScene` (already gated on `ttsProvider`, which check mode does not
+  pass) and skip the `scene.overlays` directive loop.
+- `Controller` must still construct `createFx` **with a real `stepCtx`** in check
+  mode (same as capture, `controller.ts:111-113`) — otherwise `fx.step` no-ops
+  (`fx.ts` early-returns when `stepCtx` is undefined) and failure labels are
+  empty. The current step label is read back from the recorded `step` events.
 - `createFx` gains the mode (passed through from the controller). In check mode:
-  - `say` → resolves immediately, records nothing.
+  - `say` → **returns immediately, before the `sayCtx` guard** (today `say`
+    throws "not available outside of capture" when `sayCtx` is absent; check mode
+    must short-circuit ahead of that). Records nothing.
   - `pause` → `Math.min(requestedMs, 100)`.
-  - `cursorTo` / `highlight` / `zoom` → `await page.locator(sel).first().boundingBox()`;
-    throw `Error("selector not found: " + sel)` if null; no `window.__daymo.*` call.
+  - `cursorTo` → resolve via `page.locator(sel).first().boundingBox()`, throw
+    `selector not found: <sel>` if null; no `window.__daymo.*` call. (Already
+    throws on null today; just skip the overlay draw.)
+  - `highlight` → resolve via `page.locator(sel).first().elementHandle()`, throw
+    `selector not found: <sel>` if null; no draw. (Already throws today.)
+  - `zoom` → resolve via `elementHandle()`; **if a selector was provided and the
+    handle is null, throw `selector not found: <sel>`** (new — today a null
+    handle silently means full-page zoom); no draw.
   - `typeWithDelay` → real typing with delay `0`.
-  - `click` / other real actions → unchanged.
+  - `click` / other real actions / `waitFor*` → unchanged.
   - `step` → unchanged (still records the step marker; used for failure labels).
-- Per-action timeout: `checkDemo` sets Playwright's default timeout on the
-  context/page from `opts.timeout` (default 15000) so a broken selector fails in
-  seconds, not the Playwright 30s default.
 
 ### `cli.ts`
 Register:
@@ -164,12 +206,12 @@ Text (default):
 ```
 daymo check demos/
 
-✓ create-course      4 steps  1.9s
-✓ share-course       3 steps  1.4s
-✗ create-document    step 2 "Title it"
+✓ 01-create-course      4 steps  1.9s
+✓ 02-share-course       3 steps  1.4s
+✗ 03-create-document    step 2 "Title it"
     selector not found: #title (15000ms)
     demos/03-create-document/03-create-document.demo:22
-✓ document-basics    3 steps  2.1s
+✓ 04-document-basics    3 steps  2.1s
 
 1 of 4 demos broken → exit 1
 ```
@@ -191,18 +233,27 @@ daymo check demos/
 
 ## Testing
 
-- **fx check-mode unit** (`tests/unit/fx.test.ts` or a sibling): with a fake page
-  whose locator resolves, `cursorTo`/`highlight`/`zoom` succeed and draw nothing
-  (no `window.__daymo.*`); with a locator that returns `boundingBox() → null`,
-  they throw `selector not found: <sel>`. `pause` caps to 100ms; `say` is a
-  no-op.
-- **check integration** (`tests/integration/check.test.ts`): serve a tiny static
-  page locally (reuse the existing test http-server pattern). One demo with valid
-  selectors → `checkDemo` returns `ok: true` with the right step count; one demo
-  whose `fx.highlight` targets a missing selector → `ok: false` with
-  `failure.step.label` and `failure.selector` set. Assert `checkCommand` exit
-  code via the returned aggregate.
-- **discovery**: a fixture dir with nested `.demo` files → all discovered.
+- **fx check-mode unit** (`tests/unit/fx.test.ts` or a sibling; reuse the
+  existing fake-page at `tests/unit/fx.test.ts:6-28` whose
+  `locator().first().boundingBox()/elementHandle()` resolve null together when
+  `measureResult` is null): with a resolving locator, `cursorTo`/`highlight`/
+  `zoom` succeed and draw nothing (no `window.__daymo.*` evaluate); with a
+  locator whose `boundingBox()`/`elementHandle()` resolve null, each of the three
+  throws `selector not found: <sel>` via its own resolution path (cursorTo via
+  boundingBox, highlight + zoom via elementHandle). `pause` caps to 100ms; `say`
+  returns without throwing even with no `sayCtx`.
+- **check integration** (`tests/integration/check.test.ts`): reuse
+  `startFixtureServer()` from `tests/integration/server.ts` (serves
+  `tests/fixtures/sample-app/index.html`, the same harness
+  `controller.test.ts` uses). One demo driving the fixture's mid-flow elements
+  (e.g. the hidden `[data-testid=new-project-dialog]` revealed after clicking
+  `[data-testid=new-project-btn]`) with valid selectors → `checkDemo` returns
+  `ok: true` with the right step count; one demo whose `fx.highlight` targets a
+  missing selector → `ok: false` with `failure.step.label` (from the step
+  `description`) and `failure.selector` set. Assert the aggregate drives the
+  right exit code.
+- **discovery**: a fixture dir with nested `.demo` files → all discovered via the
+  reused `findDemoFiles`.
 
 ## Rollout
 
