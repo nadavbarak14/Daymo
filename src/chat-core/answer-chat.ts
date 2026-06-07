@@ -52,6 +52,20 @@ export async function answerChat(input: CoreInput, deps: CoreDeps): Promise<Core
       parts: response.parts.map((p): Part => {
         if (p.kind !== "video") return p;
         const v = p as VideoPart;
+        // The model only chooses WHICH step to cite — the index is
+        // authoritative for where that step lives. Models routinely fudge
+        // startMs/endMs, so repair from the chunk instead of letting
+        // validation refuse the whole answer over a few milliseconds.
+        const chunk = loaded.stepLookup.get(v.stepId);
+        if (chunk) {
+          return {
+            ...v,
+            demoId: chunk.demoId,
+            startMs: chunk.globalStartMs,
+            endMs: chunk.globalEndMs,
+            mp4Url: `${loaded.videoBaseUrl}/${chunk.demoId}/output.mp4`,
+          };
+        }
         return { ...v, mp4Url: `${loaded.videoBaseUrl}/${v.demoId}/output.mp4` };
       }),
     };
