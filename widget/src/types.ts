@@ -27,4 +27,8 @@ export interface WidgetConfigResp {
   brandColor?: string;
   locale: string;
   suggestedQuestions: string[];
+  /** Shipped theme name ("aurelia" | "lume" | "onyx"); data-theme on the script tag wins. */
+  theme?: string;
+  /** URL of the published help-center manifest.json — lets the widget reuse the help page's videos/posters. */
+  manifestUrl?: string;
 }

@@ -10,5 +10,8 @@
   "upstreamErrorMessage": "Couldn't reach the assistant. Try again.",
   "noMatchPrefix": "I don't have that in the demos. Try:",
   "notConfiguredMessage": "This help widget is not configured.",
-  "caption": "Caption"
+  "caption": "Caption",
+  "subtitle": "How-to assistant",
+  "greetingSub": "Ask a question and I'll point you to the exact moment in a short walkthrough.",
+  "footerNote": "Answers shown as clips — powered by"
 }

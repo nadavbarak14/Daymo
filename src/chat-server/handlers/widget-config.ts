@@ -21,6 +21,8 @@ export async function handleWidgetConfig(
       brandColor: entry.config.brandColor,
       locale: entry.config.locale,
       suggestedQuestions: entry.config.suggestedQuestions,
+      theme: entry.config.theme,
+      manifestUrl: entry.config.manifestUrl,
     }));
   } catch {
     res.statusCode = 404;

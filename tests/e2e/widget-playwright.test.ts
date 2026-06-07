@@ -101,17 +101,19 @@ afterAll(async () => {
 describe.skipIf(!run)("widget E2E", () => {
   it("opens the bubble, sends a question, renders an answer with a seeking video", async () => {
     await page.goto(`http://127.0.0.1:${staticPort}/`);
-    await page.waitForSelector("#daymo-widget-root", { timeout: 10000 });
+    // The host div has no box of its own (the UI is fixed-position inside its
+    // shadow root), so wait for attachment rather than visibility.
+    await page.waitForSelector("#daymo-widget-root", { state: "attached", timeout: 10000 });
 
     // Playwright's `>>>` deep combinator pierces closed shadow DOM.
-    await page.locator("css=#daymo-widget-root >>> .bubble").click();
+    await page.locator("css=#daymo-widget-root >>> .dw-bubble").click();
     await page
-      .locator("css=#daymo-widget-root >>> .input-row input")
+      .locator("css=#daymo-widget-root >>> .dw-input")
       .fill("How do I create a project?");
-    await page.locator("css=#daymo-widget-root >>> .input-row button").click();
+    await page.locator("css=#daymo-widget-root >>> .dw-send").click();
 
     await page
-      .locator("css=#daymo-widget-root >>> .msg-assistant video")
+      .locator("css=#daymo-widget-root >>> .dw-msg-assistant video")
       .waitFor({ timeout: 15000 });
 
     const startSrc = await page

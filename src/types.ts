@@ -220,6 +220,10 @@ export interface WidgetConfig {
   locale: string;
   allowedOrigins: string[];
   suggestedQuestions: string[];
+  /** Shipped widget theme name ("aurelia" | "lume" | "onyx"). */
+  theme?: string;
+  /** URL of the published help-center manifest.json so the widget reuses the same videos/posters. */
+  manifestUrl?: string;
 }
 
 export interface ChatRequest {

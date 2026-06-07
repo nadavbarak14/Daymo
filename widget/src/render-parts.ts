@@ -1,9 +1,13 @@
 import type { Part, VideoPart } from "./types.js";
+import type { VideoSource } from "./manifest.js";
+
+const PLAY_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
 
 export function renderParts(
   root: HTMLElement,
   parts: Part[],
   onPlay: (p: VideoPart) => void,
+  resolveSource: (p: VideoPart) => VideoSource,
 ): void {
   while (root.firstChild) root.removeChild(root.firstChild);
   for (const part of parts) {
@@ -12,7 +16,7 @@ export function renderParts(
       p.textContent = part.text;
       root.appendChild(p);
     } else {
-      root.appendChild(renderVideoPart(part, onPlay));
+      root.appendChild(renderVideoPart(part, onPlay, resolveSource(part)));
     }
   }
 }
@@ -24,40 +28,55 @@ function formatDuration(ms: number): string {
   return `${mm}:${ss}`;
 }
 
-function renderVideoPart(part: VideoPart, onPlay: (p: VideoPart) => void): HTMLElement {
+function renderVideoPart(
+  part: VideoPart,
+  onPlay: (p: VideoPart) => void,
+  source: VideoSource,
+): HTMLElement {
   const card = document.createElement("button");
-  card.className = "video-card";
+  card.className = "dw-video-card";
   card.type = "button";
   card.setAttribute("aria-label", `Play clip: ${part.caption}`);
 
-  const startSec = (part.startMs / 1000).toFixed(3).replace(/\.?0+$/, "");
-  const duration = formatDuration(part.endMs - part.startMs);
+  const thumb = document.createElement("span");
+  thumb.className = "dw-thumb";
+  if (source.posterUrl) {
+    // Poster published next to the help-center videos (same manifest).
+    thumb.style.backgroundImage = `url("${source.posterUrl}")`;
+  } else {
+    // No manifest: let the browser paint the clip's first frame.
+    const startSec = (part.startMs / 1000).toFixed(3).replace(/\.?0+$/, "");
+    const video = document.createElement("video");
+    video.src = `${source.mp4Url}#t=${startSec}`;
+    video.setAttribute("preload", "metadata");
+    video.setAttribute("playsinline", "");
+    video.muted = true;
+    thumb.appendChild(video);
+  }
 
-  const header = document.createElement("div");
-  header.className = "video-card-header";
+  const play = document.createElement("span");
+  play.className = "dw-play";
+  play.innerHTML = PLAY_SVG;
+  thumb.appendChild(play);
 
-  const playIcon = document.createElement("span");
-  playIcon.className = "play-icon";
-  playIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-  const label = document.createElement("span");
-  label.className = "label";
-  label.textContent = part.caption;
   const dur = document.createElement("span");
-  dur.className = "duration";
-  dur.textContent = duration;
-  header.appendChild(playIcon);
-  header.appendChild(label);
-  header.appendChild(dur);
+  dur.className = "dw-duration";
+  dur.textContent = formatDuration(part.endMs - part.startMs);
+  thumb.appendChild(dur);
 
-  const thumb = document.createElement("video");
-  thumb.src = `${part.mp4Url}#t=${startSec}`;
-  thumb.setAttribute("preload", "metadata");
-  thumb.setAttribute("playsinline", "");
-  thumb.muted = true;
+  const foot = document.createElement("span");
+  foot.className = "dw-card-foot";
+  const dot = document.createElement("span");
+  dot.className = "dw-tour-dot";
+  const label = document.createElement("span");
+  label.className = "dw-card-label";
+  label.textContent = part.caption;
+  foot.appendChild(dot);
+  foot.appendChild(label);
 
   card.addEventListener("click", () => onPlay(part));
 
-  card.appendChild(header);
   card.appendChild(thumb);
+  card.appendChild(foot);
   return card;
 }

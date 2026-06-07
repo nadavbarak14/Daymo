@@ -11,6 +11,9 @@ export type SupportedLocale = "en" | "es" | "fr" | "de" | "ja" | "pt" | "zh-CN" 
 
 export interface StringBundle {
   greeting: string;
+  greetingSub: string;
+  subtitle: string;
+  footerNote: string;
   inputPlaceholder: string;
   send: string;
   open: string;

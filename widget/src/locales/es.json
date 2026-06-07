@@ -10,5 +10,8 @@
   "upstreamErrorMessage": "No pude contactar al asistente. Intenta de nuevo.",
   "noMatchPrefix": "No tengo eso en las demos. Prueba:",
   "notConfiguredMessage": "Este widget de ayuda no está configurado.",
-  "caption": "Subtítulo"
+  "caption": "Subtítulo",
+  "subtitle": "Asistente de ayuda",
+  "greetingSub": "Haz una pregunta y te llevaré al momento exacto de un breve tutorial.",
+  "footerNote": "Respuestas en forma de clips — con tecnología de"
 }
