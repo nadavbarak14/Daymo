@@ -54,6 +54,14 @@ export function createPlayer(doc: Document, strings: HelpCenterStrings): Player 
   let opener: Element | null = null;
   let scrollLocked = false;
   let prevOverflow = "";
+  let pendingSeek: (() => void) | null = null;
+
+  function clearPendingSeek(): void {
+    if (pendingSeek) {
+      video.removeEventListener("loadedmetadata", pendingSeek);
+      pendingSeek = null;
+    }
+  }
 
   video.addEventListener("seeking", () => {
     if (programmaticSeek) programmaticSeek = false;
@@ -83,15 +91,22 @@ export function createPlayer(doc: Document, strings: HelpCenterStrings): Player 
    *  loadedmetadata is unreliable). `programmatic` marks the seek so the
    *  seeking handler doesn't treat it as a user seek. */
   function seekWhenReady(startMs: number, programmatic: boolean): void {
+    clearPendingSeek();
     const apply = () => {
+      pendingSeek = null;
       programmaticSeek = programmatic;
       video.currentTime = startMs / 1000;
     };
     if (video.readyState >= 1) apply();
-    else video.addEventListener("loadedmetadata", apply, { once: true });
+    else {
+      pendingSeek = apply;
+      video.addEventListener("loadedmetadata", apply, { once: true });
+    }
   }
 
   function open(d: ManifestDemo, cue?: PlayerCue): void {
+    if (modal.classList.contains("open")) close();
+    clearPendingSeek();
     demo = d;
     titleEl.textContent = d.title;
     video.src = d.videoUrl;
@@ -134,6 +149,7 @@ export function createPlayer(doc: Document, strings: HelpCenterStrings): Player 
   function close(): void {
     if (!modal.classList.contains("open")) return;
     video.pause();
+    clearPendingSeek();
     clipEndMs = null;
     modal.classList.remove("open");
     if (scrollLocked) {

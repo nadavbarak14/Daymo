@@ -131,6 +131,19 @@ describe("createPlayer", () => {
     expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
   });
 
+  it("re-open before metadata loads cancels the previous pending cue seek", () => {
+    const other: ManifestDemo = { ...demo, demoId: "e", title: "Other", videoUrl: "https://cdn/e.mp4" };
+    const player = createPlayer(document, DEFAULT_STRINGS);
+    player.open(demo, { startMs: 30000, endMs: 40000 });
+    player.open(other); // metadata for the first never loaded
+    vi.mocked(HTMLMediaElement.prototype.pause).mockClear();
+    const video = document.body.querySelector("video")!;
+    setMetadataLoaded(video);
+    expect(video.currentTime).toBe(0); // stale 30s seek must NOT fire
+    playTo(video, 41);
+    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled(); // stale endMs gone too
+  });
+
   it("Escape closes: pauses, unlocks scroll, restores focus to the opener", () => {
     const opener = document.createElement("button");
     document.body.appendChild(opener);
