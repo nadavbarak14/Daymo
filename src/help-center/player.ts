@@ -26,20 +26,9 @@ export interface Player {
 export function createPlayer(doc: Document, strings: HelpCenterStrings): Player {
   const modal = doc.createElement("div");
   modal.className = "daymo-help-modal";
-  modal.innerHTML =
-    `<div class="daymo-help-player" role="dialog" aria-modal="true">` +
-    `<div class="daymo-help-player-top">` +
-    `<h3 class="daymo-help-player-title"></h3>` +
-    `<button type="button" class="daymo-help-player-close">${ICONS.close}</button>` +
-    `</div>` +
-    `<div class="daymo-help-player-body">` +
-    `<div class="daymo-help-stage"><video controls playsinline></video></div>` +
-    `<div class="daymo-help-steps">` +
-    `<div class="daymo-help-steps-h"></div>` +
-    `<div class="daymo-help-steps-list"></div>` +
-    `</div>` +
-    `</div>` +
-    `</div>`;
+  // Single template literal on purpose — `+`-chained template operands get
+  // mis-folded by SWC/Turbopack minification (see the note in mount.ts).
+  modal.innerHTML = `<div class="daymo-help-player" role="dialog" aria-modal="true"><div class="daymo-help-player-top"><h3 class="daymo-help-player-title"></h3><button type="button" class="daymo-help-player-close">${ICONS.close}</button></div><div class="daymo-help-player-body"><div class="daymo-help-stage"><video controls playsinline></video></div><div class="daymo-help-steps"><div class="daymo-help-steps-h"></div><div class="daymo-help-steps-list"></div></div></div></div>`;
 
   const titleEl = modal.querySelector(".daymo-help-player-title") as HTMLElement;
   const closeBtn = modal.querySelector(".daymo-help-player-close") as HTMLButtonElement;

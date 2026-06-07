@@ -89,22 +89,12 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   const hero = doc.createElement("section");
   hero.className = "daymo-help-hero";
-  hero.innerHTML =
-    `<div class="daymo-help-hero-bg"></div>` +
-    `<div class="daymo-help-wrap">` +
-    `<span class="daymo-help-eyebrow"><span class="daymo-help-dot"></span><span class="daymo-help-eyebrow-tx"></span></span>` +
-    `<h1 class="daymo-help-h1"></h1>` +
-    `<p class="daymo-help-lede"></p>` +
-    `<div class="daymo-help-ask">` +
-    `<form class="daymo-help-askbar">` +
-    `<span class="daymo-help-lead">${ICONS.search}</span>` +
-    `<input class="daymo-help-input" type="text" />` +
-    `<button class="daymo-help-send" type="submit"><span class="daymo-help-send-tx"></span>${ICONS.arrow}</button>` +
-    `</form>` +
-    `<div class="daymo-help-suggest" hidden><span class="daymo-help-suggest-lbl"></span></div>` +
-    `</div>` +
-    `<div class="daymo-help-thread" aria-live="polite"></div>` +
-    `</div>`;
+  // Single template literal on purpose: concatenating template-literal
+  // operands with `+` trips a constant-folding bug in SWC/Turbopack
+  // minification (Next 16) that silently DROPS a non-interpolated operand
+  // sandwiched between interpolated ones — the `<input>` vanished from the
+  // production bundle. Same for every innerHTML below.
+  hero.innerHTML = `<div class="daymo-help-hero-bg"></div><div class="daymo-help-wrap"><span class="daymo-help-eyebrow"><span class="daymo-help-dot"></span><span class="daymo-help-eyebrow-tx"></span></span><h1 class="daymo-help-h1"></h1><p class="daymo-help-lede"></p><div class="daymo-help-ask"><form class="daymo-help-askbar"><span class="daymo-help-lead">${ICONS.search}</span><input class="daymo-help-input" type="text" /><button class="daymo-help-send" type="submit"><span class="daymo-help-send-tx"></span>${ICONS.arrow}</button></form><div class="daymo-help-suggest" hidden><span class="daymo-help-suggest-lbl"></span></div></div><div class="daymo-help-thread" aria-live="polite"></div></div>`;
   q(hero, ".daymo-help-eyebrow-tx").textContent = strings.eyebrow;
   q(hero, ".daymo-help-h1").textContent = strings.heroTitle;
   q(hero, ".daymo-help-lede").textContent = strings.lede;
@@ -133,11 +123,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   const gallerySec = doc.createElement("section");
   gallerySec.className = "daymo-help-section";
   gallerySec.hidden = true; // shown when the manifest yields demos
-  gallerySec.innerHTML =
-    `<div class="daymo-help-wrap">` +
-    `<div class="daymo-help-sec-head"><div><h2></h2><p></p></div></div>` +
-    `<div class="daymo-help-gallery"></div>` +
-    `</div>`;
+  gallerySec.innerHTML = `<div class="daymo-help-wrap"><div class="daymo-help-sec-head"><div><h2></h2><p></p></div></div><div class="daymo-help-gallery"></div></div>`;
   q(gallerySec, "h2").textContent = strings.galleryHeading;
   q(gallerySec, ".daymo-help-sec-head p").textContent = strings.gallerySub;
   const gallery = q(gallerySec, ".daymo-help-gallery");
@@ -147,17 +133,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     btn.type = "button";
     btn.className = "daymo-help-card";
     btn.setAttribute("data-demo-id", card.demoId);
-    btn.innerHTML =
-      `<span class="daymo-help-poster">` +
-      `<img alt="" />` +
-      `<span class="daymo-help-play">${ICONS.play}</span>` +
-      `<span class="daymo-help-dur"></span>` +
-      `</span>` +
-      `<span class="daymo-help-card-meta">` +
-      `<span class="daymo-help-card-title"></span>` +
-      `<span class="daymo-help-card-desc"></span>` +
-      `<span class="daymo-help-card-foot">${ICONS.clock}<span></span></span>` +
-      `</span>`;
+    btn.innerHTML = `<span class="daymo-help-poster"><img alt="" /><span class="daymo-help-play">${ICONS.play}</span><span class="daymo-help-dur"></span></span><span class="daymo-help-card-meta"><span class="daymo-help-card-title"></span><span class="daymo-help-card-desc"></span><span class="daymo-help-card-foot">${ICONS.clock}<span></span></span></span>`;
     q<HTMLImageElement>(btn, "img").src = card.posterUrl;
     q(btn, ".daymo-help-dur").textContent = card.durationLabel;
     q(btn, ".daymo-help-card-title").textContent = card.title;
@@ -191,16 +167,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   if (chrome) {
     appbar = doc.createElement("header");
     appbar.className = "daymo-help-appbar";
-    appbar.innerHTML =
-      `<div class="daymo-help-appbar-in">` +
-      `<div class="daymo-help-brand"><span class="daymo-help-nm"></span></div>` +
-      `<span class="daymo-help-spacer"></span>` +
-      `<nav class="daymo-help-nav">` +
-      `<a class="daymo-help-nav-link daymo-help-nav-browse" href="#" hidden></a>` +
-      `<a class="daymo-help-nav-link daymo-help-nav-ask" href="#"></a>` +
-      `</nav>` +
-      `<a class="daymo-help-btn daymo-help-contact" hidden>${ICONS.contact}<span></span></a>` +
-      `</div>`;
+    appbar.innerHTML = `<div class="daymo-help-appbar-in"><div class="daymo-help-brand"><span class="daymo-help-nm"></span></div><span class="daymo-help-spacer"></span><nav class="daymo-help-nav"><a class="daymo-help-nav-link daymo-help-nav-browse" href="#" hidden></a><a class="daymo-help-nav-link daymo-help-nav-ask" href="#"></a></nav><a class="daymo-help-btn daymo-help-contact" hidden>${ICONS.contact}<span></span></a></div>`;
     const brand = q(appbar, ".daymo-help-brand");
     brand.insertBefore(brandMark("daymo-help-mk", opts.logoUrl), brand.firstChild);
     const nm = q(appbar, ".daymo-help-nm");
@@ -232,14 +199,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
     footer = doc.createElement("footer");
     footer.className = "daymo-help-footer";
-    footer.innerHTML =
-      `<div class="daymo-help-footer-in">` +
-      `<div class="daymo-help-foot-links">` +
-      `<a class="daymo-help-foot-all" href="#" hidden></a>` +
-      `<a class="daymo-help-foot-contact" hidden></a>` +
-      `</div>` +
-      `<span class="daymo-help-built"><span class="daymo-help-mk">${ICONS.logo}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></span>` +
-      `</div>`;
+    footer.innerHTML = `<div class="daymo-help-footer-in"><div class="daymo-help-foot-links"><a class="daymo-help-foot-all" href="#" hidden></a><a class="daymo-help-foot-contact" hidden></a></div><span class="daymo-help-built"><span class="daymo-help-mk">${ICONS.logo}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></span></div>`;
     footAll = q<HTMLAnchorElement>(footer, ".daymo-help-foot-all");
     footAll.textContent = strings.footAllVideos;
     footAll.addEventListener("click", jumpGallery);
@@ -268,14 +228,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
     const qa = doc.createElement("div");
     qa.className = "daymo-help-qa";
-    qa.innerHTML =
-      `<div class="daymo-help-q-row"><div class="daymo-help-q-bubble"></div></div>` +
-      `<div class="daymo-help-a-row">` +
-      `<div class="daymo-help-a-body">` +
-      `<div class="daymo-help-a-name"><span class="daymo-help-a-nm"></span><span class="daymo-help-a-tag"></span></div>` +
-      `<div class="daymo-help-a-text"><span class="daymo-help-typing"><i></i><i></i><i></i></span></div>` +
-      `</div>` +
-      `</div>`;
+    qa.innerHTML = `<div class="daymo-help-q-row"><div class="daymo-help-q-bubble"></div></div><div class="daymo-help-a-row"><div class="daymo-help-a-body"><div class="daymo-help-a-name"><span class="daymo-help-a-nm"></span><span class="daymo-help-a-tag"></span></div><div class="daymo-help-a-text"><span class="daymo-help-typing"><i></i><i></i><i></i></span></div></div></div>`;
     q(qa, ".daymo-help-q-bubble").textContent = message;
     const aRow = q(qa, ".daymo-help-a-row");
     aRow.insertBefore(brandMark("daymo-help-a-av", opts.logoUrl), aRow.firstChild);
@@ -371,12 +324,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const clip = doc.createElement("button");
     clip.type = "button";
     clip.className = "daymo-help-clip";
-    clip.innerHTML =
-      `<span class="daymo-help-clip-thumb"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span></span>` +
-      `<span class="daymo-help-clip-ci">` +
-      `<span class="daymo-help-clip-cap"></span>` +
-      `<span class="daymo-help-clip-sub"><b></b></span>` +
-      `</span>`;
+    clip.innerHTML = `<span class="daymo-help-clip-thumb"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span></span><span class="daymo-help-clip-ci"><span class="daymo-help-clip-cap"></span><span class="daymo-help-clip-sub"><b></b></span></span>`;
     q<HTMLImageElement>(clip, "img").src = demo.posterUrl;
     q(clip, ".daymo-help-clip-cap").textContent = part.caption;
     const sub = q(clip, ".daymo-help-clip-sub");
