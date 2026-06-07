@@ -10,7 +10,7 @@ project gets the full page with two lines:
 
 ```tsx
 import "daymo/help-center.css";
-<HelpCenter manifestUrl="/help/index.json" chatEndpoint="/api/help/chat" />
+<HelpCenter manifestUrl="/help/manifest.json" chatEndpoint="/api/help/chat" />
 ```
 
 There are no existing consumers to stay compatible with; optimize for easy

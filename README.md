@@ -223,7 +223,7 @@ import "daymo/help-center.css";
 export default function HelpPage() {
   return (
     <HelpCenter
-      manifestUrl="/help/index.json"
+      manifestUrl="/help/manifest.json"
       chatEndpoint="/api/help/chat"
       name="Acme"
       brandColor="#0ea5e9"
