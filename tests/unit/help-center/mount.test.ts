@@ -62,7 +62,7 @@ function mount(extra: Record<string, unknown> = {}, fetchImpl?: typeof fetch) {
   return { container, unmount };
 }
 
-async function askQuestion(container: HTMLElement, text: string) {
+function askQuestion(container: HTMLElement, text: string): void {
   const input = container.querySelector<HTMLInputElement>(".daymo-help-input")!;
   const form = container.querySelector("form")!;
   input.value = text;
@@ -129,7 +129,7 @@ describe("mountHelpCenter — page & options", () => {
     const { container } = mount({ logoUrl: "https://acme.io/logo.png" });
     const mk = container.querySelector(".daymo-help-mk img") as HTMLImageElement;
     expect(mk?.src).toContain("logo.png");
-    await askQuestion(container, "hi");
+    askQuestion(container, "hi");
     await vi.waitFor(() => {
       const av = container.querySelector(".daymo-help-a-av img") as HTMLImageElement;
       expect(av?.src).toContain("logo.png");
@@ -181,7 +181,7 @@ describe("mountHelpCenter — chat", () => {
     };
     const { container } = mount({}, makeFetch({ chat }));
     await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
-    await askQuestion(container, "how do I create a note");
+    askQuestion(container, "how do I create a note");
     expect(container.querySelector(".daymo-help-typing")).toBeTruthy();
     await vi.waitFor(() => {
       expect(container.textContent).toContain("Here is how.");
@@ -205,7 +205,7 @@ describe("mountHelpCenter — chat", () => {
       ],
     };
     const { container } = mount({}, makeFetch({ chat }));
-    await askQuestion(container, "q");
+    askQuestion(container, "q");
     await vi.waitFor(() => {
       const video = container.querySelector<HTMLVideoElement>(".daymo-help-thread video");
       expect(video?.src).toContain("x.mp4#t=1,5");
@@ -216,7 +216,7 @@ describe("mountHelpCenter — chat", () => {
     const chat: ChatResponse = { kind: "no_match", text: "Nothing found.", suggestions: ["Try this"] };
     const calls: unknown[] = [];
     const { container } = mount({ suggestedQuestions: ["Opt A"] }, makeFetch({ chat }, calls));
-    await askQuestion(container, "zzz");
+    askQuestion(container, "zzz");
     await vi.waitFor(() => expect(container.textContent).toContain("Nothing found."));
     const chips = container.querySelectorAll<HTMLButtonElement>(".daymo-help-a-chips .daymo-help-chip");
     expect(chips).toHaveLength(1);
@@ -231,7 +231,7 @@ describe("mountHelpCenter — chat", () => {
   it("no_match falls back to the suggestedQuestions option when the server sends none", async () => {
     const chat: ChatResponse = { kind: "no_match", text: "Nothing found." };
     const { container } = mount({ suggestedQuestions: ["Opt A", "Opt B"] }, makeFetch({ chat }));
-    await askQuestion(container, "zzz");
+    askQuestion(container, "zzz");
     await vi.waitFor(() => {
       expect(container.querySelectorAll(".daymo-help-a-chips .daymo-help-chip")).toHaveLength(2);
     });
@@ -241,18 +241,18 @@ describe("mountHelpCenter — chat", () => {
     const calls: { message: string; history: unknown[] }[] = [];
     const chat: ChatResponse = { kind: "answer", parts: [{ kind: "text", text: "A1" }] };
     const { container } = mount({}, makeFetch({ chat }, calls));
-    await askQuestion(container, "q1");
+    askQuestion(container, "q1");
     await vi.waitFor(() => expect(calls).toHaveLength(1));
     expect(calls[0].history).toEqual([]);
     await vi.waitFor(() => expect(container.textContent).toContain("A1"));
-    await askQuestion(container, "q2");
+    askQuestion(container, "q2");
     await vi.waitFor(() => expect(calls).toHaveLength(2));
     expect(calls[1].history).toEqual([
       { role: "user", content: "q1" },
       { role: "assistant", content: "A1" },
     ]);
     await vi.waitFor(() => expect(container.querySelectorAll(".daymo-help-qa")).toHaveLength(2));
-    await askQuestion(container, "q3");
+    askQuestion(container, "q3");
     await vi.waitFor(() => expect(calls).toHaveLength(3));
     // last 2 of [q1,A1,q2,A2] => [q2, A2]
     expect(calls[2].history).toEqual([
@@ -269,12 +269,70 @@ describe("mountHelpCenter — chat", () => {
       throw new Error("down");
     }) as unknown as typeof fetch;
     const { container } = mount({}, failing);
-    await askQuestion(container, "q");
+    askQuestion(container, "q");
     await vi.waitFor(() => {
       expect(container.querySelector(".daymo-help-error")?.textContent).toBe(
         "Couldn't reach the assistant. Try again.",
       );
     });
+  });
+
+  it("renders HTML-special content from the server and manifest as inert text", async () => {
+    const hostile: HelpManifest = {
+      version: "v1",
+      videoBaseUrl: "x",
+      demos: [
+        {
+          ...manifest.demos[0],
+          title: '<img src=x onerror="window.__pwned=1">',
+          description: "<b>desc</b>",
+        },
+      ],
+    };
+    const chat: ChatResponse = {
+      kind: "answer",
+      parts: [{ kind: "text", text: '<script>window.__pwned=1</script>' }],
+    };
+    const { container } = mount({ name: "<i>Acme</i>" }, makeFetch({ chat, manifestData: hostile }));
+    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
+    askQuestion(container, "<u>q</u>");
+    await vi.waitFor(() => expect(container.textContent).toContain("window.__pwned")); // rendered as text
+    expect(container.querySelector(".daymo-help-card img[src='x']")).toBeNull();
+    expect(container.querySelector(".daymo-help-card-desc b")).toBeNull();
+    expect(container.querySelector(".daymo-help-q-bubble u")).toBeNull();
+    expect(container.querySelector(".daymo-help-a-text script")).toBeNull();
+    expect(container.querySelector(".daymo-help-nm i")).toBeNull();
+    expect((window as unknown as { __pwned?: number }).__pwned).toBeUndefined();
+    expect(container.querySelector(".daymo-help-card-title")?.textContent).toContain("onerror");
+  });
+
+  it("serializes concurrent asks: the second request waits for the first answer", async () => {
+    const calls: { message: string; history: unknown[] }[] = [];
+    let resolveFirst!: (r: Response) => void;
+    const first = new Promise<Response>((res) => (resolveFirst = res));
+    let chatCount = 0;
+    const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).includes("manifest.json")) {
+        return new Response(JSON.stringify(manifest), { status: 200 });
+      }
+      calls.push(JSON.parse(String(init?.body)));
+      chatCount += 1;
+      if (chatCount === 1) return first; // hold the first answer open
+      return new Response(JSON.stringify({ kind: "answer", parts: [{ kind: "text", text: "A2" }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const { container } = mount({}, fetchImpl);
+    askQuestion(container, "q1");
+    askQuestion(container, "q2"); // fired while q1 is still in flight
+    await vi.waitFor(() => expect(calls).toHaveLength(1)); // q2 must NOT dispatch yet
+    expect(calls[0].message).toBe("q1");
+    resolveFirst(new Response(JSON.stringify({ kind: "answer", parts: [{ kind: "text", text: "A1" }] }), { status: 200 }));
+    await vi.waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1].message).toBe("q2");
+    expect(calls[1].history).toEqual([
+      { role: "user", content: "q1" },
+      { role: "assistant", content: "A1" },
+    ]);
   });
 });
 

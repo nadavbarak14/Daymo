@@ -55,6 +55,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   const demosById = new Map<string, ManifestDemo>();
   const history: Turn[] = [];
+  let cancelled = false;
   // Chat turns are dispatched one at a time so each request's history reflects
   // the previous answer.
   let pending: Promise<unknown> = Promise.resolve();
@@ -300,8 +301,12 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
           body: payload,
         })
           .then((r) => r.json() as Promise<ChatResponse>)
-          .then((resp) => renderResponse(body, resp))
+          .then((resp) => {
+            if (cancelled) return;
+            renderResponse(body, resp);
+          })
           .catch(() => {
+            if (cancelled) return;
             body.textContent = "";
             const err = doc.createElement("p");
             err.className = "daymo-help-error";
@@ -309,7 +314,6 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
             body.appendChild(err);
           });
       });
-    void pending;
   }
 
   function renderResponse(body: HTMLElement, resp: ChatResponse): void {
@@ -386,7 +390,6 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   /* ---------- manifest load ---------- */
 
-  let cancelled = false;
   void fetchFn(opts.manifestUrl)
     .then((r) => r.json() as Promise<HelpManifest>)
     .then((manifest) => {
