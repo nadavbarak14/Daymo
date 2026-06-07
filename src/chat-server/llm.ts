@@ -125,7 +125,11 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
       schema: ChatResponseSchema,
       system: answerSystem(input.locale),
       prompt: userBlock,
-      maxTokens: 1024,
+      // Headroom matters: a truncated generation is unparseable JSON, which
+      // surfaces as a hard "couldn't construct an answer" refusal. A full
+      // 6-part answer (3 clips + intros) plus the model's reasoning tokens
+      // can exceed 1k tokens with k=8 retrieved chunks.
+      maxTokens: 4096,
       temperature: 0.2,
     });
     return object as ChatResponse;
