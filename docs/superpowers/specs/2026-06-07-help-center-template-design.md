@@ -105,6 +105,24 @@ Full design CSS, adapted:
 - Selection tint, sticky-bar blur, hover lift on cards, `prefers-reduced-motion`
   guard on the thread rise animation — all kept from the design.
 
+## Customization story (agent-friendly by design)
+
+Consumers have coding agents; the template leans on that instead of growing
+option knobs:
+
+- **Behavior lives in Daymo** (mount, chat, player, manifest wiring) — never
+  forked, upgraded via the package.
+- **Looks live entirely in the stylesheet**: stable `daymo-help-*` class names
+  on every element and `--daymo-*` custom properties for all colors/radii/
+  shadows/spacing. A project either imports `daymo/help-center.css` as-is,
+  overrides a few vars, or **copies the file into its repo and owns it** — an
+  agent can restyle it to match the host site with zero functional risk.
+- Options exist only for content CSS can't express (brand name, logo, chat
+  endpoint, suggested questions…). No layout/variant options.
+- README gains a "Making it match your product" section: set `brandColor` for
+  90% of cases; copy the stylesheet and let your coding agent restyle for the
+  rest.
+
 ## Files touched
 
 - `src/help-center/mount.ts` — rewrite render (same exported signature shape,
