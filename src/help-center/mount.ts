@@ -71,6 +71,12 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   /* ---------- small DOM helpers ---------- */
 
+  // NOTE: every innerHTML string below is a single template literal, never a
+  // "+"-chain of literals. Concatenating template-literal operands with "+"
+  // trips a constant-folding bug in SWC/Turbopack minification (Next 16) that
+  // silently DROPS a non-interpolated operand sandwiched between interpolated
+  // ones — it blanked the page in a consumer's production build. Keep them
+  // single literals.
   function el(tag: string, cls?: string, html?: string): HTMLElement {
     const n = doc.createElement(tag);
     if (cls) n.className = cls;
@@ -123,19 +129,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   if (chrome) {
     side = el("aside", "daymo-help-side");
     side.innerHTML =
-      `<div class="daymo-help-side-top">` +
-      `<div class="daymo-help-brand"><span class="daymo-help-brand-tx">` +
-      `<span class="daymo-help-nm"></span><span class="daymo-help-brand-sub"></span>` +
-      `</span></div>` +
-      `<button type="button" class="daymo-help-icon-btn daymo-help-side-collapse">${ICONS.panel}</button>` +
-      `</div>` +
-      `<button type="button" class="daymo-help-new">${ICONS.plus}<span></span></button>` +
-      `<div class="daymo-help-side-search">${ICONS.search}<input class="daymo-help-lib-search" type="text" /></div>` +
-      `<div class="daymo-help-side-scroll">` +
-      `<div class="daymo-help-side-grp-h" hidden><span class="daymo-help-side-grp-tx"></span><span class="daymo-help-side-count"></span></div>` +
-      `<div class="daymo-help-lib"></div>` +
-      `</div>` +
-      `<div class="daymo-help-side-foot"><span class="daymo-help-badge">${ICONS.spark}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></div>`;
+      `<div class="daymo-help-side-top"><div class="daymo-help-brand"><span class="daymo-help-brand-tx"><span class="daymo-help-nm"></span><span class="daymo-help-brand-sub"></span></span></div><button type="button" class="daymo-help-icon-btn daymo-help-side-collapse">${ICONS.panel}</button></div><button type="button" class="daymo-help-new">${ICONS.plus}<span></span></button><div class="daymo-help-side-search">${ICONS.search}<input class="daymo-help-lib-search" type="text" /></div><div class="daymo-help-side-scroll"><div class="daymo-help-side-grp-h" hidden><span class="daymo-help-side-grp-tx"></span><span class="daymo-help-side-count"></span></div><div class="daymo-help-lib"></div></div><div class="daymo-help-side-foot"><span class="daymo-help-badge">${ICONS.spark}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></div>`;
 
     const brand = sq(side, ".daymo-help-brand");
     brand.insertBefore(brandMark("daymo-help-mk", ICONS.logo), brand.firstChild);
@@ -186,10 +180,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   if (chrome) {
     const topbar = el("header", "daymo-help-topbar");
     topbar.innerHTML =
-      `<button type="button" class="daymo-help-icon-btn daymo-help-topbar-menu">${ICONS.menu}</button>` +
-      `<div class="daymo-help-topbar-title"><span class="daymo-help-topbar-title-tx"></span><span class="daymo-help-topbar-title-sub"></span></div>` +
-      `<span class="daymo-help-topbar-sp"></span>` +
-      `<a class="daymo-help-contact" hidden>${ICONS.contact}<span></span></a>`;
+      `<button type="button" class="daymo-help-icon-btn daymo-help-topbar-menu">${ICONS.menu}</button><div class="daymo-help-topbar-title"><span class="daymo-help-topbar-title-tx"></span><span class="daymo-help-topbar-title-sub"></span></div><span class="daymo-help-topbar-sp"></span><a class="daymo-help-contact" hidden>${ICONS.contact}<span></span></a>`;
     sq(topbar, ".daymo-help-topbar-title-tx").textContent = strings.topbarTitle;
     topbarTitleSub = sq(topbar, ".daymo-help-topbar-title-sub");
     topbarTitleSub.textContent = ` · ${strings.topbarWelcome}`;
@@ -221,11 +212,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   const composerDock = el("div", "daymo-help-composer-dock");
   composerDock.hidden = true;
   composerDock.innerHTML =
-    `<div class="daymo-help-composer">` +
-    `<textarea class="daymo-help-composer-input" rows="1"></textarea>` +
-    `<button type="button" class="daymo-help-composer-send">${ICONS.send}</button>` +
-    `</div>` +
-    `<div class="daymo-help-composer-note"></div>`;
+    `<div class="daymo-help-composer"><textarea class="daymo-help-composer-input" rows="1"></textarea><button type="button" class="daymo-help-composer-send">${ICONS.send}</button></div><div class="daymo-help-composer-note"></div>`;
   const composerInput = sq<HTMLTextAreaElement>(composerDock, ".daymo-help-composer-input");
   composerInput.placeholder = strings.composerPlaceholder;
   composerInput.setAttribute("aria-label", strings.composerPlaceholder);
@@ -255,9 +242,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     (r as HTMLButtonElement).type = "button";
     r.dataset.demoId = d.demoId;
     r.innerHTML =
-      `<span class="daymo-help-lib-thumb"><img alt="" /></span>` +
-      `<span class="daymo-help-lib-meta"><span class="daymo-help-lib-title"></span>` +
-      `<span class="daymo-help-lib-sub">${ICONS.play}<span></span></span></span>`;
+      `<span class="daymo-help-lib-thumb"><img alt="" /></span><span class="daymo-help-lib-meta"><span class="daymo-help-lib-title"></span><span class="daymo-help-lib-sub">${ICONS.play}<span></span></span></span>`;
     sq<HTMLImageElement>(r, "img").src = d.posterUrl;
     sq(r, ".daymo-help-lib-title").textContent = d.title;
     sq(r, ".daymo-help-lib-sub span").textContent = durSteps(d);
@@ -309,14 +294,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   function inlineHomePlayer(): HTMLElement {
     const wrap = el("div", "daymo-help-home-player");
     wrap.innerHTML =
-      `<div class="daymo-help-hp-stage">` +
-      `<video class="daymo-help-hp-video" playsinline preload="metadata"></video>` +
-      `<button type="button" class="daymo-help-hp-overlay">${ICONS.play}</button>` +
-      `<div class="daymo-help-hp-bar"><div class="daymo-help-hp-bar-tx">` +
-      `<span class="daymo-help-hp-kicker"></span><span class="daymo-help-hp-title"></span></div>` +
-      `<button type="button" class="daymo-help-hp-expand">${ICONS.expand}<span></span></button></div>` +
-      `</div>` +
-      `<div class="daymo-help-hp-rail"></div>`;
+      `<div class="daymo-help-hp-stage"><video class="daymo-help-hp-video" playsinline preload="metadata"></video><button type="button" class="daymo-help-hp-overlay">${ICONS.play}</button><div class="daymo-help-hp-bar"><div class="daymo-help-hp-bar-tx"><span class="daymo-help-hp-kicker"></span><span class="daymo-help-hp-title"></span></div><button type="button" class="daymo-help-hp-expand">${ICONS.expand}<span></span></button></div></div><div class="daymo-help-hp-rail"></div>`;
 
     const video = sq<HTMLVideoElement>(wrap, ".daymo-help-hp-video");
     const overlay = sq<HTMLButtonElement>(wrap, ".daymo-help-hp-overlay");
@@ -354,8 +332,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       (c as HTMLButtonElement).type = "button";
       c.dataset.demoId = d.demoId;
       c.innerHTML =
-        `<span class="daymo-help-hp-chip-thumb"><img alt="" /><span class="daymo-help-hp-chip-dur"></span></span>` +
-        `<span class="daymo-help-hp-chip-title"></span>`;
+        `<span class="daymo-help-hp-chip-thumb"><img alt="" /><span class="daymo-help-hp-chip-dur"></span></span><span class="daymo-help-hp-chip-title"></span>`;
       sq<HTMLImageElement>(c, "img").src = d.posterUrl;
       sq(c, ".daymo-help-hp-chip-dur").textContent = formatDuration(d.durationMs);
       sq(c, ".daymo-help-hp-chip-title").textContent = d.title;
@@ -375,8 +352,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       el(
         "div",
         "daymo-help-home-greeting",
-        `<div class="daymo-help-eyebrow"><span class="daymo-help-pip"></span><span class="daymo-help-eyebrow-tx"></span></div>` +
-          `<h1 class="daymo-help-h1"></h1><p class="daymo-help-lede"></p>`,
+        `<div class="daymo-help-eyebrow"><span class="daymo-help-pip"></span><span class="daymo-help-eyebrow-tx"></span></div><h1 class="daymo-help-h1"></h1><p class="daymo-help-lede"></p>`,
       ),
     );
     sq(home, ".daymo-help-eyebrow-tx").textContent = strings.eyebrow;
@@ -388,9 +364,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const askbar = el(
       "div",
       "daymo-help-askbar daymo-help-home-ask",
-      `<span class="daymo-help-lead">${ICONS.spark}</span>` +
-        `<textarea class="daymo-help-input" rows="1"></textarea>` +
-        `<button type="button" class="daymo-help-send">${ICONS.arrow}</button>`,
+      `<span class="daymo-help-lead">${ICONS.spark}</span><textarea class="daymo-help-input" rows="1"></textarea><button type="button" class="daymo-help-send">${ICONS.arrow}</button>`,
     );
     sq<HTMLTextAreaElement>(askbar, ".daymo-help-input").placeholder = strings.askPlaceholder;
     sq<HTMLTextAreaElement>(askbar, ".daymo-help-input").setAttribute("aria-label", strings.askPlaceholder);
@@ -447,11 +421,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
     const qa = el("div", "daymo-help-qa");
     qa.innerHTML =
-      `<div class="daymo-help-q-row"><div class="daymo-help-q-bubble"></div></div>` +
-      `<div class="daymo-help-a-row"><div class="daymo-help-a-body">` +
-      `<div class="daymo-help-a-name"><span class="daymo-help-a-nm"></span><span class="daymo-help-a-tag"></span></div>` +
-      `<div class="daymo-help-a-text"><span class="daymo-help-typing"><i></i><i></i><i></i></span></div>` +
-      `</div></div>`;
+      `<div class="daymo-help-q-row"><div class="daymo-help-q-bubble"></div></div><div class="daymo-help-a-row"><div class="daymo-help-a-body"><div class="daymo-help-a-name"><span class="daymo-help-a-nm"></span><span class="daymo-help-a-tag"></span></div><div class="daymo-help-a-text"><span class="daymo-help-typing"><i></i><i></i><i></i></span></div></div></div>`;
     sq(qa, ".daymo-help-q-bubble").textContent = message;
     const aRow = sq(qa, ".daymo-help-a-row");
     aRow.insertBefore(brandMark("daymo-help-a-av", ICONS.spark), aRow.firstChild);
@@ -558,14 +528,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const clip = el("button", "daymo-help-clip");
     (clip as HTMLButtonElement).type = "button";
     clip.innerHTML =
-      `<span class="daymo-help-clip-poster"><img alt="" />` +
-      `<span class="daymo-help-clip-play">${ICONS.play}</span>` +
-      `<span class="daymo-help-clip-dur"></span></span>` +
-      `<span class="daymo-help-clip-ci">` +
-      `<span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span>` +
-      `<span class="daymo-help-clip-cap"></span>` +
-      `<span class="daymo-help-clip-sub"><b></b></span>` +
-      `<span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
+      `<span class="daymo-help-clip-poster"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span><span class="daymo-help-clip-dur"></span></span><span class="daymo-help-clip-ci"><span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span><span class="daymo-help-clip-cap"></span><span class="daymo-help-clip-sub"><b></b></span><span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
     sq<HTMLImageElement>(clip, "img").src = demo.posterUrl;
     sq(clip, ".daymo-help-clip-dur").textContent = formatDuration(part.endMs - part.startMs);
     sq(clip, ".daymo-help-clip-kicker span:last-child").textContent =
@@ -610,11 +573,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       const c = el("button", "daymo-help-rcard");
       (c as HTMLButtonElement).type = "button";
       c.innerHTML =
-        `<span class="daymo-help-rposter"><img alt="" />` +
-        `<span class="daymo-help-rposter-play">${ICONS.play}</span>` +
-        `<span class="daymo-help-rposter-dur"></span></span>` +
-        `<span class="daymo-help-rmeta"><span class="daymo-help-rmeta-title"></span>` +
-        `<span class="daymo-help-rmeta-sub"></span></span>`;
+        `<span class="daymo-help-rposter"><img alt="" /><span class="daymo-help-rposter-play">${ICONS.play}</span><span class="daymo-help-rposter-dur"></span></span><span class="daymo-help-rmeta"><span class="daymo-help-rmeta-title"></span><span class="daymo-help-rmeta-sub"></span></span>`;
       sq<HTMLImageElement>(c, "img").src = d.posterUrl;
       sq(c, ".daymo-help-rposter-dur").textContent = formatDuration(d.durationMs);
       sq(c, ".daymo-help-rmeta-title").textContent = d.title;

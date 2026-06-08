@@ -1,7 +1,7 @@
 import { generateText, generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
-import type { IndexedChunk, ChatResponse } from "../types.js";
+import type { IndexedChunk, ChatResponse, Part } from "../types.js";
 
 const REWRITE_MODEL = "gemini-2.5-flash";
 const ANSWER_MODEL = "gemini-2.5-flash";
@@ -53,10 +53,14 @@ const VideoPartSchema = z.object({
 });
 const PartSchema = z.discriminatedUnion("kind", [TextPartSchema, VideoPartSchema]);
 
+// No .max() on parts: Gemini's structured output does not reliably honor
+// maxItems, so an eager model citing every retrieved chunk used to fail
+// schema validation and surface as a hard refusal. Accept what the model
+// produces and clamp in code (see clampParts).
 const ChatResponseSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("answer"),
-    parts: z.array(PartSchema).min(1).max(6),
+    parts: z.array(PartSchema).min(1),
   }),
   z.object({
     kind: z.literal("no_match"),
@@ -64,6 +68,21 @@ const ChatResponseSchema = z.discriminatedUnion("kind", [
     suggestions: z.array(z.string()).optional(),
   }),
 ]);
+
+const MAX_VIDEO_PARTS = 3;
+
+/** Enforce the product shape the prompt asks for (max 3 clips): keep parts in
+ *  order until the 3rd video part, then stop. Trailing text after the last
+ *  kept clip adds nothing the captions don't already say. */
+function clampParts(parts: Part[]): Part[] {
+  const out: Part[] = [];
+  let videos = 0;
+  for (const p of parts) {
+    out.push(p);
+    if (p.kind === "video" && ++videos >= MAX_VIDEO_PARTS) break;
+  }
+  return out;
+}
 
 function answerSystem(locale: string): string {
   return `You answer product questions using the retrieved demo chunks below. Be brief, accurate, and only describe what the chunks actually show.
@@ -125,10 +144,18 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
       schema: ChatResponseSchema,
       system: answerSystem(input.locale),
       prompt: userBlock,
-      maxTokens: 1024,
+      // Headroom matters: a truncated generation is unparseable JSON, which
+      // surfaces as a hard "couldn't construct an answer" refusal. A full
+      // 6-part answer (3 clips + intros) plus the model's reasoning tokens
+      // can exceed 1k tokens with k=8 retrieved chunks.
+      maxTokens: 4096,
       temperature: 0.2,
     });
-    return object as ChatResponse;
+    const response = object as ChatResponse;
+    if (response.kind === "answer") {
+      return { kind: "answer", parts: clampParts(response.parts) };
+    }
+    return response;
   } catch {
     // Schema mismatch or upstream error → graceful refusal
     return { kind: "no_match", text: "I couldn't construct an answer." };

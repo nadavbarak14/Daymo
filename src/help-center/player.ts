@@ -40,25 +40,11 @@ export function createPlayer(
 ): Player {
   const modal = doc.createElement("div");
   modal.className = "daymo-help-modal";
-  modal.innerHTML =
-    `<div class="daymo-help-player" role="dialog" aria-modal="true">` +
-    `<button type="button" class="daymo-help-player-close">${ICONS.close}</button>` +
-    `<div class="daymo-help-player-main">` +
-    `<div class="daymo-help-stage"><video controls playsinline preload="metadata"></video></div>` +
-    `<aside class="daymo-help-player-aside">` +
-    `<div class="daymo-help-player-head">` +
-    `<div class="daymo-help-player-kicker"><span class="daymo-help-pip"></span><span class="daymo-help-player-kicker-tx"></span></div>` +
-    `<h3 class="daymo-help-player-title"></h3>` +
-    `<p class="daymo-help-player-desc"></p>` +
-    `</div>` +
-    `<div class="daymo-help-player-sec">` +
-    `<div class="daymo-help-steps-h"><span class="daymo-help-steps-h-tx"></span><span class="daymo-help-steps-meta"></span></div>` +
-    `<div class="daymo-help-steps"><div class="daymo-help-steps-list"></div></div>` +
-    `</div>` +
-    `<div class="daymo-help-player-sec daymo-help-queue-sec" hidden></div>` +
-    `</aside>` +
-    `</div>` +
-    `</div>`;
+  // Single template literal on purpose: concatenating template-literal operands
+  // with "+" trips a constant-folding bug in SWC/Turbopack minification (Next
+  // 16) that silently DROPS operands — see the note in mount.ts. Same for every
+  // innerHTML below.
+  modal.innerHTML = `<div class="daymo-help-player" role="dialog" aria-modal="true"><button type="button" class="daymo-help-player-close">${ICONS.close}</button><div class="daymo-help-player-main"><div class="daymo-help-stage"><video controls playsinline preload="metadata"></video></div><aside class="daymo-help-player-aside"><div class="daymo-help-player-head"><div class="daymo-help-player-kicker"><span class="daymo-help-pip"></span><span class="daymo-help-player-kicker-tx"></span></div><h3 class="daymo-help-player-title"></h3><p class="daymo-help-player-desc"></p></div><div class="daymo-help-player-sec"><div class="daymo-help-steps-h"><span class="daymo-help-steps-h-tx"></span><span class="daymo-help-steps-meta"></span></div><div class="daymo-help-steps"><div class="daymo-help-steps-list"></div></div></div><div class="daymo-help-player-sec daymo-help-queue-sec" hidden></div></aside></div></div>`;
 
   const q = <T extends HTMLElement = HTMLElement>(sel: string): T =>
     modal.querySelector(sel) as T;
@@ -203,9 +189,7 @@ export function createPlayer(
       const it = doc.createElement("button");
       it.type = "button";
       it.className = "daymo-help-qitem";
-      it.innerHTML =
-        `<span class="daymo-help-qitem-thumb"><img alt="" /><span class="daymo-help-qitem-dur"></span></span>` +
-        `<span class="daymo-help-qitem-meta"><span class="daymo-help-qitem-title"></span><span class="daymo-help-qitem-sub"></span></span>`;
+      it.innerHTML = `<span class="daymo-help-qitem-thumb"><img alt="" /><span class="daymo-help-qitem-dur"></span></span><span class="daymo-help-qitem-meta"><span class="daymo-help-qitem-title"></span><span class="daymo-help-qitem-sub"></span></span>`;
       (it.querySelector("img") as HTMLImageElement).src = d.posterUrl;
       (it.querySelector(".daymo-help-qitem-dur") as HTMLElement).textContent = formatDuration(d.durationMs);
       (it.querySelector(".daymo-help-qitem-title") as HTMLElement).textContent = d.title;
