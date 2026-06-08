@@ -210,9 +210,13 @@ await page.click("button[type=submit]");
 
 ## The help center page
 
-Daymo ships a full help-center template: a responsive page with an ask bar
-(answers cite the exact video moment), a video-guide gallery, and a player
-with a clickable step timeline.
+Daymo ships a full help-center template — a ChatGPT-style help center: a
+collapsible **sidebar** (searchable video library), a centered **home**
+landing with an inline media player you can watch and populated popular
+searches, a **conversation** thread whose answers are structured (a clip cued
+to the exact moment → a clickable step list → a "related walkthroughs"
+playlist → follow-ups), and a centered **theater** player (video on the left,
+steps + an "up next" queue on the right).
 
 ```tsx
 // app/help/page.tsx
@@ -244,25 +248,34 @@ same page into any element and returns an unmount function.
   on accent surfaces). Dark mode: put `data-daymo-theme="dark"` on any
   ancestor.
 - **Voice / i18n:** every visible string is overridable via `strings`
-  (e.g. `strings={{ galleryHeading: "Tutorials", lede: "…" }}`).
-- **Own layout:** `chrome={false}` drops the appbar, footer and mobile FAB so
-  you can embed the hero + gallery inside your own page shell.
+  (e.g. `strings={{ libraryHeading: "Tutorials", lede: "…" }}`).
+- **Own layout:** `chrome={false}` drops the sidebar + topbar so you can embed
+  the content column (home landing + conversation) inside your own page shell.
 - **Everything else:** copy `node_modules/daymo/styles/help-center.css` into
   your project and let your coding agent restyle it — class names are a
-  stable API and the behavior never depends on the styles. The font stack
-  uses Geist when your app loads it, your system stack otherwise (the
-  stylesheet makes no third-party requests).
+  stable API and the behavior never depends on the styles. Two font stacks
+  drive the look: a UI sans (`--daymo-font`, uses Geist when your app loads
+  it) and a display serif for the headings (`--daymo-font-display`, uses
+  Cormorant Garamond when loaded). Both fall back to the system stack — the
+  stylesheet makes no third-party requests of its own.
 
-Stable class names (the restyling surface): `daymo-help` (root),
-`-appbar`, `-brand`, `-mk`, `-nm`, `-nav-link`, `-contact`, `-hero`,
-`-hero-bg`, `-eyebrow`, `-h1`, `-lede`, `-askbar`, `-input`, `-send`,
-`-suggest`, `-chip`, `-thread`, `-qa`, `-q-bubble`, `-a-av`, `-a-name`,
-`-a-tag`, `-a-text`, `-clip`, `-clip-thumb`, `-clip-cap`, `-clip-sub`,
-`-typing`, `-error`, `-section`, `-sec-head`, `-gallery`, `-card`,
-`-poster`, `-play`, `-dur`, `-card-meta`, `-card-title`, `-card-desc`,
-`-card-foot`, `-footer`, `-foot-links`, `-built`, `-fab`, `-modal`,
-`-player`, `-player-top`, `-player-title`, `-player-close`, `-stage`,
-`-steps`, `-step`, `-step-ix`, `-step-lb` (all prefixed `daymo-help`).
+Stable class names (the restyling surface), all prefixed `daymo-help`:
+- **Shell:** `daymo-help` (root, carries `data-sidebar`), `-side`, `-brand`,
+  `-mk`, `-nm`, `-new`, `-side-search`, `-lib-search`, `-side-grp-h`, `-lib`,
+  `-lib-row`, `-lib-thumb`, `-lib-title`, `-lib-sub`, `-side-foot`, `-main`,
+  `-topbar`, `-topbar-menu`, `-topbar-title`, `-contact`, `-scroll`, `-scrim`.
+- **Home:** `-home`, `-eyebrow`, `-h1`, `-lede`, `-home-player`, `-hp-stage`,
+  `-hp-video`, `-hp-overlay`, `-hp-bar`, `-hp-title`, `-hp-expand`, `-hp-rail`,
+  `-hp-chip`, `-askbar`, `-lead`, `-input`, `-send`, `-suggest`, `-chip`.
+- **Conversation:** `-thread`, `-qa`, `-q-bubble`, `-a-row`, `-a-av`,
+  `-a-name`, `-a-tag`, `-a-text`, `-typing`, `-error`, `-clip`,
+  `-clip-poster`, `-clip-kicker`, `-clip-cap`, `-clip-sub`, `-clip-cta`,
+  `-steps-mirror`, `-mstep`, `-mstep-ix`, `-mstep-lb`, `-related`, `-rcard`,
+  `-followups`, `-fchip`, `-a-chips`, `-a-actions`, `-act-btn`,
+  `-composer-dock`, `-composer`, `-composer-input`, `-composer-send`.
+- **Theater player:** `-modal`, `-player`, `-player-close`, `-player-main`,
+  `-stage`, `-player-aside`, `-player-title`, `-player-desc`, `-steps`,
+  `-step`, `-step-ix`, `-step-lb`, `-queue`, `-qitem`, `-autoplay`.
 
 ## The chat widget template
 

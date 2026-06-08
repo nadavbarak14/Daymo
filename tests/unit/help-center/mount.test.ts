@@ -62,26 +62,34 @@ function mount(extra: Record<string, unknown> = {}, fetchImpl?: typeof fetch) {
   return { container, unmount };
 }
 
+/** Ask via whichever input is on-screen: the home ask bar first, then the
+ *  conversation composer once the thread is open. */
 function askQuestion(container: HTMLElement, text: string): void {
-  const input = container.querySelector<HTMLInputElement>(".daymo-help-input")!;
-  const form = container.querySelector("form")!;
-  input.value = text;
-  form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  const home = container.querySelector<HTMLTextAreaElement>(".daymo-help-input");
+  if (home) {
+    home.value = text;
+    container.querySelector<HTMLButtonElement>(".daymo-help-send")!.click();
+    return;
+  }
+  const composer = container.querySelector<HTMLTextAreaElement>(".daymo-help-composer-input")!;
+  composer.value = text;
+  container.querySelector<HTMLButtonElement>(".daymo-help-composer-send")!.click();
 }
 
-describe("mountHelpCenter — page & options", () => {
-  it("renders chrome (appbar, hero, footer, FAB) with defaults", async () => {
+const libLoaded = (container: HTMLElement) =>
+  vi.waitFor(() => expect(container.querySelector(".daymo-help-lib-row")).toBeTruthy());
+
+describe("mountHelpCenter — shell & options", () => {
+  it("renders the sidebar shell + home landing with defaults", async () => {
     const { container } = mount();
-    expect(container.querySelector(".daymo-help-appbar")).toBeTruthy();
+    expect(container.querySelector(".daymo-help-side")).toBeTruthy();
     expect(container.querySelector(".daymo-help-nm")?.textContent).toBe("Help");
     expect(container.querySelector(".daymo-help-h1")?.textContent).toBe("How can we help?");
-    expect(container.querySelector(".daymo-help-footer")?.textContent).toContain("Built with");
-    expect(container.querySelector(".daymo-help-fab")).toBeTruthy();
+    expect(container.querySelector(".daymo-help-side-foot")?.textContent).toContain("Built with");
+    expect(container.querySelector(".daymo-help-home")).toBeTruthy();
     // contact hidden without contactHref
     expect(container.querySelector<HTMLElement>(".daymo-help-contact")?.hidden).toBe(true);
-    await vi.waitFor(() => {
-      expect(container.querySelector(".daymo-help-card")).toBeTruthy();
-    });
+    await libLoaded(container);
   });
 
   it("wires options through: name, title, brandColor, contactHref, suggestedQuestions", () => {
@@ -107,25 +115,24 @@ describe("mountHelpCenter — page & options", () => {
     expect(container.querySelectorAll(".daymo-help-suggest .daymo-help-chip")).toHaveLength(2);
   });
 
-  it("chrome:false drops appbar, footer and FAB but keeps hero + gallery", async () => {
+  it("chrome:false drops the sidebar + topbar but keeps the home landing", async () => {
     const { container } = mount({ chrome: false });
-    expect(container.querySelector(".daymo-help-appbar")).toBeNull();
-    expect(container.querySelector(".daymo-help-footer")).toBeNull();
-    expect(container.querySelector(".daymo-help-fab")).toBeNull();
-    expect(container.querySelector(".daymo-help-hero")).toBeTruthy();
-    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
+    expect(container.querySelector(".daymo-help-side")).toBeNull();
+    expect(container.querySelector(".daymo-help-topbar")).toBeNull();
+    expect(container.querySelector(".daymo-help-scrim")).toBeNull();
+    expect(container.querySelector(".daymo-help-home")).toBeTruthy();
   });
 
   it("strings overrides replace visible copy", () => {
     const { container } = mount({
-      strings: { galleryHeading: "Tutorials", askPlaceholder: "Frag mich…", lede: "Kurze Videos." },
+      strings: { libraryHeading: "Tutorials", askPlaceholder: "Frag mich…", lede: "Kurze Videos." },
     });
-    expect(container.querySelector(".daymo-help-section h2")?.textContent).toBe("Tutorials");
-    expect(container.querySelector<HTMLInputElement>(".daymo-help-input")?.placeholder).toBe("Frag mich…");
+    expect(container.querySelector(".daymo-help-side-grp-tx")?.textContent).toBe("Tutorials");
+    expect(container.querySelector<HTMLTextAreaElement>(".daymo-help-input")?.placeholder).toBe("Frag mich…");
     expect(container.querySelector(".daymo-help-lede")?.textContent).toBe("Kurze Videos.");
   });
 
-  it("logoUrl replaces the appbar mark and the assistant avatar", async () => {
+  it("logoUrl replaces the sidebar mark and the assistant avatar", async () => {
     const { container } = mount({ logoUrl: "https://acme.io/logo.png" });
     const mk = container.querySelector(".daymo-help-mk img") as HTMLImageElement;
     expect(mk?.src).toContain("logo.png");
@@ -137,36 +144,37 @@ describe("mountHelpCenter — page & options", () => {
   });
 });
 
-describe("mountHelpCenter — gallery", () => {
-  it("renders card buttons from the manifest; click opens the player", async () => {
+describe("mountHelpCenter — library", () => {
+  it("renders library rows from the manifest; click opens the player", async () => {
     const { container } = mount();
-    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
-    const card = container.querySelector<HTMLButtonElement>(".daymo-help-card")!;
-    expect(card.tagName).toBe("BUTTON");
-    expect(card.getAttribute("data-demo-id")).toBe("d");
-    expect(card.textContent).toContain("Create a note");
-    expect(card.textContent).toContain("1:30"); // durationLabel
-    expect(card.textContent).toContain("1 steps");
-    card.click();
+    await libLoaded(container);
+    const row = container.querySelector<HTMLButtonElement>(".daymo-help-lib-row")!;
+    expect(row.getAttribute("data-demo-id")).toBe("d");
+    expect(row.textContent).toContain("Create a note");
+    expect(row.textContent).toContain("1:30"); // durationLabel
+    expect(row.textContent).toContain("1 steps");
+    row.click();
     const modal = document.body.querySelector(".daymo-help-modal")!;
     expect(modal.classList.contains("open")).toBe(true);
     expect(modal.textContent).toContain("Create a note");
   });
 
-  it("hides the gallery section (and jump links) when the manifest is empty", async () => {
+  it("hides the library group heading when the manifest is empty", async () => {
     const empty: HelpManifest = { version: "v1", videoBaseUrl: "x", demos: [] };
     const { container } = mount({}, makeFetch({ manifestData: empty }));
-    await Promise.resolve();
     await vi.waitFor(() => {
-      expect(container.querySelector<HTMLElement>(".daymo-help-section")?.hidden).toBe(true);
+      expect(container.querySelector<HTMLElement>(".daymo-help-side-grp-h")?.hidden).toBe(true);
     });
+    expect(container.querySelector(".daymo-help-lib-row")).toBeNull();
   });
 
-  it("hides the gallery section when the manifest fetch fails", async () => {
+  it("leaves the library empty when the manifest fetch fails", async () => {
     const { container } = mount({}, makeFetch({ manifestData: null }));
-    await vi.waitFor(() => {
-      expect(container.querySelector<HTMLElement>(".daymo-help-section")?.hidden).toBe(true);
-    });
+    // give the rejected fetch a tick to settle
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(container.querySelector(".daymo-help-lib-row")).toBeNull();
+    expect(container.querySelector<HTMLElement>(".daymo-help-side-grp-h")?.hidden).toBe(true);
   });
 });
 
@@ -180,7 +188,7 @@ describe("mountHelpCenter — chat", () => {
       ],
     };
     const { container } = mount({}, makeFetch({ chat }));
-    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
+    await libLoaded(container);
     askQuestion(container, "how do I create a note");
     expect(container.querySelector(".daymo-help-typing")).toBeTruthy();
     await vi.waitFor(() => {
@@ -291,19 +299,18 @@ describe("mountHelpCenter — chat", () => {
     };
     const chat: ChatResponse = {
       kind: "answer",
-      parts: [{ kind: "text", text: '<script>window.__pwned=1</script>' }],
+      parts: [{ kind: "text", text: "<script>window.__pwned=1</script>" }],
     };
     const { container } = mount({ name: "<i>Acme</i>" }, makeFetch({ chat, manifestData: hostile }));
-    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
+    await libLoaded(container);
     askQuestion(container, "<u>q</u>");
     await vi.waitFor(() => expect(container.textContent).toContain("window.__pwned")); // rendered as text
-    expect(container.querySelector(".daymo-help-card img[src='x']")).toBeNull();
-    expect(container.querySelector(".daymo-help-card-desc b")).toBeNull();
+    expect(container.querySelector(".daymo-help-lib-row img[src='x']")).toBeNull();
     expect(container.querySelector(".daymo-help-q-bubble u")).toBeNull();
     expect(container.querySelector(".daymo-help-a-text script")).toBeNull();
     expect(container.querySelector(".daymo-help-nm i")).toBeNull();
     expect((window as unknown as { __pwned?: number }).__pwned).toBeUndefined();
-    expect(container.querySelector(".daymo-help-card-title")?.textContent).toContain("onerror");
+    expect(container.querySelector(".daymo-help-lib-title")?.textContent).toContain("onerror");
   });
 
   it("serializes concurrent asks: the second request waits for the first answer", async () => {
@@ -323,7 +330,7 @@ describe("mountHelpCenter — chat", () => {
 
     const { container } = mount({}, fetchImpl);
     askQuestion(container, "q1");
-    askQuestion(container, "q2"); // fired while q1 is still in flight
+    askQuestion(container, "q2"); // fired while q1 is still in flight (composer)
     await vi.waitFor(() => expect(calls).toHaveLength(1)); // q2 must NOT dispatch yet
     expect(calls[0].message).toBe("q1");
     resolveFirst(new Response(JSON.stringify({ kind: "answer", parts: [{ kind: "text", text: "A1" }] }), { status: 200 }));
@@ -339,8 +346,8 @@ describe("mountHelpCenter — chat", () => {
 describe("mountHelpCenter — unmount hygiene", () => {
   it("unmount removes the UI and the body-appended modal, restoring scroll", async () => {
     const { container, unmount } = mount();
-    await vi.waitFor(() => expect(container.querySelector(".daymo-help-card")).toBeTruthy());
-    container.querySelector<HTMLButtonElement>(".daymo-help-card")!.click();
+    await libLoaded(container);
+    container.querySelector<HTMLButtonElement>(".daymo-help-lib-row")!.click();
     expect(document.body.style.overflow).toBe("hidden");
     unmount();
     expect(container.querySelector(".daymo-help")).toBeNull();
@@ -351,10 +358,8 @@ describe("mountHelpCenter — unmount hygiene", () => {
   it("two mounts coexist (no ids, no shared state)", async () => {
     const a = mount();
     const b = mount();
-    await vi.waitFor(() => {
-      expect(a.container.querySelector(".daymo-help-card")).toBeTruthy();
-      expect(b.container.querySelector(".daymo-help-card")).toBeTruthy();
-    });
+    await libLoaded(a.container);
+    await libLoaded(b.container);
     a.unmount();
     expect(b.container.querySelector(".daymo-help")).toBeTruthy();
     expect(document.body.querySelectorAll(".daymo-help-modal")).toHaveLength(1);

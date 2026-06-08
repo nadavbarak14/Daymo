@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurelia Help — Daymo help-center template</title>
+  <!-- Optional: load the brand fonts the design used. The stylesheet works
+       without them (system serif/sans fallback); this just matches the mock. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/help-center.css" />
+  <style>
+    html, body { margin: 0; height: 100%; }
+    /* dark-mode toggle button for the demo only */
+    .demo-theme {
+      position: fixed; right: 14px; bottom: 14px; z-index: 200;
+      border: 1px solid #0003; background: #fff; color: #222; border-radius: 999px;
+      padding: 8px 14px; font: 600 12px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 6px 20px -8px #0006;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <button class="demo-theme" id="themeBtn">◐ Dark</button>
+  <script type="module">
+    import { mountHelpCenter } from "/dist/help-center/mount.js";
+
+    mountHelpCenter(document.getElementById("app"), {
+      manifestUrl: "/manifest.json",
+      chatEndpoint: "/chat",
+      name: "Aurelia",
+      brandColor: "#9c7a3c",
+      suggestedQuestions: [
+        "How do I find my ring size?",
+        "Where's my order?",
+        "Can I get a piece engraved?",
+        "What's your return policy?",
+        "How do I add gift wrap?",
+        "How should I clean my gold ring?",
+      ],
+      contactHref: "mailto:support@aurelia.example",
+    });
+
+    // demo-only theme toggle
+    const btn = document.getElementById("themeBtn");
+    btn.addEventListener("click", () => {
+      const on = document.body.getAttribute("data-daymo-theme") === "dark";
+      document.body.setAttribute("data-daymo-theme", on ? "light" : "dark");
+      btn.textContent = on ? "◐ Dark" : "◑ Light";
+    });
+  </script>
+</body>
+</html>

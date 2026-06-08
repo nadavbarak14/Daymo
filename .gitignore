@@ -25,3 +25,6 @@ editor-ui/tailwind.config.js
 /.daymo-chat-data/
 # Music files (BYO)
 /tour-music.mp3
+# Help-center demo media — BYO: drop a sample mp4 + posters here.
+# The demo page + server are committed; the binaries are not.
+/demo/help/assets/
