@@ -1,6 +1,6 @@
 import type { ChatResponse, VideoPart } from "../types.js";
 import type { HelpManifest, ManifestDemo } from "../publish/types.js";
-import { buildGalleryModel, formatDuration, type GalleryCard } from "./gallery-model.js";
+import { formatDuration } from "./gallery-model.js";
 import { DEFAULT_STRINGS, type HelpCenterStrings } from "./strings.js";
 import { createPlayer } from "./player.js";
 import { ICONS } from "./icons.js";
@@ -8,20 +8,21 @@ import { ICONS } from "./icons.js";
 export interface HelpCenterOptions {
   manifestUrl: string;
   chatEndpoint: string;
-  /** Product name in the appbar brand ("Acme Help"). */
+  /** Product name in the sidebar brand ("Acme Help"). */
   name?: string;
-  /** Hero heading; defaults to "How can we help?". */
+  /** Home greeting heading; defaults to "How can we help?". */
   title?: string;
   /** Brand color; set as --daymo-accent (all tints derive from it).
    *  Pair with a --daymo-accent-ink override for light brand colors. */
   brandColor?: string;
-  /** Replaces the appbar mark and the assistant avatar (not the footer badge). */
+  /** Replaces the sidebar brand mark and the assistant avatar (not the footer badge). */
   logoUrl?: string;
-  /** "Popular:" chips under the ask bar; also the no-match fallback. */
+  /** Popular-search chips on the home landing; also the no-match fallback. */
   suggestedQuestions?: string[];
-  /** Shows the appbar Contact button and footer link when set. */
+  /** Shows the topbar Contact link when set. */
   contactHref?: string;
-  /** false drops appbar, footer and the mobile FAB (for hosts with chrome). */
+  /** false drops the sidebar + topbar so the content column (home + thread)
+   *  can be embedded inside a host's own shell. */
   chrome?: boolean;
   /** Override any visible string (brand voice / i18n). */
   strings?: Partial<HelpCenterStrings>;
@@ -31,12 +32,16 @@ export interface HelpCenterOptions {
 
 type Turn = { role: "user" | "assistant"; content: string };
 
-const q = <T extends HTMLElement = HTMLElement>(scope: ParentNode, sel: string): T =>
+const sq = <T extends HTMLElement = HTMLElement>(scope: ParentNode, sel: string): T =>
   scope.querySelector(sel) as T;
 
-/** Render the full help-center page (appbar, hero ask, chat thread, gallery,
- *  player modal, footer) into `container`. Returns an unmount function.
- *  Framework-agnostic vanilla DOM; no ids, no document-level listeners. */
+/** Render the full help-center page — a ChatGPT-style shell: a collapsible
+ *  sidebar (video library + search), a centered home landing with an inline
+ *  media player, a conversation thread with structured video answers, and a
+ *  theater player modal. Returns an unmount function.
+ *
+ *  Framework-agnostic vanilla DOM; no element ids, no document-level listeners
+ *  (so multiple mounts coexist and nothing leaks on unmount). */
 export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions): () => void {
   const doc = container.ownerDocument;
   const fetchFn = opts.fetchImpl ?? fetch;
@@ -46,36 +51,44 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   const root = doc.createElement("div");
   root.className = "daymo-help";
+  root.dataset.sidebar = "open";
 
-  const player = createPlayer(doc, strings);
+  let demos: ManifestDemo[] = [];
+  const demosById = new Map<string, ManifestDemo>();
+
+  const player = createPlayer(doc, strings, { queue: () => demos });
   if (opts.brandColor) {
     root.style.setProperty("--daymo-accent", opts.brandColor);
     player.el.style.setProperty("--daymo-accent", opts.brandColor);
   }
 
-  const demosById = new Map<string, ManifestDemo>();
   const history: Turn[] = [];
+  let messageCount = 0;
   let cancelled = false;
   // Chat turns are dispatched one at a time so each request's history reflects
   // the previous answer.
   let pending: Promise<unknown> = Promise.resolve();
 
-  /* ---------- helpers ---------- */
+  /* ---------- small DOM helpers ---------- */
 
-  function brandMark(cls: string, logoUrl: string | undefined): HTMLElement {
-    const mk = doc.createElement("span");
-    mk.className = cls;
-    if (logoUrl) {
+  function el(tag: string, cls?: string, html?: string): HTMLElement {
+    const n = doc.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+  function brandMark(cls: string, icon: string): HTMLElement {
+    const mk = el("span", cls);
+    if (opts.logoUrl) {
       const img = doc.createElement("img");
-      img.src = logoUrl;
+      img.src = opts.logoUrl;
       img.alt = "";
       mk.appendChild(img);
     } else {
-      mk.innerHTML = ICONS.logo;
+      mk.innerHTML = icon;
     }
     return mk;
   }
-
   function chip(label: string, onClick: () => void): HTMLButtonElement {
     const b = doc.createElement("button");
     b.type = "button";
@@ -84,215 +97,376 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     b.addEventListener("click", onClick);
     return b;
   }
-
-  /* ---------- hero / ask ---------- */
-
-  const hero = doc.createElement("section");
-  hero.className = "daymo-help-hero";
-  hero.innerHTML =
-    `<div class="daymo-help-hero-bg"></div>` +
-    `<div class="daymo-help-wrap">` +
-    `<span class="daymo-help-eyebrow"><span class="daymo-help-dot"></span><span class="daymo-help-eyebrow-tx"></span></span>` +
-    `<h1 class="daymo-help-h1"></h1>` +
-    `<p class="daymo-help-lede"></p>` +
-    `<div class="daymo-help-ask">` +
-    `<form class="daymo-help-askbar">` +
-    `<span class="daymo-help-lead">${ICONS.search}</span>` +
-    `<input class="daymo-help-input" type="text" />` +
-    `<button class="daymo-help-send" type="submit"><span class="daymo-help-send-tx"></span>${ICONS.arrow}</button>` +
-    `</form>` +
-    `<div class="daymo-help-suggest" hidden><span class="daymo-help-suggest-lbl"></span></div>` +
-    `</div>` +
-    `<div class="daymo-help-thread" aria-live="polite"></div>` +
-    `</div>`;
-  q(hero, ".daymo-help-eyebrow-tx").textContent = strings.eyebrow;
-  q(hero, ".daymo-help-h1").textContent = strings.heroTitle;
-  q(hero, ".daymo-help-lede").textContent = strings.lede;
-  const input = q<HTMLInputElement>(hero, ".daymo-help-input");
-  input.placeholder = strings.askPlaceholder;
-  input.setAttribute("aria-label", strings.askButton);
-  q(hero, ".daymo-help-send-tx").textContent = strings.askButton;
-  q(hero, ".daymo-help-send").setAttribute("aria-label", strings.askButton);
-  const thread = q(hero, ".daymo-help-thread");
-
-  const suggest = q(hero, ".daymo-help-suggest");
-  const suggested = opts.suggestedQuestions ?? [];
-  if (suggested.length > 0) {
-    suggest.hidden = false;
-    q(suggest, ".daymo-help-suggest-lbl").textContent = strings.popularLabel;
-    for (const s of suggested) suggest.appendChild(chip(s, () => ask(s)));
+  function durSteps(d: ManifestDemo): string {
+    return `${formatDuration(d.durationMs)} · ${d.steps.length} ${strings.stepsSuffix}`;
+  }
+  function openPlayer(d: ManifestDemo, cue?: { startMs?: number; endMs?: number }): void {
+    player.open(d, { ...cue, autoplay: true });
+    markPlaying(d.demoId);
+    if (chrome && isMobile()) root.dataset.sidebar = "closed";
+  }
+  function isMobile(): boolean {
+    const win = root.ownerDocument.defaultView;
+    return typeof win?.matchMedia === "function"
+      ? win.matchMedia("(max-width: 760px)").matches
+      : false;
   }
 
-  q(hero, ".daymo-help-askbar").addEventListener("submit", (e) => {
-    e.preventDefault();
-    ask(input.value);
-  });
+  /* ---------- shell scaffold ---------- */
 
-  /* ---------- gallery ---------- */
-
-  const gallerySec = doc.createElement("section");
-  gallerySec.className = "daymo-help-section";
-  gallerySec.hidden = true; // shown when the manifest yields demos
-  gallerySec.innerHTML =
-    `<div class="daymo-help-wrap">` +
-    `<div class="daymo-help-sec-head"><div><h2></h2><p></p></div></div>` +
-    `<div class="daymo-help-gallery"></div>` +
-    `</div>`;
-  q(gallerySec, "h2").textContent = strings.galleryHeading;
-  q(gallerySec, ".daymo-help-sec-head p").textContent = strings.gallerySub;
-  const gallery = q(gallerySec, ".daymo-help-gallery");
-
-  function renderCard(card: GalleryCard): HTMLElement {
-    const btn = doc.createElement("button");
-    btn.type = "button";
-    btn.className = "daymo-help-card";
-    btn.setAttribute("data-demo-id", card.demoId);
-    btn.innerHTML =
-      `<span class="daymo-help-poster">` +
-      `<img alt="" />` +
-      `<span class="daymo-help-play">${ICONS.play}</span>` +
-      `<span class="daymo-help-dur"></span>` +
-      `</span>` +
-      `<span class="daymo-help-card-meta">` +
-      `<span class="daymo-help-card-title"></span>` +
-      `<span class="daymo-help-card-desc"></span>` +
-      `<span class="daymo-help-card-foot">${ICONS.clock}<span></span></span>` +
-      `</span>`;
-    q<HTMLImageElement>(btn, "img").src = card.posterUrl;
-    q(btn, ".daymo-help-dur").textContent = card.durationLabel;
-    q(btn, ".daymo-help-card-title").textContent = card.title;
-    q(btn, ".daymo-help-card-desc").textContent = card.description;
-    q(btn, ".daymo-help-card-foot span").textContent =
-      `${card.durationLabel} · ${card.stepCount} ${strings.stepsSuffix}`;
-    btn.addEventListener("click", () => {
-      const demo = demosById.get(card.demoId);
-      if (demo) player.open(demo);
-    });
-    return btn;
-  }
-
-  /* ---------- chrome: appbar / footer / FAB ---------- */
-
-  let appbar: HTMLElement | null = null;
-  let footer: HTMLElement | null = null;
-  let fab: HTMLButtonElement | null = null;
-  let navBrowse: HTMLAnchorElement | null = null;
-  let footAll: HTMLAnchorElement | null = null;
-
-  function focusAsk(): void {
-    hero.scrollIntoView?.({ behavior: "smooth" });
-    input.focus();
-  }
-  function jumpGallery(e: Event): void {
-    e.preventDefault();
-    gallerySec.scrollIntoView?.({ behavior: "smooth" });
-  }
+  let side: HTMLElement | null = null;
+  let libList: HTMLElement | null = null;
+  let libGroupHead: HTMLElement | null = null;
+  let libCount: HTMLElement | null = null;
+  let topbarTitleSub: HTMLElement | null = null;
 
   if (chrome) {
-    appbar = doc.createElement("header");
-    appbar.className = "daymo-help-appbar";
-    appbar.innerHTML =
-      `<div class="daymo-help-appbar-in">` +
-      `<div class="daymo-help-brand"><span class="daymo-help-nm"></span></div>` +
-      `<span class="daymo-help-spacer"></span>` +
-      `<nav class="daymo-help-nav">` +
-      `<a class="daymo-help-nav-link daymo-help-nav-browse" href="#" hidden></a>` +
-      `<a class="daymo-help-nav-link daymo-help-nav-ask" href="#"></a>` +
-      `</nav>` +
-      `<a class="daymo-help-btn daymo-help-contact" hidden>${ICONS.contact}<span></span></a>` +
-      `</div>`;
-    const brand = q(appbar, ".daymo-help-brand");
-    brand.insertBefore(brandMark("daymo-help-mk", opts.logoUrl), brand.firstChild);
-    const nm = q(appbar, ".daymo-help-nm");
+    side = el("aside", "daymo-help-side");
+    side.innerHTML =
+      `<div class="daymo-help-side-top">` +
+      `<div class="daymo-help-brand"><span class="daymo-help-brand-tx">` +
+      `<span class="daymo-help-nm"></span><span class="daymo-help-brand-sub"></span>` +
+      `</span></div>` +
+      `<button type="button" class="daymo-help-icon-btn daymo-help-side-collapse">${ICONS.panel}</button>` +
+      `</div>` +
+      `<button type="button" class="daymo-help-new">${ICONS.plus}<span></span></button>` +
+      `<div class="daymo-help-side-search">${ICONS.search}<input class="daymo-help-lib-search" type="text" /></div>` +
+      `<div class="daymo-help-side-scroll">` +
+      `<div class="daymo-help-side-grp-h" hidden><span class="daymo-help-side-grp-tx"></span><span class="daymo-help-side-count"></span></div>` +
+      `<div class="daymo-help-lib"></div>` +
+      `</div>` +
+      `<div class="daymo-help-side-foot"><span class="daymo-help-badge">${ICONS.spark}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></div>`;
+
+    const brand = sq(side, ".daymo-help-brand");
+    brand.insertBefore(brandMark("daymo-help-mk", ICONS.logo), brand.firstChild);
+    const nm = sq(side, ".daymo-help-nm");
     if (opts.name) {
       nm.textContent = `${opts.name} `;
       const suffix = doc.createElement("span");
       suffix.textContent = strings.brandSuffix;
       nm.appendChild(suffix);
     } else {
-      // No name: "Help" is the primary label (never an empty brand at ≤380px,
-      // where the CSS hides only the suffix span).
       nm.textContent = strings.brandSuffix;
     }
-    navBrowse = q<HTMLAnchorElement>(appbar, ".daymo-help-nav-browse");
-    navBrowse.textContent = strings.navBrowse;
-    navBrowse.addEventListener("click", jumpGallery);
-    const navAsk = q<HTMLAnchorElement>(appbar, ".daymo-help-nav-ask");
-    navAsk.textContent = strings.navAsk;
-    navAsk.addEventListener("click", (e) => {
-      e.preventDefault();
-      focusAsk();
+    sq(side, ".daymo-help-brand-sub").textContent = strings.brandTagline;
+    sq(side, ".daymo-help-new span").textContent = strings.newQuestion;
+    sq<HTMLInputElement>(side, ".daymo-help-lib-search").placeholder = strings.searchGuides;
+    sq(side, ".daymo-help-side-grp-tx").textContent = strings.libraryHeading;
+    sq(side, ".daymo-help-built-tx").textContent = `${strings.builtWith} `;
+    sq(side, ".daymo-help-side-collapse").setAttribute("aria-label", strings.closeLabel);
+
+    libList = sq(side, ".daymo-help-lib");
+    libGroupHead = sq(side, ".daymo-help-side-grp-h");
+    libCount = sq(side, ".daymo-help-side-count");
+
+    const toggle = (): void => {
+      root.dataset.sidebar = root.dataset.sidebar === "open" ? "closed" : "open";
+    };
+    sq(side, ".daymo-help-side-collapse").addEventListener("click", toggle);
+    sq(side, ".daymo-help-new").addEventListener("click", () => {
+      resetChat();
+      if (isMobile()) root.dataset.sidebar = "closed";
     });
-    if (opts.contactHref) {
-      const contact = q<HTMLAnchorElement>(appbar, ".daymo-help-contact");
-      contact.hidden = false;
-      contact.href = opts.contactHref;
-      q(contact, "span").textContent = strings.contactLabel;
-    }
-
-    footer = doc.createElement("footer");
-    footer.className = "daymo-help-footer";
-    footer.innerHTML =
-      `<div class="daymo-help-footer-in">` +
-      `<div class="daymo-help-foot-links">` +
-      `<a class="daymo-help-foot-all" href="#" hidden></a>` +
-      `<a class="daymo-help-foot-contact" hidden></a>` +
-      `</div>` +
-      `<span class="daymo-help-built"><span class="daymo-help-mk">${ICONS.logo}</span><span class="daymo-help-built-tx"></span><b>Daymo</b></span>` +
-      `</div>`;
-    footAll = q<HTMLAnchorElement>(footer, ".daymo-help-foot-all");
-    footAll.textContent = strings.footAllVideos;
-    footAll.addEventListener("click", jumpGallery);
-    q(footer, ".daymo-help-built-tx").textContent = `${strings.builtWith} `;
-    if (opts.contactHref) {
-      const fc = q<HTMLAnchorElement>(footer, ".daymo-help-foot-contact");
-      fc.hidden = false;
-      fc.href = opts.contactHref;
-      fc.textContent = strings.footContact;
-    }
-
-    fab = doc.createElement("button");
-    fab.type = "button";
-    fab.className = "daymo-help-fab";
-    fab.innerHTML = `${ICONS.chat}<span></span>`;
-    q(fab, "span").textContent = strings.fabLabel;
-    fab.addEventListener("click", focusAsk);
+    sq<HTMLInputElement>(side, ".daymo-help-lib-search").addEventListener("input", (e) => {
+      const term = (e.target as HTMLInputElement).value.toLowerCase();
+      libList!.querySelectorAll<HTMLElement>(".daymo-help-lib-row").forEach((rowEl) => {
+        const d = demosById.get(rowEl.dataset.demoId ?? "");
+        const hit =
+          !term ||
+          !d ||
+          d.title.toLowerCase().includes(term) ||
+          d.description.toLowerCase().includes(term);
+        rowEl.style.display = hit ? "" : "none";
+      });
+    });
   }
 
-  /* ---------- chat ---------- */
+  const main = el("div", "daymo-help-main");
+
+  if (chrome) {
+    const topbar = el("header", "daymo-help-topbar");
+    topbar.innerHTML =
+      `<button type="button" class="daymo-help-icon-btn daymo-help-topbar-menu">${ICONS.menu}</button>` +
+      `<div class="daymo-help-topbar-title"><span class="daymo-help-topbar-title-tx"></span><span class="daymo-help-topbar-title-sub"></span></div>` +
+      `<span class="daymo-help-topbar-sp"></span>` +
+      `<a class="daymo-help-contact" hidden>${ICONS.contact}<span></span></a>`;
+    sq(topbar, ".daymo-help-topbar-title-tx").textContent = strings.topbarTitle;
+    topbarTitleSub = sq(topbar, ".daymo-help-topbar-title-sub");
+    topbarTitleSub.textContent = ` · ${strings.topbarWelcome}`;
+    sq(topbar, ".daymo-help-topbar-menu").setAttribute("aria-label", strings.newQuestion);
+    sq(topbar, ".daymo-help-topbar-menu").addEventListener("click", () => {
+      root.dataset.sidebar = root.dataset.sidebar === "open" ? "closed" : "open";
+    });
+    if (opts.contactHref) {
+      const contact = sq<HTMLAnchorElement>(topbar, ".daymo-help-contact");
+      contact.hidden = false;
+      contact.href = opts.contactHref;
+      sq(contact, "span").textContent = strings.contactLabel;
+    }
+    main.appendChild(topbar);
+  }
+
+  const scroll = el("div", "daymo-help-scroll");
+  const content = el("div", "daymo-help-content");
+  scroll.appendChild(content);
+  main.appendChild(scroll);
+
+  // topbar scroll shadow (scoped element listener)
+  scroll.addEventListener("scroll", () => {
+    const top = main.querySelector(".daymo-help-topbar");
+    top?.classList.toggle("scrolled", scroll.scrollTop > 8);
+  });
+
+  // bottom composer (conversation mode)
+  const composerDock = el("div", "daymo-help-composer-dock");
+  composerDock.hidden = true;
+  composerDock.innerHTML =
+    `<div class="daymo-help-composer">` +
+    `<textarea class="daymo-help-composer-input" rows="1"></textarea>` +
+    `<button type="button" class="daymo-help-composer-send">${ICONS.send}</button>` +
+    `</div>` +
+    `<div class="daymo-help-composer-note"></div>`;
+  const composerInput = sq<HTMLTextAreaElement>(composerDock, ".daymo-help-composer-input");
+  composerInput.placeholder = strings.composerPlaceholder;
+  composerInput.setAttribute("aria-label", strings.composerPlaceholder);
+  sq(composerDock, ".daymo-help-composer-send").setAttribute("aria-label", strings.askButton);
+  sq(composerDock, ".daymo-help-composer-note").textContent = strings.composerNote;
+  autogrow(composerInput);
+  const composerSubmit = (): void => {
+    const v = composerInput.value.trim();
+    if (!v) return;
+    composerInput.value = "";
+    composerInput.style.height = "auto";
+    ask(v);
+  };
+  sq(composerDock, ".daymo-help-composer-send").addEventListener("click", composerSubmit);
+  composerInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      composerSubmit();
+    }
+  });
+  main.appendChild(composerDock);
+
+  /* ---------- sidebar library ---------- */
+
+  function libRow(d: ManifestDemo): HTMLElement {
+    const r = el("button", "daymo-help-lib-row");
+    (r as HTMLButtonElement).type = "button";
+    r.dataset.demoId = d.demoId;
+    r.innerHTML =
+      `<span class="daymo-help-lib-thumb"><img alt="" /></span>` +
+      `<span class="daymo-help-lib-meta"><span class="daymo-help-lib-title"></span>` +
+      `<span class="daymo-help-lib-sub">${ICONS.play}<span></span></span></span>`;
+    sq<HTMLImageElement>(r, "img").src = d.posterUrl;
+    sq(r, ".daymo-help-lib-title").textContent = d.title;
+    sq(r, ".daymo-help-lib-sub span").textContent = durSteps(d);
+    r.addEventListener("click", () => openPlayer(d));
+    return r;
+  }
+  function markPlaying(id: string | null): void {
+    libList?.querySelectorAll<HTMLElement>(".daymo-help-lib-row").forEach((r) => {
+      r.classList.toggle("playing", r.dataset.demoId === id);
+    });
+  }
+  function buildLibrary(): void {
+    if (!libList || !libGroupHead || !libCount) return;
+    libList.textContent = "";
+    libGroupHead.hidden = demos.length === 0;
+    libCount.textContent = String(demos.length);
+    for (const d of demos) libList.appendChild(libRow(d));
+  }
+
+  /* ---------- home landing ---------- */
+
+  function autogrow(ta: HTMLTextAreaElement): void {
+    const fit = (): void => {
+      ta.style.height = "auto";
+      ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+    };
+    ta.addEventListener("input", fit);
+  }
+  function wireAsk(askbar: HTMLElement): HTMLTextAreaElement {
+    const ta = sq<HTMLTextAreaElement>(askbar, "textarea");
+    autogrow(ta);
+    const submit = (): void => {
+      const v = ta.value.trim();
+      if (!v) return;
+      ta.value = "";
+      ta.style.height = "auto";
+      ask(v);
+    };
+    sq(askbar, ".daymo-help-send").addEventListener("click", submit);
+    ta.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submit();
+      }
+    });
+    return ta;
+  }
+
+  function inlineHomePlayer(): HTMLElement {
+    const wrap = el("div", "daymo-help-home-player");
+    wrap.innerHTML =
+      `<div class="daymo-help-hp-stage">` +
+      `<video class="daymo-help-hp-video" playsinline preload="metadata"></video>` +
+      `<button type="button" class="daymo-help-hp-overlay">${ICONS.play}</button>` +
+      `<div class="daymo-help-hp-bar"><div class="daymo-help-hp-bar-tx">` +
+      `<span class="daymo-help-hp-kicker"></span><span class="daymo-help-hp-title"></span></div>` +
+      `<button type="button" class="daymo-help-hp-expand">${ICONS.expand}<span></span></button></div>` +
+      `</div>` +
+      `<div class="daymo-help-hp-rail"></div>`;
+
+    const video = sq<HTMLVideoElement>(wrap, ".daymo-help-hp-video");
+    const overlay = sq<HTMLButtonElement>(wrap, ".daymo-help-hp-overlay");
+    const kicker = sq(wrap, ".daymo-help-hp-kicker");
+    const titleEl = sq(wrap, ".daymo-help-hp-title");
+    const expand = sq(wrap, ".daymo-help-hp-expand");
+    const rail = sq(wrap, ".daymo-help-hp-rail");
+    sq(expand, "span").textContent = strings.theaterLabel;
+    let cur = demos[0];
+
+    const play = (): void => {
+      overlay.style.display = "none";
+      video.controls = true;
+      void Promise.resolve(video.play()).catch(() => undefined);
+    };
+    const load = (d: ManifestDemo, autoplay: boolean): void => {
+      cur = d;
+      video.src = d.videoUrl;
+      video.poster = d.posterUrl;
+      video.controls = false;
+      kicker.textContent = strings.featuredLabel;
+      titleEl.textContent = d.title;
+      wrap.querySelectorAll<HTMLElement>(".daymo-help-hp-chip").forEach((c) =>
+        c.classList.toggle("on", c.dataset.demoId === d.demoId),
+      );
+      overlay.style.display = "grid";
+      if (autoplay) play();
+    };
+
+    overlay.addEventListener("click", play);
+    expand.addEventListener("click", () => openPlayer(cur));
+
+    for (const d of demos) {
+      const c = el("button", "daymo-help-hp-chip");
+      (c as HTMLButtonElement).type = "button";
+      c.dataset.demoId = d.demoId;
+      c.innerHTML =
+        `<span class="daymo-help-hp-chip-thumb"><img alt="" /><span class="daymo-help-hp-chip-dur"></span></span>` +
+        `<span class="daymo-help-hp-chip-title"></span>`;
+      sq<HTMLImageElement>(c, "img").src = d.posterUrl;
+      sq(c, ".daymo-help-hp-chip-dur").textContent = formatDuration(d.durationMs);
+      sq(c, ".daymo-help-hp-chip-title").textContent = d.title;
+      c.addEventListener("click", () => load(d, true));
+      rail.appendChild(c);
+    }
+
+    load(demos[0], false);
+    return wrap;
+  }
+
+  function renderHome(): void {
+    content.textContent = "";
+    const home = el("div", "daymo-help-home");
+
+    home.appendChild(
+      el(
+        "div",
+        "daymo-help-home-greeting",
+        `<div class="daymo-help-eyebrow"><span class="daymo-help-pip"></span><span class="daymo-help-eyebrow-tx"></span></div>` +
+          `<h1 class="daymo-help-h1"></h1><p class="daymo-help-lede"></p>`,
+      ),
+    );
+    sq(home, ".daymo-help-eyebrow-tx").textContent = strings.eyebrow;
+    sq(home, ".daymo-help-h1").textContent = strings.heroTitle;
+    sq(home, ".daymo-help-lede").textContent = strings.lede;
+
+    if (demos.length > 0) home.appendChild(inlineHomePlayer());
+
+    const askbar = el(
+      "div",
+      "daymo-help-askbar daymo-help-home-ask",
+      `<span class="daymo-help-lead">${ICONS.spark}</span>` +
+        `<textarea class="daymo-help-input" rows="1"></textarea>` +
+        `<button type="button" class="daymo-help-send">${ICONS.arrow}</button>`,
+    );
+    sq<HTMLTextAreaElement>(askbar, ".daymo-help-input").placeholder = strings.askPlaceholder;
+    sq<HTMLTextAreaElement>(askbar, ".daymo-help-input").setAttribute("aria-label", strings.askPlaceholder);
+    sq(askbar, ".daymo-help-send").setAttribute("aria-label", strings.askButton);
+    home.appendChild(askbar);
+    wireAsk(askbar);
+
+    const suggested = opts.suggestedQuestions ?? [];
+    if (suggested.length > 0) {
+      const sug = el("div", "daymo-help-suggest");
+      sug.appendChild(el("div", "daymo-help-suggest-lbl"));
+      sq(sug, ".daymo-help-suggest-lbl").textContent = strings.popularLabel;
+      const chips = el("div", "daymo-help-suggest-chips");
+      for (const s of suggested) {
+        const c = chip(s, () => ask(s));
+        c.insertAdjacentHTML("afterbegin", ICONS.search);
+        chips.appendChild(c);
+      }
+      sug.appendChild(chips);
+      home.appendChild(sug);
+    }
+
+    content.appendChild(home);
+  }
+
+  /* ---------- conversation thread ---------- */
+
+  let thread: HTMLElement | null = null;
+
+  function switchToConversation(): void {
+    content.textContent = "";
+    thread = el("div", "daymo-help-thread");
+    thread.setAttribute("aria-live", "polite");
+    content.appendChild(thread);
+    composerDock.hidden = false;
+    if (topbarTitleSub) topbarTitleSub.textContent = ` · ${strings.topbarConversation}`;
+  }
+  function resetChat(): void {
+    history.length = 0;
+    messageCount = 0;
+    player.close();
+    markPlaying(null);
+    composerDock.hidden = true;
+    if (topbarTitleSub) topbarTitleSub.textContent = ` · ${strings.topbarWelcome}`;
+    thread = null;
+    renderHome();
+  }
 
   function ask(message: string): void {
     message = message.trim();
     if (!message) return;
-    input.value = "";
+    if (messageCount === 0) switchToConversation();
+    messageCount += 1;
 
-    const qa = doc.createElement("div");
-    qa.className = "daymo-help-qa";
+    const qa = el("div", "daymo-help-qa");
     qa.innerHTML =
       `<div class="daymo-help-q-row"><div class="daymo-help-q-bubble"></div></div>` +
-      `<div class="daymo-help-a-row">` +
-      `<div class="daymo-help-a-body">` +
+      `<div class="daymo-help-a-row"><div class="daymo-help-a-body">` +
       `<div class="daymo-help-a-name"><span class="daymo-help-a-nm"></span><span class="daymo-help-a-tag"></span></div>` +
       `<div class="daymo-help-a-text"><span class="daymo-help-typing"><i></i><i></i><i></i></span></div>` +
-      `</div>` +
-      `</div>`;
-    q(qa, ".daymo-help-q-bubble").textContent = message;
-    const aRow = q(qa, ".daymo-help-a-row");
-    aRow.insertBefore(brandMark("daymo-help-a-av", opts.logoUrl), aRow.firstChild);
-    q(qa, ".daymo-help-a-nm").textContent = strings.assistantName;
-    q(qa, ".daymo-help-a-tag").textContent = strings.assistantTag;
-    thread.appendChild(qa);
+      `</div></div>`;
+    sq(qa, ".daymo-help-q-bubble").textContent = message;
+    const aRow = sq(qa, ".daymo-help-a-row");
+    aRow.insertBefore(brandMark("daymo-help-a-av", ICONS.spark), aRow.firstChild);
+    sq(qa, ".daymo-help-a-nm").textContent = strings.assistantName;
+    sq(qa, ".daymo-help-a-tag").textContent = strings.assistantTag;
+    thread!.appendChild(qa);
     qa.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
 
-    const body = q(qa, ".daymo-help-a-text");
+    const body = sq(qa, ".daymo-help-a-text");
 
     // Serialize turns: dispatch this request only after the previous turn has
-    // settled, so the history we send always reflects the prior answer (turns
-    // stay correctly ordered and the assistant content is present).
+    // settled, so the history we send always reflects the prior answer.
     pending = pending
       .catch(() => {})
       .then(() => {
-        // history sent = turns BEFORE the current message
         const payload = JSON.stringify({ message, history: history.slice(-2) });
         history.push({ role: "user", content: message });
         return fetchFn(opts.chatEndpoint, {
@@ -308,8 +482,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
           .catch(() => {
             if (cancelled) return;
             body.textContent = "";
-            const err = doc.createElement("p");
-            err.className = "daymo-help-error";
+            const err = el("p", "daymo-help-error");
             err.textContent = strings.errorText;
             body.appendChild(err);
           });
@@ -319,8 +492,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   function renderResponse(body: HTMLElement, resp: ChatResponse): void {
     body.textContent = ""; // removes the typing indicator
     if (resp.kind === "no_match") {
-      const p = doc.createElement("p");
-      p.className = "daymo-help-a-p";
+      const p = el("p", "daymo-help-a-p");
       p.textContent = resp.text;
       body.appendChild(p);
       const suggestions =
@@ -328,26 +500,42 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
           ? resp.suggestions
           : (opts.suggestedQuestions ?? []);
       if (suggestions.length > 0) {
-        const row = doc.createElement("div");
-        row.className = "daymo-help-a-chips";
+        const row = el("div", "daymo-help-a-chips");
         for (const s of suggestions) row.appendChild(chip(s, () => ask(s)));
         body.appendChild(row);
       }
+      // a playlist of whatever guides we do have
+      if (demos.length > 0) body.appendChild(relatedPlaylist(demos.slice(0, 8)));
+      body.appendChild(actionRow(resp.text));
       history.push({ role: "assistant", content: resp.text });
       return;
     }
+
     const summary: string[] = [];
+    const cited = new Set<string>();
+    let firstCited: ManifestDemo | undefined;
     for (const part of resp.parts) {
       if (part.kind === "text") {
-        const p = doc.createElement("p");
-        p.className = "daymo-help-a-p";
+        const p = el("p", "daymo-help-a-p");
         p.textContent = part.text;
         body.appendChild(p);
         summary.push(part.text);
       } else {
         body.appendChild(renderVideoPart(part));
+        const d = demosById.get(part.demoId);
+        if (d) {
+          cited.add(d.demoId);
+          firstCited ??= d;
+        }
       }
     }
+    if (firstCited) body.appendChild(stepsMirror(firstCited));
+    const related = demos.filter((d) => !cited.has(d.demoId)).slice(0, 8);
+    if (related.length > 0) body.appendChild(relatedPlaylist(related));
+    const followups = opts.suggestedQuestions ?? [];
+    if (followups.length > 0) body.appendChild(followupRow(followups));
+    body.appendChild(actionRow(summary.join(" ")));
+    scrollDown();
     history.push({ role: "assistant", content: summary.join(" ") });
   }
 
@@ -355,8 +543,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const demo = demosById.get(part.demoId);
     if (!demo) {
       // Manifest not loaded (or unknown demo): inline media-fragment fallback.
-      const wrap = doc.createElement("div");
-      wrap.className = "daymo-help-clip-fallback";
+      const wrap = el("div", "daymo-help-clip-fallback");
       const video = doc.createElement("video");
       video.controls = true;
       video.src = `${part.mp4Url}#t=${part.startMs / 1000},${part.endMs / 1000}`;
@@ -368,24 +555,120 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       }
       return wrap;
     }
-    const clip = doc.createElement("button");
-    clip.type = "button";
-    clip.className = "daymo-help-clip";
+    const clip = el("button", "daymo-help-clip");
+    (clip as HTMLButtonElement).type = "button";
     clip.innerHTML =
-      `<span class="daymo-help-clip-thumb"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span></span>` +
+      `<span class="daymo-help-clip-poster"><img alt="" />` +
+      `<span class="daymo-help-clip-play">${ICONS.play}</span>` +
+      `<span class="daymo-help-clip-dur"></span></span>` +
       `<span class="daymo-help-clip-ci">` +
+      `<span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span>` +
       `<span class="daymo-help-clip-cap"></span>` +
       `<span class="daymo-help-clip-sub"><b></b></span>` +
-      `</span>`;
-    q<HTMLImageElement>(clip, "img").src = demo.posterUrl;
-    q(clip, ".daymo-help-clip-cap").textContent = part.caption;
-    const sub = q(clip, ".daymo-help-clip-sub");
+      `<span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
+    sq<HTMLImageElement>(clip, "img").src = demo.posterUrl;
+    sq(clip, ".daymo-help-clip-dur").textContent = formatDuration(part.endMs - part.startMs);
+    sq(clip, ".daymo-help-clip-kicker span:last-child").textContent =
+      `${strings.clipKicker} · ${strings.clipCuedLabel} ${formatDuration(part.startMs)}`;
+    sq(clip, ".daymo-help-clip-cap").textContent = part.caption;
+    const sub = sq(clip, ".daymo-help-clip-sub");
     sub.insertBefore(doc.createTextNode(`${demo.title} · `), sub.firstChild);
-    q(sub, "b").textContent = `${formatDuration(part.startMs)}–${formatDuration(part.endMs)}`;
+    sq(sub, "b").textContent = `${formatDuration(part.startMs)}–${formatDuration(part.endMs)}`;
+    sq(clip, ".daymo-help-clip-cta span").textContent = strings.playLabel;
     clip.addEventListener("click", () =>
-      player.open(demo, { startMs: part.startMs, endMs: part.endMs, autoplay: true }),
+      openPlayer(demo, { startMs: part.startMs, endMs: part.endMs }),
     );
     return clip;
+  }
+
+  function stepsMirror(d: ManifestDemo): HTMLElement {
+    const wrap = el("div", "daymo-help-steps-mirror");
+    wrap.appendChild(el("div", "daymo-help-steps-mirror-h"));
+    sq(wrap, ".daymo-help-steps-mirror-h").textContent = strings.stepsInClip;
+    const list = el("div", "daymo-help-steps-mirror-list");
+    for (const s of d.steps) {
+      const b = el("button", "daymo-help-mstep");
+      (b as HTMLButtonElement).type = "button";
+      b.innerHTML = `<span class="daymo-help-mstep-ix"></span><span class="daymo-help-mstep-lb"></span>`;
+      sq(b, ".daymo-help-mstep-ix").textContent = formatDuration(s.startMs);
+      sq(b, ".daymo-help-mstep-lb").textContent = s.label;
+      b.addEventListener("click", () => openPlayer(d, { startMs: s.startMs }));
+      list.appendChild(b);
+    }
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function relatedPlaylist(list: ManifestDemo[]): HTMLElement {
+    const wrap = el("div", "daymo-help-related");
+    wrap.appendChild(
+      el("div", "daymo-help-related-h", `${ICONS.layers}<span></span>`),
+    );
+    sq(wrap, ".daymo-help-related-h span").textContent = strings.relatedHeading;
+    const scrollRow = el("div", "daymo-help-related-scroll");
+    for (const d of list) {
+      const c = el("button", "daymo-help-rcard");
+      (c as HTMLButtonElement).type = "button";
+      c.innerHTML =
+        `<span class="daymo-help-rposter"><img alt="" />` +
+        `<span class="daymo-help-rposter-play">${ICONS.play}</span>` +
+        `<span class="daymo-help-rposter-dur"></span></span>` +
+        `<span class="daymo-help-rmeta"><span class="daymo-help-rmeta-title"></span>` +
+        `<span class="daymo-help-rmeta-sub"></span></span>`;
+      sq<HTMLImageElement>(c, "img").src = d.posterUrl;
+      sq(c, ".daymo-help-rposter-dur").textContent = formatDuration(d.durationMs);
+      sq(c, ".daymo-help-rmeta-title").textContent = d.title;
+      sq(c, ".daymo-help-rmeta-sub").textContent = `${d.steps.length} ${strings.stepsSuffix}`;
+      c.addEventListener("click", () => openPlayer(d));
+      scrollRow.appendChild(c);
+    }
+    wrap.appendChild(scrollRow);
+    return wrap;
+  }
+
+  function followupRow(qs: string[]): HTMLElement {
+    const wrap = el("div", "daymo-help-followups");
+    for (const qstr of qs) {
+      const c = el("button", "daymo-help-fchip", `${ICONS.chat}<span></span>`);
+      (c as HTMLButtonElement).type = "button";
+      sq(c, "span").textContent = qstr;
+      c.addEventListener("click", () => ask(qstr));
+      wrap.appendChild(c);
+    }
+    return wrap;
+  }
+
+  function actionRow(copyText: string): HTMLElement {
+    const r = el("div", "daymo-help-a-actions");
+    const up = el("button", "daymo-help-act-btn", ICONS.up);
+    (up as HTMLButtonElement).type = "button";
+    up.setAttribute("aria-label", strings.helpfulLabel);
+    const down = el("button", "daymo-help-act-btn", ICONS.down);
+    (down as HTMLButtonElement).type = "button";
+    down.setAttribute("aria-label", strings.notHelpfulLabel);
+    up.addEventListener("click", () => {
+      up.classList.toggle("on");
+      down.classList.remove("on");
+    });
+    down.addEventListener("click", () => {
+      down.classList.toggle("on");
+      up.classList.remove("on");
+    });
+    const cp = el("button", "daymo-help-act-btn", ICONS.copy);
+    (cp as HTMLButtonElement).type = "button";
+    cp.setAttribute("aria-label", strings.copyLabel);
+    cp.addEventListener("click", () => {
+      void root.ownerDocument.defaultView?.navigator?.clipboard?.writeText?.(copyText);
+      cp.classList.add("on");
+    });
+    r.append(up, down, el("span", "daymo-help-act-sep"), cp);
+    return r;
+  }
+
+  function scrollDown(): void {
+    requestAnimationFrame(() => {
+      scroll.scrollTo?.({ top: scroll.scrollHeight, behavior: "smooth" });
+    });
   }
 
   /* ---------- manifest load ---------- */
@@ -394,26 +677,28 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     .then((r) => r.json() as Promise<HelpManifest>)
     .then((manifest) => {
       if (cancelled) return;
-      for (const d of manifest.demos) demosById.set(d.demoId, d);
-      const model = buildGalleryModel(manifest);
-      if (model.cards.length === 0) return; // gallery stays hidden
-      gallerySec.hidden = false;
-      if (navBrowse) navBrowse.hidden = false;
-      if (footAll) footAll.hidden = false;
-      for (const card of model.cards) gallery.appendChild(renderCard(card));
+      demos = manifest.demos;
+      demosById.clear();
+      for (const d of demos) demosById.set(d.demoId, d);
+      buildLibrary();
+      if (messageCount === 0) renderHome(); // refresh home with the inline player + rail
     })
     .catch(() => {
-      /* gallery (and its jump links) stay hidden on failure */
+      /* library + inline player stay empty on failure */
     });
 
   /* ---------- assemble ---------- */
 
-  if (appbar) root.appendChild(appbar);
-  const main = doc.createElement("main");
-  main.append(hero, gallerySec);
+  if (side) root.appendChild(side);
   root.appendChild(main);
-  if (footer) root.appendChild(footer);
-  if (fab) root.appendChild(fab);
+  if (chrome) {
+    const scrim = el("div", "daymo-help-scrim");
+    scrim.addEventListener("click", () => {
+      root.dataset.sidebar = "closed";
+    });
+    root.appendChild(scrim);
+  }
+  renderHome();
   container.appendChild(root);
 
   return () => {
