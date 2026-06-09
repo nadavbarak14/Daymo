@@ -539,7 +539,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     sq(sub, "b").textContent = `${formatDuration(part.startMs)}–${formatDuration(part.endMs)}`;
     sq(clip, ".daymo-help-clip-cta span").textContent = strings.playLabel;
     clip.addEventListener("click", () =>
-      openPlayer(demo, { startMs: part.startMs, endMs: part.endMs }),
+      openPlayer(demo, { startMs: part.startMs }),
     );
     return clip;
   }

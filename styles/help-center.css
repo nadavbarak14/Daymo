@@ -656,6 +656,8 @@
 .daymo-help-step.active .daymo-help-step-ix { color: var(--daymo-accent); font-weight: 600; }
 .daymo-help-step-lb { font-size: 13px; line-height: 1.3; color: var(--daymo-fg-2); }
 .daymo-help-step.active .daymo-help-step-lb { color: var(--daymo-fg); font-weight: 600; }
+.daymo-help-step.referenced { box-shadow: inset 2px 0 0 var(--daymo-accent); }
+.daymo-help-step.referenced .daymo-help-step-ix { color: var(--daymo-accent); }
 
 .daymo-help-autoplay { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; font-size: 10px; text-transform: none; letter-spacing: 0; color: var(--daymo-muted); }
 .daymo-help-switch { width: 26px; height: 15px; border-radius: 999px; background: var(--daymo-accent); position: relative; transition: 0.15s; }
