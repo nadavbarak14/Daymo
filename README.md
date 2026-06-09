@@ -213,10 +213,15 @@ await page.click("button[type=submit]");
 Daymo ships a full help-center template — a ChatGPT-style help center: a
 collapsible **sidebar** (searchable video library), a centered **home**
 landing with an inline media player you can watch and populated popular
-searches, a **conversation** thread whose answers are structured (a clip cued
-to the exact moment → a clickable step list → a "related walkthroughs"
-playlist → follow-ups), and a centered **theater** player (video on the left,
-steps + an "up next" queue on the right).
+searches, a **conversation** thread whose answers are rendered as **demo
+cards** (one card per cited demo — title, poster, full duration, "starts at
+step n/m", referenced-step caption lines), and a centered **theater** player
+(video on the left, steps + an "up next" queue on the right).
+
+Clicking a demo card opens the theater player **cued to the cited step** with
+referenced steps highlighted. Playback runs through the full demo with no
+clip end-stop. The widget uses the same card format; its lightbox soft-pauses
+once at the end of the referenced range with a **"Keep watching"** button.
 
 ```tsx
 // app/help/page.tsx
@@ -269,10 +274,12 @@ Stable class names (the restyling surface), all prefixed `daymo-help`:
   `-hp-chip`, `-askbar`, `-lead`, `-input`, `-send`, `-suggest`, `-chip`.
 - **Conversation:** `-thread`, `-qa`, `-q-bubble`, `-a-row`, `-a-av`,
   `-a-name`, `-a-tag`, `-a-text`, `-typing`, `-error`, `-clip`,
-  `-clip-poster`, `-clip-kicker`, `-clip-cap`, `-clip-sub`, `-clip-cta`,
-  `-steps-mirror`, `-mstep`, `-mstep-ix`, `-mstep-lb`, `-related`, `-rcard`,
-  `-followups`, `-fchip`, `-a-chips`, `-a-actions`, `-act-btn`,
-  `-composer-dock`, `-composer`, `-composer-input`, `-composer-send`.
+  `-clip-poster`, `-clip-cap`, `-clip-cta`, `-clip-steps`, `-clip-step-line`,
+  `-related`, `-rcard`, `-followups`, `-fchip`, `-a-chips`, `-a-actions`,
+  `-act-btn`, `-composer-dock`, `-composer`, `-composer-input`,
+  `-composer-send`.
+- **Theater player (step highlight):** `-step.referenced` (on a `-step`
+  element inside `-steps` — marks steps cited in the answer).
 - **Theater player:** `-modal`, `-player`, `-player-close`, `-player-main`,
   `-stage`, `-player-aside`, `-player-title`, `-player-desc`, `-steps`,
   `-step`, `-step-ix`, `-step-lb`, `-queue`, `-qitem`, `-autoplay`.
@@ -295,6 +302,22 @@ Script-tag attributes: `data-widget-id` (required), `data-base-url` (API
 origin; defaults to the script's origin), `data-locale`, `data-theme`,
 `data-manifest-url`. The last two can also come from the server via
 `config.json` (`theme`, `manifestUrl`) so the embed snippet never changes.
+
+`config.json` also accepts `noMatchText` — the lead sentence shown when the
+assistant has no answer ("I don't have that in the demos. Try one of
+these:"). Localize or brand it here; it propagates to every canned no-match
+response the server returns for that widget.
+
+The `createChatRoute` / `createHelpChatRoute` helpers accept the same option
+directly:
+
+```ts
+export const POST = createHelpChatRoute({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
+  noMatchText: "We don't cover that yet. Here are some popular topics:",
+  suggestedQuestions: ["How do I create a project?", "How do I invite my team?"],
+});
+```
 
 ### Shipped themes
 
@@ -338,6 +361,12 @@ Theme tokens (set any subset): geometry `--dw-panel-w`, `--dw-panel-h`,
 `--dw-ease`, `--dw-shadow`, `--dw-shadow-bubble`. The rules in
 `widget/src/styles.css` never change between themes — only token values do.
 
+Stable widget class names (a `dw-` prefix separates them from help-center
+classes): answer cards `.dw-card`, `.dw-card-poster`, `.dw-card-title`,
+`.dw-card-meta`; lightbox `.dw-lb`, `.dw-lb-video`, `.dw-lb-close`;
+soft-pause overlay `.dw-lb-keep` (the "Keep watching" button rendered when
+playback reaches the end of the referenced range).
+
 ### Sharing videos with the help center
 
 If you also run the help-center page, point the widget at the same published
@@ -347,6 +376,27 @@ host page). `daymo publish` writes `manifest.json` next to the videos, so
 both surfaces read from one place: answer cards get the help page's poster
 thumbnails, and clips play from the exact same `output.mp4` files. Without a
 manifest the widget falls back to the clip URLs the chat backend returns.
+
+## Upgrading
+
+### Chat answers: demo-cued cards (breaking)
+
+Chat answers now render **one card per cited demo** and open the full demo
+cued to the cited step — there is no clip end-stop. If you have downstream
+code or tests that assert on per-clip cards, update them:
+
+- **Consumer e2e tests** (e.g. `e2e/help.spec.ts` in dependent repos) that
+  expect per-clip answer cards need to be updated to expect one card per
+  demo.
+- **`HelpCenterStrings`** lost `clipKicker`, `clipCuedLabel`, and
+  `stepsInClip`; gained `fullDemoLabel` and `startsAtStep`. Remove the old
+  keys from any custom `strings={}` prop you pass to `<HelpCenter>`.
+- **`HelpChatEvent.rewrittenQuery`** (singular) became
+  `rewrittenQueries: string[]` (array). Update any `onEvent` listener that
+  reads `e.rewrittenQuery`.
+- **Widget answer-card and lightbox callbacks** now receive a grouped
+  `DemoCardRef` (one ref per demo) instead of individual clip refs. Update
+  any custom callback handlers accordingly.
 
 ## Tips for AI agents authoring `.demo` files
 

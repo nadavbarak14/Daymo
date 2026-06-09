@@ -1,5 +1,5 @@
 // src/styles.css
-var styles_default = '/* ============================================================================\n   DAYMO WIDGET \u2014 themeable template stylesheet\n   ----------------------------------------------------------------------------\n   Every visual property reads from a --dw-* custom property. To re-skin the\n   widget you only override tokens \u2014 never the rules. The default token set\n   lives on :host below; the three shipped themes (data-theme="aurelia" /\n   "lume" / "onyx") override a subset of it.\n\n   Custom themes from the host page (custom properties inherit through the\n   shadow boundary, and outer-page rules on the host element win over :host):\n\n       #daymo-widget-root {\n         --dw-accent: #4f46e5;\n         --dw-surface: #ffffff;\n         --dw-radius: 16px;\n         --dw-font: "Inter", sans-serif;\n       }\n\n   Fonts: no third-party requests here by design (same policy as\n   help-center.css). Theme font stacks use Cormorant Garamond / Hanken\n   Grotesk / Schibsted Grotesk when the host page loads them, and fall back\n   to the system stack otherwise.\n   ============================================================================ */\n\n:host {\n  all: initial;\n  font-family: var(--dw-font);\n  color: var(--dw-ink);\n  -webkit-font-smoothing: antialiased;\n  text-rendering: optimizeLegibility;\n\n  /* ---- default tokens (themes + host pages override these) ---- */\n  /* geometry */\n  --dw-panel-w: 364px;\n  --dw-panel-h: 540px;\n  --dw-bubble-size: 58px;\n  --dw-edge: 18px;\n  --dw-radius: 18px;\n  --dw-radius-sm: 12px;\n  --dw-radius-pill: 999px;\n  /* type */\n  --dw-font: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-display: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;\n  /* color */\n  --dw-surface: #ffffff;\n  --dw-surface-2: #f5f5f4;\n  --dw-ink: #1c1917;\n  --dw-muted: #78716c;\n  --dw-border: #e7e5e4;\n  --dw-accent: #1c1917;\n  --dw-accent-fg: #ffffff;\n  --dw-bubble-bg: #1c1917;\n  --dw-bubble-fg: #ffffff;\n  --dw-user-bg: #f0efee;\n  --dw-user-fg: #1c1917;\n  --dw-online: #34d399;\n  --dw-error-bg: #fef2f2;\n  --dw-error-fg: #991b1b;\n  --dw-error-border: #fee2e2;\n  /* effects */\n  --dw-ring: rgba(28, 25, 23, 0.14);\n  --dw-ease: cubic-bezier(0.34, 1.2, 0.4, 1);\n  --dw-shadow: 0 24px 60px rgba(20, 16, 12, 0.16), 0 6px 16px rgba(20, 16, 12, 0.07);\n  --dw-shadow-bubble: 0 8px 22px rgba(20, 16, 12, 0.22), 0 2px 6px rgba(20, 16, 12, 0.1);\n}\n\n/* ---------- THEME: AURELIA \u2014 warm editorial luxury ------------------------- */\n:host([data-theme="aurelia"]) {\n  --dw-font-display: "Cormorant Garamond", Georgia, serif;\n  --dw-greeting-size: 27px;\n  --dw-surface: #fffdf8;\n  --dw-surface-2: #f7f0e3;\n  --dw-header-bg: #fbf6ec;\n  --dw-ink: #2c2218;\n  --dw-muted: #998a73;\n  --dw-border: #ece2cf;\n  --dw-accent: #9c7a3c;\n  --dw-accent-fg: #fffdf8;\n  --dw-bubble-bg: #2c2218;\n  --dw-bubble-fg: #f6eddc;\n  --dw-user-bg: #efe5d1;\n  --dw-user-fg: #2c2218;\n  --dw-online: #6fae84;\n  --dw-ring: rgba(156, 122, 60, 0.2);\n  --dw-radius: 22px;\n  --dw-radius-sm: 14px;\n  --dw-bubble-size: 60px;\n  --dw-shadow: 0 26px 64px rgba(74, 53, 24, 0.18), 0 6px 18px rgba(74, 53, 24, 0.08);\n  --dw-shadow-bubble: 0 10px 26px rgba(44, 34, 24, 0.3);\n}\n\n/* ---------- THEME: LUME \u2014 minimal modern mono ------------------------------ */\n:host([data-theme="lume"]) {\n  --dw-font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-display: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-greeting-size: 22px;\n  --dw-title-tracking: -0.02em;\n  --dw-surface: #ffffff;\n  --dw-surface-2: #f5f5f5;\n  --dw-header-bg: #ffffff;\n  --dw-ink: #0c0c0d;\n  --dw-muted: #8a8a8e;\n  --dw-border: #ebebeb;\n  --dw-accent: #0c0c0d;\n  --dw-accent-fg: #ffffff;\n  --dw-mark-radius: 9px;\n  --dw-bubble-bg: #0c0c0d;\n  --dw-bubble-fg: #ffffff;\n  --dw-user-bg: #f0f0f0;\n  --dw-user-fg: #0c0c0d;\n  --dw-online: #16a34a;\n  --dw-ring: rgba(12, 12, 13, 0.1);\n  --dw-radius: 14px;\n  --dw-radius-sm: 9px;\n  --dw-bubble-size: 56px;\n  --dw-ease: cubic-bezier(0.4, 0, 0.2, 1);\n  --dw-shadow: 0 20px 50px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.06);\n  --dw-shadow-bubble: 0 6px 18px rgba(0, 0, 0, 0.2);\n}\n\n/* ---------- THEME: ONYX \u2014 dark luxe ---------------------------------------- */\n:host([data-theme="onyx"]) {\n  --dw-font-display: "Cormorant Garamond", Georgia, serif;\n  --dw-greeting-size: 27px;\n  --dw-surface: #16140f;\n  --dw-surface-2: #211e16;\n  --dw-header-bg: #1b1812;\n  --dw-ink: #f3ede0;\n  --dw-muted: #a99f8a;\n  --dw-border: rgba(233, 214, 170, 0.13);\n  --dw-accent: #cba868;\n  --dw-accent-fg: #1a160d;\n  --dw-bubble-bg: #cba868;\n  --dw-bubble-fg: #1a160d;\n  --dw-user-bg: #2b271c;\n  --dw-user-fg: #f3ede0;\n  --dw-online: #8fce9c;\n  --dw-error-bg: #2b1a18;\n  --dw-error-fg: #f1b6ae;\n  --dw-error-border: #45231f;\n  --dw-ring: rgba(203, 168, 104, 0.28);\n  --dw-radius: 20px;\n  --dw-radius-sm: 13px;\n  --dw-bubble-size: 60px;\n  --dw-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 8px 22px rgba(0, 0, 0, 0.45);\n  --dw-shadow-bubble: 0 12px 30px rgba(0, 0, 0, 0.5);\n}\n\n*, *::before, *::after { box-sizing: border-box; }\nbutton { font-family: inherit; }\n\n/* ============================================================================\n   FLOATING BUBBLE\n   ============================================================================ */\n.dw-bubble {\n  position: fixed;\n  bottom: var(--dw-edge);\n  right: var(--dw-edge);\n  width: var(--dw-bubble-size);\n  height: var(--dw-bubble-size);\n  border-radius: 50%;\n  background: var(--dw-bubble-bg);\n  color: var(--dw-bubble-fg);\n  border: var(--dw-bubble-border, none);\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: var(--dw-shadow-bubble);\n  z-index: 2147483647;\n  transition: transform 0.22s var(--dw-ease), box-shadow 0.22s var(--dw-ease);\n}\n.dw-bubble:hover { transform: translateY(-2px) scale(1.04); }\n.dw-bubble:active { transform: translateY(0) scale(0.98); }\n.dw-bubble:focus-visible { outline: 2px solid var(--dw-ring); outline-offset: 4px; }\n.dw-bubble svg { width: 45%; height: 45%; }\n.dw-bubble .dw-bubble-dot {\n  position: absolute;\n  top: 10%; right: 10%;\n  width: 22%; height: 22%;\n  max-width: 13px; max-height: 13px;\n  border-radius: 50%;\n  background: var(--dw-online);\n  border: 2px solid var(--dw-bubble-bg);\n}\n:host([data-open="true"]) .dw-bubble { display: none; }\n\n/* ============================================================================\n   PANEL\n   ============================================================================ */\n.dw-panel {\n  position: fixed;\n  bottom: var(--dw-edge);\n  right: var(--dw-edge);\n  width: var(--dw-panel-w);\n  max-width: calc(100vw - var(--dw-edge) * 2);\n  height: var(--dw-panel-h);\n  max-height: calc(100dvh - var(--dw-edge) * 2);\n  background: var(--dw-surface);\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius);\n  box-shadow: var(--dw-shadow);\n  display: none;\n  flex-direction: column;\n  overflow: hidden;\n  z-index: 2147483647;\n}\n:host([data-open="true"]) .dw-panel {\n  display: flex;\n  animation: dwPanelIn 0.34s cubic-bezier(0.16, 1, 0.3, 1);\n}\n@keyframes dwPanelIn {\n  from { opacity: 0; transform: translateY(14px) scale(0.985); }\n  to   { opacity: 1; transform: translateY(0) scale(1); }\n}\n\n/* ---- Header --------------------------------------------------------------- */\n.dw-header {\n  flex-shrink: 0;\n  display: flex;\n  align-items: center;\n  gap: 11px;\n  padding: 15px 16px;\n  background: var(--dw-header-bg, var(--dw-surface));\n  border-bottom: 1px solid var(--dw-border);\n}\n.dw-mark {\n  flex-shrink: 0;\n  width: 34px; height: 34px;\n  border-radius: var(--dw-mark-radius, 50%);\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  font-family: var(--dw-font-display);\n  font-weight: 600;\n  font-size: 17px;\n  line-height: 1;\n}\n.dw-head-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }\n.dw-title {\n  font-family: var(--dw-font-display);\n  font-weight: var(--dw-title-weight, 600);\n  font-size: 16px;\n  letter-spacing: var(--dw-title-tracking, -0.01em);\n  color: var(--dw-ink);\n  line-height: 1.1;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.dw-subtitle {\n  font-size: 11.5px;\n  color: var(--dw-muted);\n  display: flex; align-items: center; gap: 5px;\n}\n.dw-subtitle::before {\n  content: "";\n  width: 6px; height: 6px; border-radius: 50%;\n  background: var(--dw-online);\n}\n.dw-close {\n  flex-shrink: 0;\n  width: 30px; height: 30px;\n  border-radius: var(--dw-radius-sm);\n  background: transparent;\n  color: var(--dw-muted);\n  border: 0;\n  cursor: pointer;\n  display: flex; align-items: center; justify-content: center;\n  transition: background 0.14s, color 0.14s;\n}\n.dw-close:hover { background: var(--dw-surface-2); color: var(--dw-ink); }\n.dw-close svg { width: 15px; height: 15px; }\n\n/* ---- Error banner ----------------------------------------------------------- */\n.dw-error {\n  flex-shrink: 0;\n  background: var(--dw-error-bg);\n  color: var(--dw-error-fg);\n  padding: 10px 16px;\n  font-size: 12.5px;\n  line-height: 1.4;\n  border-bottom: 1px solid var(--dw-error-border);\n}\n\n/* ---- Thread ----------------------------------------------------------------- */\n.dw-thread {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  padding: 16px;\n  display: flex;\n  flex-direction: column;\n  gap: 14px;\n  scroll-behavior: smooth;\n  background: var(--dw-surface);\n}\n.dw-thread::-webkit-scrollbar { width: 7px; }\n.dw-thread::-webkit-scrollbar-thumb {\n  background: var(--dw-border);\n  border-radius: 99px;\n  border: 2px solid var(--dw-surface);\n}\n\n.dw-greeting {\n  font-family: var(--dw-font-display);\n  font-size: var(--dw-greeting-size, 21px);\n  line-height: 1.25;\n  letter-spacing: -0.01em;\n  color: var(--dw-ink);\n  margin: 2px 0;\n}\n.dw-greeting-sub { font-size: 13px; color: var(--dw-muted); line-height: 1.5; margin: -6px 0 0; }\n\n.dw-suggest-label {\n  font-size: 10.5px;\n  text-transform: uppercase;\n  letter-spacing: 0.09em;\n  font-weight: 600;\n  color: var(--dw-muted);\n  margin-top: 4px;\n}\n.dw-suggestions { display: flex; flex-direction: column; gap: 7px; }\n.dw-chip {\n  text-align: left;\n  background: var(--dw-surface-2);\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius-sm);\n  padding: 11px 13px;\n  font-size: 13px;\n  line-height: 1.35;\n  color: var(--dw-ink);\n  cursor: pointer;\n  display: flex; align-items: center; gap: 9px;\n  transition: border-color 0.14s, background 0.14s, transform 0.14s;\n}\n.dw-chip:hover { border-color: var(--dw-accent); transform: translateX(2px); }\n.dw-chip svg { width: 14px; height: 14px; color: var(--dw-accent); flex-shrink: 0; }\n\n/* ---- Messages ----------------------------------------------------------------- */\n.dw-msg { max-width: 88%; animation: dwFade 0.24s ease-out; }\n@keyframes dwFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }\n\n.dw-msg-user {\n  align-self: flex-end;\n  background: var(--dw-user-bg);\n  color: var(--dw-user-fg);\n  padding: 9px 13px;\n  border-radius: var(--dw-radius-sm);\n  border-bottom-right-radius: 4px;\n  font-size: 13.5px;\n  line-height: 1.4;\n  word-wrap: break-word;\n}\n.dw-msg-assistant { align-self: flex-start; display: flex; flex-direction: column; gap: 10px; width: 100%; }\n.dw-msg-assistant p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--dw-ink); }\n\n/* ---- Video answer card ----------------------------------------------------- */\n.dw-video-card {\n  width: 100%;\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius-sm);\n  overflow: hidden;\n  background: var(--dw-surface-2);\n  cursor: pointer;\n  text-align: left;\n  padding: 0;\n  display: block;\n  transition: transform 0.16s var(--dw-ease), box-shadow 0.16s var(--dw-ease), border-color 0.16s;\n}\n.dw-video-card:hover { transform: translateY(-2px); box-shadow: var(--dw-shadow); border-color: var(--dw-accent); }\n.dw-video-card:focus-visible { outline: 2px solid var(--dw-ring); outline-offset: 2px; }\n.dw-thumb {\n  position: relative;\n  aspect-ratio: 16 / 10;\n  background: #1a1a1a center/cover no-repeat;\n  display: block;\n}\n.dw-thumb video {\n  position: absolute;\n  inset: 0;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: center top;\n  pointer-events: none;\n}\n.dw-thumb::after {\n  content: "";\n  position: absolute; inset: 0;\n  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 100%);\n}\n.dw-play {\n  position: absolute;\n  left: 12px; bottom: 12px;\n  z-index: 1;\n  width: 38px; height: 38px;\n  border-radius: 50%;\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);\n  transition: transform 0.16s var(--dw-ease);\n}\n.dw-video-card:hover .dw-play { transform: scale(1.08); }\n.dw-play svg { width: 16px; height: 16px; margin-left: 2px; }\n.dw-duration {\n  position: absolute;\n  right: 10px; bottom: 12px;\n  z-index: 1;\n  font-family: var(--dw-font-mono);\n  font-size: 11px;\n  color: #fff;\n  background: rgba(0, 0, 0, 0.55);\n  padding: 3px 7px;\n  border-radius: 6px;\n  font-variant-numeric: tabular-nums;\n}\n.dw-card-foot {\n  padding: 10px 12px;\n  display: flex; align-items: center; gap: 8px;\n}\n.dw-card-foot .dw-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dw-accent); flex-shrink: 0; }\n.dw-card-label { font-size: 12.5px; font-weight: 500; color: var(--dw-ink); line-height: 1.3; }\n\n/* ---- Typing indicator ----------------------------------------------------- */\n.dw-typing { align-self: flex-start; display: inline-flex; gap: 5px; padding: 8px 2px; }\n.dw-typing span {\n  width: 7px; height: 7px; border-radius: 50%;\n  background: var(--dw-muted);\n  animation: dwBounce 1.3s infinite ease-in-out;\n}\n.dw-typing span:nth-child(2) { animation-delay: 0.18s; }\n.dw-typing span:nth-child(3) { animation-delay: 0.36s; }\n@keyframes dwBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.35; } 30% { transform: translateY(-5px); opacity: 1; } }\n\n/* ---- Input ------------------------------------------------------------------ */\n.dw-input-row {\n  flex-shrink: 0;\n  padding: 12px 13px;\n  border-top: 1px solid var(--dw-border);\n  background: var(--dw-header-bg, var(--dw-surface));\n  display: flex; align-items: center; gap: 8px;\n}\n.dw-input {\n  flex: 1; min-width: 0;\n  border: 1px solid var(--dw-border);\n  background: var(--dw-surface-2);\n  border-radius: var(--dw-radius-pill);\n  padding: 11px 15px;\n  font-size: 13.5px;\n  font-family: inherit;\n  color: var(--dw-ink);\n  outline: none;\n  transition: border-color 0.14s, box-shadow 0.14s;\n}\n.dw-input::placeholder { color: var(--dw-muted); }\n.dw-input:focus { border-color: var(--dw-accent); box-shadow: 0 0 0 3px var(--dw-ring); }\n.dw-send {\n  flex-shrink: 0;\n  width: 40px; height: 40px;\n  border-radius: 50%;\n  border: 0;\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  cursor: pointer;\n  transition: transform 0.14s var(--dw-ease), opacity 0.14s;\n}\n.dw-send:hover:not(:disabled) { transform: scale(1.06); }\n.dw-send:disabled { opacity: 0.4; cursor: not-allowed; }\n.dw-send svg { width: 16px; height: 16px; }\n\n.dw-footer-note {\n  flex-shrink: 0;\n  text-align: center;\n  font-size: 10.5px;\n  color: var(--dw-muted);\n  padding: 0 0 10px;\n  background: var(--dw-header-bg, var(--dw-surface));\n}\n.dw-footer-note b { color: var(--dw-ink); font-weight: 600; }\n\n/* ============================================================================\n   LIGHTBOX  (theme-neutral)\n   ============================================================================ */\n.dw-lightbox {\n  position: fixed; inset: 0; z-index: 2147483647;\n  background: rgba(8, 8, 10, 0.86);\n  backdrop-filter: blur(6px);\n  display: flex;\n  align-items: center; justify-content: center;\n  padding: 5vmin;\n  animation: dwLbFade 0.2s ease-out;\n}\n@keyframes dwLbFade { from { opacity: 0; } to { opacity: 1; } }\n.dw-lb-inner { position: relative; width: min(92vw, 1100px); display: flex; flex-direction: column; gap: 14px; }\n.dw-lb-inner video {\n  width: 100%; aspect-ratio: 16 / 10; background: #000;\n  border-radius: 14px; display: block;\n  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);\n}\n.dw-lb-caption { color: #e9e6df; font-size: 14px; text-align: center; line-height: 1.5; }\n.dw-lb-caption b { color: #fff; font-weight: 600; }\n.dw-lb-close {\n  position: absolute; top: -46px; right: 0;\n  width: 36px; height: 36px; border-radius: 50%;\n  background: rgba(255, 255, 255, 0.12); color: #fff; border: 0;\n  cursor: pointer; display: flex; align-items: center; justify-content: center;\n  transition: background 0.14s;\n}\n.dw-lb-close:hover { background: rgba(255, 255, 255, 0.24); }\n.dw-lb-close svg { width: 18px; height: 18px; }\n\n/* ---- Mobile ------------------------------------------------------------------ */\n@media (max-width: 600px) {\n  .dw-panel {\n    bottom: 0;\n    right: 0;\n    width: 100vw;\n    max-width: 100vw;\n    height: 100dvh;\n    max-height: 100dvh;\n    border-radius: 0;\n    border: 0;\n    padding-bottom: env(safe-area-inset-bottom);\n  }\n  :host([data-open="true"]) .dw-panel { animation: none; }\n}\n\n/* ---- Reduced motion ------------------------------------------------------------ */\n@media (prefers-reduced-motion: reduce) {\n  .dw-bubble, .dw-panel, .dw-msg, .dw-video-card, .dw-lightbox { animation: none; transition: none; }\n}\n';
+var styles_default = '/* ============================================================================\n   DAYMO WIDGET \u2014 themeable template stylesheet\n   ----------------------------------------------------------------------------\n   Every visual property reads from a --dw-* custom property. To re-skin the\n   widget you only override tokens \u2014 never the rules. The default token set\n   lives on :host below; the three shipped themes (data-theme="aurelia" /\n   "lume" / "onyx") override a subset of it.\n\n   Custom themes from the host page (custom properties inherit through the\n   shadow boundary, and outer-page rules on the host element win over :host):\n\n       #daymo-widget-root {\n         --dw-accent: #4f46e5;\n         --dw-surface: #ffffff;\n         --dw-radius: 16px;\n         --dw-font: "Inter", sans-serif;\n       }\n\n   Fonts: no third-party requests here by design (same policy as\n   help-center.css). Theme font stacks use Cormorant Garamond / Hanken\n   Grotesk / Schibsted Grotesk when the host page loads them, and fall back\n   to the system stack otherwise.\n   ============================================================================ */\n\n:host {\n  all: initial;\n  font-family: var(--dw-font);\n  color: var(--dw-ink);\n  -webkit-font-smoothing: antialiased;\n  text-rendering: optimizeLegibility;\n\n  /* ---- default tokens (themes + host pages override these) ---- */\n  /* geometry */\n  --dw-panel-w: 364px;\n  --dw-panel-h: 540px;\n  --dw-bubble-size: 58px;\n  --dw-edge: 18px;\n  --dw-radius: 18px;\n  --dw-radius-sm: 12px;\n  --dw-radius-pill: 999px;\n  /* type */\n  --dw-font: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-display: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;\n  /* color */\n  --dw-surface: #ffffff;\n  --dw-surface-2: #f5f5f4;\n  --dw-ink: #1c1917;\n  --dw-muted: #78716c;\n  --dw-border: #e7e5e4;\n  --dw-accent: #1c1917;\n  --dw-accent-fg: #ffffff;\n  --dw-bubble-bg: #1c1917;\n  --dw-bubble-fg: #ffffff;\n  --dw-user-bg: #f0efee;\n  --dw-user-fg: #1c1917;\n  --dw-online: #34d399;\n  --dw-error-bg: #fef2f2;\n  --dw-error-fg: #991b1b;\n  --dw-error-border: #fee2e2;\n  /* effects */\n  --dw-ring: rgba(28, 25, 23, 0.14);\n  --dw-ease: cubic-bezier(0.34, 1.2, 0.4, 1);\n  --dw-shadow: 0 24px 60px rgba(20, 16, 12, 0.16), 0 6px 16px rgba(20, 16, 12, 0.07);\n  --dw-shadow-bubble: 0 8px 22px rgba(20, 16, 12, 0.22), 0 2px 6px rgba(20, 16, 12, 0.1);\n}\n\n/* ---------- THEME: AURELIA \u2014 warm editorial luxury ------------------------- */\n:host([data-theme="aurelia"]) {\n  --dw-font-display: "Cormorant Garamond", Georgia, serif;\n  --dw-greeting-size: 27px;\n  --dw-surface: #fffdf8;\n  --dw-surface-2: #f7f0e3;\n  --dw-header-bg: #fbf6ec;\n  --dw-ink: #2c2218;\n  --dw-muted: #998a73;\n  --dw-border: #ece2cf;\n  --dw-accent: #9c7a3c;\n  --dw-accent-fg: #fffdf8;\n  --dw-bubble-bg: #2c2218;\n  --dw-bubble-fg: #f6eddc;\n  --dw-user-bg: #efe5d1;\n  --dw-user-fg: #2c2218;\n  --dw-online: #6fae84;\n  --dw-ring: rgba(156, 122, 60, 0.2);\n  --dw-radius: 22px;\n  --dw-radius-sm: 14px;\n  --dw-bubble-size: 60px;\n  --dw-shadow: 0 26px 64px rgba(74, 53, 24, 0.18), 0 6px 18px rgba(74, 53, 24, 0.08);\n  --dw-shadow-bubble: 0 10px 26px rgba(44, 34, 24, 0.3);\n}\n\n/* ---------- THEME: LUME \u2014 minimal modern mono ------------------------------ */\n:host([data-theme="lume"]) {\n  --dw-font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-font-display: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;\n  --dw-greeting-size: 22px;\n  --dw-title-tracking: -0.02em;\n  --dw-surface: #ffffff;\n  --dw-surface-2: #f5f5f5;\n  --dw-header-bg: #ffffff;\n  --dw-ink: #0c0c0d;\n  --dw-muted: #8a8a8e;\n  --dw-border: #ebebeb;\n  --dw-accent: #0c0c0d;\n  --dw-accent-fg: #ffffff;\n  --dw-mark-radius: 9px;\n  --dw-bubble-bg: #0c0c0d;\n  --dw-bubble-fg: #ffffff;\n  --dw-user-bg: #f0f0f0;\n  --dw-user-fg: #0c0c0d;\n  --dw-online: #16a34a;\n  --dw-ring: rgba(12, 12, 13, 0.1);\n  --dw-radius: 14px;\n  --dw-radius-sm: 9px;\n  --dw-bubble-size: 56px;\n  --dw-ease: cubic-bezier(0.4, 0, 0.2, 1);\n  --dw-shadow: 0 20px 50px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.06);\n  --dw-shadow-bubble: 0 6px 18px rgba(0, 0, 0, 0.2);\n}\n\n/* ---------- THEME: ONYX \u2014 dark luxe ---------------------------------------- */\n:host([data-theme="onyx"]) {\n  --dw-font-display: "Cormorant Garamond", Georgia, serif;\n  --dw-greeting-size: 27px;\n  --dw-surface: #16140f;\n  --dw-surface-2: #211e16;\n  --dw-header-bg: #1b1812;\n  --dw-ink: #f3ede0;\n  --dw-muted: #a99f8a;\n  --dw-border: rgba(233, 214, 170, 0.13);\n  --dw-accent: #cba868;\n  --dw-accent-fg: #1a160d;\n  --dw-bubble-bg: #cba868;\n  --dw-bubble-fg: #1a160d;\n  --dw-user-bg: #2b271c;\n  --dw-user-fg: #f3ede0;\n  --dw-online: #8fce9c;\n  --dw-error-bg: #2b1a18;\n  --dw-error-fg: #f1b6ae;\n  --dw-error-border: #45231f;\n  --dw-ring: rgba(203, 168, 104, 0.28);\n  --dw-radius: 20px;\n  --dw-radius-sm: 13px;\n  --dw-bubble-size: 60px;\n  --dw-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 8px 22px rgba(0, 0, 0, 0.45);\n  --dw-shadow-bubble: 0 12px 30px rgba(0, 0, 0, 0.5);\n}\n\n*, *::before, *::after { box-sizing: border-box; }\nbutton { font-family: inherit; }\n\n/* ============================================================================\n   FLOATING BUBBLE\n   ============================================================================ */\n.dw-bubble {\n  position: fixed;\n  bottom: var(--dw-edge);\n  right: var(--dw-edge);\n  width: var(--dw-bubble-size);\n  height: var(--dw-bubble-size);\n  border-radius: 50%;\n  background: var(--dw-bubble-bg);\n  color: var(--dw-bubble-fg);\n  border: var(--dw-bubble-border, none);\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: var(--dw-shadow-bubble);\n  z-index: 2147483647;\n  transition: transform 0.22s var(--dw-ease), box-shadow 0.22s var(--dw-ease);\n}\n.dw-bubble:hover { transform: translateY(-2px) scale(1.04); }\n.dw-bubble:active { transform: translateY(0) scale(0.98); }\n.dw-bubble:focus-visible { outline: 2px solid var(--dw-ring); outline-offset: 4px; }\n.dw-bubble svg { width: 45%; height: 45%; }\n.dw-bubble .dw-bubble-dot {\n  position: absolute;\n  top: 10%; right: 10%;\n  width: 22%; height: 22%;\n  max-width: 13px; max-height: 13px;\n  border-radius: 50%;\n  background: var(--dw-online);\n  border: 2px solid var(--dw-bubble-bg);\n}\n:host([data-open="true"]) .dw-bubble { display: none; }\n\n/* ============================================================================\n   PANEL\n   ============================================================================ */\n.dw-panel {\n  position: fixed;\n  bottom: var(--dw-edge);\n  right: var(--dw-edge);\n  width: var(--dw-panel-w);\n  max-width: calc(100vw - var(--dw-edge) * 2);\n  height: var(--dw-panel-h);\n  max-height: calc(100dvh - var(--dw-edge) * 2);\n  background: var(--dw-surface);\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius);\n  box-shadow: var(--dw-shadow);\n  display: none;\n  flex-direction: column;\n  overflow: hidden;\n  z-index: 2147483647;\n}\n:host([data-open="true"]) .dw-panel {\n  display: flex;\n  animation: dwPanelIn 0.34s cubic-bezier(0.16, 1, 0.3, 1);\n}\n@keyframes dwPanelIn {\n  from { opacity: 0; transform: translateY(14px) scale(0.985); }\n  to   { opacity: 1; transform: translateY(0) scale(1); }\n}\n\n/* ---- Header --------------------------------------------------------------- */\n.dw-header {\n  flex-shrink: 0;\n  display: flex;\n  align-items: center;\n  gap: 11px;\n  padding: 15px 16px;\n  background: var(--dw-header-bg, var(--dw-surface));\n  border-bottom: 1px solid var(--dw-border);\n}\n.dw-mark {\n  flex-shrink: 0;\n  width: 34px; height: 34px;\n  border-radius: var(--dw-mark-radius, 50%);\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  font-family: var(--dw-font-display);\n  font-weight: 600;\n  font-size: 17px;\n  line-height: 1;\n}\n.dw-head-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }\n.dw-title {\n  font-family: var(--dw-font-display);\n  font-weight: var(--dw-title-weight, 600);\n  font-size: 16px;\n  letter-spacing: var(--dw-title-tracking, -0.01em);\n  color: var(--dw-ink);\n  line-height: 1.1;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.dw-subtitle {\n  font-size: 11.5px;\n  color: var(--dw-muted);\n  display: flex; align-items: center; gap: 5px;\n}\n.dw-subtitle::before {\n  content: "";\n  width: 6px; height: 6px; border-radius: 50%;\n  background: var(--dw-online);\n}\n.dw-close {\n  flex-shrink: 0;\n  width: 30px; height: 30px;\n  border-radius: var(--dw-radius-sm);\n  background: transparent;\n  color: var(--dw-muted);\n  border: 0;\n  cursor: pointer;\n  display: flex; align-items: center; justify-content: center;\n  transition: background 0.14s, color 0.14s;\n}\n.dw-close:hover { background: var(--dw-surface-2); color: var(--dw-ink); }\n.dw-close svg { width: 15px; height: 15px; }\n\n/* ---- Error banner ----------------------------------------------------------- */\n.dw-error {\n  flex-shrink: 0;\n  background: var(--dw-error-bg);\n  color: var(--dw-error-fg);\n  padding: 10px 16px;\n  font-size: 12.5px;\n  line-height: 1.4;\n  border-bottom: 1px solid var(--dw-error-border);\n}\n\n/* ---- Thread ----------------------------------------------------------------- */\n.dw-thread {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  padding: 16px;\n  display: flex;\n  flex-direction: column;\n  gap: 14px;\n  scroll-behavior: smooth;\n  background: var(--dw-surface);\n}\n.dw-thread::-webkit-scrollbar { width: 7px; }\n.dw-thread::-webkit-scrollbar-thumb {\n  background: var(--dw-border);\n  border-radius: 99px;\n  border: 2px solid var(--dw-surface);\n}\n\n.dw-greeting {\n  font-family: var(--dw-font-display);\n  font-size: var(--dw-greeting-size, 21px);\n  line-height: 1.25;\n  letter-spacing: -0.01em;\n  color: var(--dw-ink);\n  margin: 2px 0;\n}\n.dw-greeting-sub { font-size: 13px; color: var(--dw-muted); line-height: 1.5; margin: -6px 0 0; }\n\n.dw-suggest-label {\n  font-size: 10.5px;\n  text-transform: uppercase;\n  letter-spacing: 0.09em;\n  font-weight: 600;\n  color: var(--dw-muted);\n  margin-top: 4px;\n}\n.dw-suggestions { display: flex; flex-direction: column; gap: 7px; }\n.dw-chip {\n  text-align: left;\n  background: var(--dw-surface-2);\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius-sm);\n  padding: 11px 13px;\n  font-size: 13px;\n  line-height: 1.35;\n  color: var(--dw-ink);\n  cursor: pointer;\n  display: flex; align-items: center; gap: 9px;\n  transition: border-color 0.14s, background 0.14s, transform 0.14s;\n}\n.dw-chip:hover { border-color: var(--dw-accent); transform: translateX(2px); }\n.dw-chip svg { width: 14px; height: 14px; color: var(--dw-accent); flex-shrink: 0; }\n\n/* ---- Messages ----------------------------------------------------------------- */\n.dw-msg { max-width: 88%; animation: dwFade 0.24s ease-out; }\n@keyframes dwFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }\n\n.dw-msg-user {\n  align-self: flex-end;\n  background: var(--dw-user-bg);\n  color: var(--dw-user-fg);\n  padding: 9px 13px;\n  border-radius: var(--dw-radius-sm);\n  border-bottom-right-radius: 4px;\n  font-size: 13.5px;\n  line-height: 1.4;\n  word-wrap: break-word;\n}\n.dw-msg-assistant { align-self: flex-start; display: flex; flex-direction: column; gap: 10px; width: 100%; }\n.dw-msg-assistant p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--dw-ink); }\n\n/* ---- Video answer card ----------------------------------------------------- */\n.dw-video-card {\n  width: 100%;\n  border: 1px solid var(--dw-border);\n  border-radius: var(--dw-radius-sm);\n  overflow: hidden;\n  background: var(--dw-surface-2);\n  cursor: pointer;\n  text-align: left;\n  padding: 0;\n  display: block;\n  transition: transform 0.16s var(--dw-ease), box-shadow 0.16s var(--dw-ease), border-color 0.16s;\n}\n.dw-video-card:hover { transform: translateY(-2px); box-shadow: var(--dw-shadow); border-color: var(--dw-accent); }\n.dw-video-card:focus-visible { outline: 2px solid var(--dw-ring); outline-offset: 2px; }\n.dw-thumb {\n  position: relative;\n  aspect-ratio: 16 / 10;\n  background: #1a1a1a center/cover no-repeat;\n  display: block;\n}\n.dw-thumb video {\n  position: absolute;\n  inset: 0;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  object-position: center top;\n  pointer-events: none;\n}\n.dw-thumb::after {\n  content: "";\n  position: absolute; inset: 0;\n  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 100%);\n}\n.dw-play {\n  position: absolute;\n  left: 12px; bottom: 12px;\n  z-index: 1;\n  width: 38px; height: 38px;\n  border-radius: 50%;\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);\n  transition: transform 0.16s var(--dw-ease);\n}\n.dw-video-card:hover .dw-play { transform: scale(1.08); }\n.dw-play svg { width: 16px; height: 16px; margin-left: 2px; }\n.dw-duration {\n  position: absolute;\n  right: 10px; bottom: 12px;\n  z-index: 1;\n  font-family: var(--dw-font-mono);\n  font-size: 11px;\n  color: #fff;\n  background: rgba(0, 0, 0, 0.55);\n  padding: 3px 7px;\n  border-radius: 6px;\n  font-variant-numeric: tabular-nums;\n}\n.dw-card-foot {\n  padding: 10px 12px;\n  display: flex; align-items: center; gap: 8px;\n}\n.dw-card-foot .dw-tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dw-accent); flex-shrink: 0; }\n.dw-card-label { font-size: 12.5px; font-weight: 500; color: var(--dw-ink); line-height: 1.3; }\n\n/* ---- Typing indicator ----------------------------------------------------- */\n.dw-typing { align-self: flex-start; display: inline-flex; gap: 5px; padding: 8px 2px; }\n.dw-typing span {\n  width: 7px; height: 7px; border-radius: 50%;\n  background: var(--dw-muted);\n  animation: dwBounce 1.3s infinite ease-in-out;\n}\n.dw-typing span:nth-child(2) { animation-delay: 0.18s; }\n.dw-typing span:nth-child(3) { animation-delay: 0.36s; }\n@keyframes dwBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.35; } 30% { transform: translateY(-5px); opacity: 1; } }\n\n/* ---- Input ------------------------------------------------------------------ */\n.dw-input-row {\n  flex-shrink: 0;\n  padding: 12px 13px;\n  border-top: 1px solid var(--dw-border);\n  background: var(--dw-header-bg, var(--dw-surface));\n  display: flex; align-items: center; gap: 8px;\n}\n.dw-input {\n  flex: 1; min-width: 0;\n  border: 1px solid var(--dw-border);\n  background: var(--dw-surface-2);\n  border-radius: var(--dw-radius-pill);\n  padding: 11px 15px;\n  font-size: 13.5px;\n  font-family: inherit;\n  color: var(--dw-ink);\n  outline: none;\n  transition: border-color 0.14s, box-shadow 0.14s;\n}\n.dw-input::placeholder { color: var(--dw-muted); }\n.dw-input:focus { border-color: var(--dw-accent); box-shadow: 0 0 0 3px var(--dw-ring); }\n.dw-send {\n  flex-shrink: 0;\n  width: 40px; height: 40px;\n  border-radius: 50%;\n  border: 0;\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  display: flex; align-items: center; justify-content: center;\n  cursor: pointer;\n  transition: transform 0.14s var(--dw-ease), opacity 0.14s;\n}\n.dw-send:hover:not(:disabled) { transform: scale(1.06); }\n.dw-send:disabled { opacity: 0.4; cursor: not-allowed; }\n.dw-send svg { width: 16px; height: 16px; }\n\n.dw-footer-note {\n  flex-shrink: 0;\n  text-align: center;\n  font-size: 10.5px;\n  color: var(--dw-muted);\n  padding: 0 0 10px;\n  background: var(--dw-header-bg, var(--dw-surface));\n}\n.dw-footer-note b { color: var(--dw-ink); font-weight: 600; }\n\n/* ============================================================================\n   LIGHTBOX  (theme-neutral)\n   ============================================================================ */\n.dw-lightbox {\n  position: fixed; inset: 0; z-index: 2147483647;\n  background: rgba(8, 8, 10, 0.86);\n  backdrop-filter: blur(6px);\n  display: flex;\n  align-items: center; justify-content: center;\n  padding: 5vmin;\n  animation: dwLbFade 0.2s ease-out;\n}\n@keyframes dwLbFade { from { opacity: 0; } to { opacity: 1; } }\n.dw-lb-inner { position: relative; width: min(92vw, 1100px); display: flex; flex-direction: column; gap: 14px; }\n.dw-lb-inner video {\n  width: 100%; aspect-ratio: 16 / 10; background: #000;\n  border-radius: 14px; display: block;\n  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);\n}\n.dw-lb-caption { color: #e9e6df; font-size: 14px; text-align: center; line-height: 1.5; }\n.dw-lb-caption b { color: #fff; font-weight: 600; }\n.dw-lb-close {\n  position: absolute; top: -46px; right: 0;\n  width: 36px; height: 36px; border-radius: 50%;\n  background: rgba(255, 255, 255, 0.12); color: #fff; border: 0;\n  cursor: pointer; display: flex; align-items: center; justify-content: center;\n  transition: background 0.14s;\n}\n.dw-lb-close:hover { background: rgba(255, 255, 255, 0.24); }\n.dw-lb-close svg { width: 18px; height: 18px; }\n.dw-lb-keep {\n  align-self: center;\n  margin: 0 auto;\n  background: var(--dw-accent);\n  color: var(--dw-accent-fg);\n  border: 0;\n  border-radius: var(--dw-radius-pill);\n  padding: 10px 22px;\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: opacity 0.14s, transform 0.14s var(--dw-ease);\n}\n.dw-lb-keep:hover { opacity: 0.88; transform: translateY(-1px); }\n\n/* ---- Mobile ------------------------------------------------------------------ */\n@media (max-width: 600px) {\n  .dw-panel {\n    bottom: 0;\n    right: 0;\n    width: 100vw;\n    max-width: 100vw;\n    height: 100dvh;\n    max-height: 100dvh;\n    border-radius: 0;\n    border: 0;\n    padding-bottom: env(safe-area-inset-bottom);\n  }\n  :host([data-open="true"]) .dw-panel { animation: none; }\n}\n\n/* ---- Reduced motion ------------------------------------------------------------ */\n@media (prefers-reduced-motion: reduce) {\n  .dw-bubble, .dw-panel, .dw-msg, .dw-video-card, .dw-lightbox { animation: none; transition: none; }\n}\n';
 
 // src/chat-state.ts
 var MAX_TURNS = 2;
@@ -114,19 +114,39 @@ function createApi(opts) {
   };
 }
 
+// src/answer-cards.ts
+function groupVideoParts(parts) {
+  const byDemo = /* @__PURE__ */ new Map();
+  parts.forEach((p, i) => {
+    if (p.kind !== "video") return;
+    let ref = byDemo.get(p.demoId);
+    if (!ref) {
+      ref = { demoId: p.demoId, partIndex: i, startMs: p.startMs, endMs: p.endMs, steps: [], mp4Url: p.mp4Url };
+      byDemo.set(p.demoId, ref);
+    }
+    ref.startMs = Math.min(ref.startMs, p.startMs);
+    ref.endMs = Math.max(ref.endMs, p.endMs);
+    ref.steps.push({ stepId: p.stepId, startMs: p.startMs, caption: p.caption });
+  });
+  return new Map([...byDemo.values()].map((r) => [r.partIndex, r]));
+}
+
 // src/render-parts.ts
 var PLAY_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-function renderParts(root, parts, onPlay, resolveSource) {
+function renderParts(root, parts, onPlay, resolveSource, strings) {
   while (root.firstChild) root.removeChild(root.firstChild);
-  for (const part of parts) {
+  const cards = groupVideoParts(parts);
+  parts.forEach((part, i) => {
     if (part.kind === "text") {
       const p = document.createElement("p");
       p.textContent = part.text;
       root.appendChild(p);
-    } else {
-      root.appendChild(renderVideoPart(part, onPlay, resolveSource(part)));
+      return;
     }
-  }
+    const ref = cards.get(i);
+    if (!ref) return;
+    root.appendChild(renderDemoCard(ref, onPlay, resolveSource(ref), strings));
+  });
 }
 function formatDuration(ms) {
   const s = Math.max(0, Math.round(ms / 1e3));
@@ -134,17 +154,17 @@ function formatDuration(ms) {
   const ss = String(s % 60).padStart(2, "0");
   return `${mm}:${ss}`;
 }
-function renderVideoPart(part, onPlay, source) {
+function renderDemoCard(ref, onPlay, source, strings) {
   const card = document.createElement("button");
   card.className = "dw-video-card";
   card.type = "button";
-  card.setAttribute("aria-label", `Play clip: ${part.caption}`);
+  card.setAttribute("aria-label", `${strings.playDemo} ${source.title ?? ref.steps[0]?.caption ?? ""}`);
   const thumb = document.createElement("span");
   thumb.className = "dw-thumb";
   if (source.posterUrl) {
     thumb.style.backgroundImage = `url("${source.posterUrl}")`;
   } else {
-    const startSec = (part.startMs / 1e3).toFixed(3).replace(/\.?0+$/, "");
+    const startSec = (ref.startMs / 1e3).toFixed(3).replace(/\.?0+$/, "");
     const video = document.createElement("video");
     video.src = `${source.mp4Url}#t=${startSec}`;
     video.setAttribute("preload", "metadata");
@@ -158,7 +178,7 @@ function renderVideoPart(part, onPlay, source) {
   thumb.appendChild(play);
   const dur = document.createElement("span");
   dur.className = "dw-duration";
-  dur.textContent = formatDuration(part.endMs - part.startMs);
+  dur.textContent = formatDuration(source.durationMs ?? ref.endMs - ref.startMs);
   thumb.appendChild(dur);
   const foot = document.createElement("span");
   foot.className = "dw-card-foot";
@@ -166,10 +186,10 @@ function renderVideoPart(part, onPlay, source) {
   dot.className = "dw-tour-dot";
   const label = document.createElement("span");
   label.className = "dw-card-label";
-  label.textContent = part.caption;
+  label.textContent = source.title ?? ref.steps[0]?.caption ?? "";
   foot.appendChild(dot);
   foot.appendChild(label);
-  card.addEventListener("click", () => onPlay(part));
+  card.addEventListener("click", () => onPlay(ref, source));
   card.appendChild(thumb);
   card.appendChild(foot);
   return card;
@@ -193,7 +213,7 @@ async function loadManifest(url, fetchFn = fetch) {
 function resolveVideoSource(part, demos) {
   const demo = demos.get(part.demoId);
   if (!demo) return { mp4Url: part.mp4Url };
-  return { mp4Url: demo.videoUrl, posterUrl: demo.posterUrl, title: demo.title };
+  return { mp4Url: demo.videoUrl, posterUrl: demo.posterUrl, title: demo.title, durationMs: demo.durationMs };
 }
 
 // src/locales/en.json
@@ -212,7 +232,9 @@ var en_default = {
   caption: "Caption",
   subtitle: "How-to assistant",
   greetingSub: "Ask a question and I'll point you to the exact moment in a short walkthrough.",
-  footerNote: "Answers shown as clips \u2014 powered by"
+  footerNote: "Answers shown as clips \u2014 powered by",
+  keepWatching: "Keep watching",
+  playDemo: "Play demo:"
 };
 
 // src/locales/es.json
@@ -231,7 +253,9 @@ var es_default = {
   caption: "Subt\xEDtulo",
   subtitle: "Asistente de ayuda",
   greetingSub: "Haz una pregunta y te llevar\xE9 al momento exacto de un breve tutorial.",
-  footerNote: "Respuestas en forma de clips \u2014 con tecnolog\xEDa de"
+  footerNote: "Respuestas en forma de clips \u2014 con tecnolog\xEDa de",
+  keepWatching: "Seguir viendo",
+  playDemo: "Reproducir demo:"
 };
 
 // src/locales/fr.json
@@ -250,7 +274,9 @@ var fr_default = {
   caption: "L\xE9gende",
   subtitle: "Assistant d'aide",
   greetingSub: "Posez une question et je vous montrerai le moment exact dans une courte d\xE9monstration.",
-  footerNote: "R\xE9ponses sous forme de clips \u2014 propuls\xE9 par"
+  footerNote: "R\xE9ponses sous forme de clips \u2014 propuls\xE9 par",
+  keepWatching: "Continuer \xE0 regarder",
+  playDemo: "Lire la d\xE9mo :"
 };
 
 // src/locales/de.json
@@ -269,7 +295,9 @@ var de_default = {
   caption: "Untertitel",
   subtitle: "Hilfe-Assistent",
   greetingSub: "Stelle eine Frage und ich zeige dir den genauen Moment in einem kurzen Rundgang.",
-  footerNote: "Antworten als Clips \u2014 bereitgestellt von"
+  footerNote: "Antworten als Clips \u2014 bereitgestellt von",
+  keepWatching: "Weiterschauen",
+  playDemo: "Demo abspielen:"
 };
 
 // src/locales/ja.json
@@ -288,7 +316,9 @@ var ja_default = {
   caption: "\u30AD\u30E3\u30D7\u30B7\u30E7\u30F3",
   subtitle: "\u64CD\u4F5C\u30AC\u30A4\u30C9\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8",
   greetingSub: "\u8CEA\u554F\u3059\u308B\u3068\u3001\u77ED\u3044\u30A6\u30A9\u30FC\u30AF\u30B9\u30EB\u30FC\u306E\u8A72\u5F53\u7B87\u6240\u3092\u30D4\u30F3\u30DD\u30A4\u30F3\u30C8\u3067\u3054\u6848\u5185\u3057\u307E\u3059\u3002",
-  footerNote: "\u56DE\u7B54\u306F\u30AF\u30EA\u30C3\u30D7\u3067\u8868\u793A \u2014 \u63D0\u4F9B:"
+  footerNote: "\u56DE\u7B54\u306F\u30AF\u30EA\u30C3\u30D7\u3067\u8868\u793A \u2014 \u63D0\u4F9B:",
+  keepWatching: "\u7D9A\u304D\u3092\u898B\u308B",
+  playDemo: "\u30C7\u30E2\u3092\u518D\u751F:"
 };
 
 // src/locales/pt.json
@@ -307,7 +337,9 @@ var pt_default = {
   caption: "Legenda",
   subtitle: "Assistente de ajuda",
   greetingSub: "Fa\xE7a uma pergunta e eu aponto o momento exato em um breve tutorial.",
-  footerNote: "Respostas em forma de clipes \u2014 desenvolvido por"
+  footerNote: "Respostas em forma de clipes \u2014 desenvolvido por",
+  keepWatching: "Continuar assistindo",
+  playDemo: "Reproduzir demo:"
 };
 
 // src/locales/zh-CN.json
@@ -326,7 +358,9 @@ var zh_CN_default = {
   caption: "\u5B57\u5E55",
   subtitle: "\u64CD\u4F5C\u6307\u5357\u52A9\u624B",
   greetingSub: "\u63D0\u51FA\u95EE\u9898\uFF0C\u6211\u4F1A\u5E26\u4F60\u76F4\u8FBE\u77ED\u89C6\u9891\u6F14\u793A\u4E2D\u7684\u786E\u5207\u65F6\u523B\u3002",
-  footerNote: "\u56DE\u7B54\u4EE5\u7247\u6BB5\u5F62\u5F0F\u5448\u73B0 \u2014 \u6280\u672F\u652F\u6301\uFF1A"
+  footerNote: "\u56DE\u7B54\u4EE5\u7247\u6BB5\u5F62\u5F0F\u5448\u73B0 \u2014 \u6280\u672F\u652F\u6301\uFF1A",
+  keepWatching: "\u7EE7\u7EED\u89C2\u770B",
+  playDemo: "\u64AD\u653E\u6F14\u793A\uFF1A"
 };
 
 // src/locales/it.json
@@ -345,7 +379,9 @@ var it_default = {
   caption: "Didascalia",
   subtitle: "Assistente di aiuto",
   greetingSub: "Fai una domanda e ti indicher\xF2 il momento esatto in una breve guida.",
-  footerNote: "Risposte sotto forma di clip \u2014 realizzato con"
+  footerNote: "Risposte sotto forma di clip \u2014 realizzato con",
+  keepWatching: "Continua a guardare",
+  playDemo: "Riproduci demo:"
 };
 
 // src/locale.ts
@@ -428,7 +464,9 @@ async function mount(opts) {
   let lightbox = null;
   let lightboxVideo = null;
   let lightboxCaption = null;
-  let lightboxClipEnd = null;
+  let keepWatchingBtn = null;
+  let lightboxSoftStop = null;
+  let lightboxProgrammaticSeek = false;
   function buildLightbox() {
     lightbox = document.createElement("div");
     lightbox.className = "dw-lightbox";
@@ -447,11 +485,30 @@ async function mount(opts) {
     lightboxVideo.controls = true;
     lightboxVideo.setAttribute("playsinline", "");
     lightboxVideo.addEventListener("timeupdate", () => {
-      if (lightboxClipEnd !== null && lightboxVideo.currentTime >= lightboxClipEnd) {
+      if (lightboxSoftStop !== null && lightboxVideo.currentTime >= lightboxSoftStop) {
+        lightboxSoftStop = null;
         lightboxVideo.pause();
+        keepWatchingBtn.style.display = "";
       }
     });
+    lightboxVideo.addEventListener("seeking", () => {
+      if (lightboxProgrammaticSeek) lightboxProgrammaticSeek = false;
+      else lightboxSoftStop = null;
+    });
+    lightboxVideo.addEventListener("play", () => {
+      keepWatchingBtn.style.display = "none";
+    });
     inner.appendChild(lightboxVideo);
+    keepWatchingBtn = document.createElement("button");
+    keepWatchingBtn.className = "dw-lb-keep";
+    keepWatchingBtn.textContent = strings.keepWatching;
+    keepWatchingBtn.style.display = "none";
+    keepWatchingBtn.addEventListener("click", () => {
+      keepWatchingBtn.style.display = "none";
+      void lightboxVideo.play().catch(() => {
+      });
+    });
+    inner.appendChild(keepWatchingBtn);
     lightboxCaption = document.createElement("div");
     lightboxCaption.className = "dw-lb-caption";
     inner.appendChild(lightboxCaption);
@@ -461,20 +518,21 @@ async function mount(opts) {
     });
     shadow.appendChild(lightbox);
   }
-  function openLightbox(part) {
+  function openLightbox(ref, source) {
     if (!lightbox) buildLightbox();
-    const source = resolveVideoSource(part, demos);
-    const startSec = part.startMs / 1e3;
-    const endSec = part.endMs / 1e3;
-    lightboxClipEnd = endSec;
-    lightboxVideo.src = `${source.mp4Url}#t=${startSec.toFixed(3)},${endSec.toFixed(3)}`;
+    const startSec = ref.startMs / 1e3;
+    lightboxSoftStop = ref.endMs / 1e3;
+    keepWatchingBtn.style.display = "none";
+    lightboxVideo.src = `${source.mp4Url}#t=${startSec.toFixed(3)}`;
     if (source.posterUrl) lightboxVideo.poster = source.posterUrl;
     lightboxCaption.textContent = "";
     const b = document.createElement("b");
-    b.textContent = part.caption;
+    b.textContent = source.title ?? ref.steps[0]?.caption ?? "";
     lightboxCaption.appendChild(b);
-    if (source.title) lightboxCaption.appendChild(document.createTextNode(` \u2014 ${source.title}`));
+    const caps = ref.steps.map((s) => s.caption).filter(Boolean).join(" \xB7 ");
+    if (caps && source.title) lightboxCaption.appendChild(document.createTextNode(` \u2014 ${caps}`));
     lightbox.style.display = "flex";
+    lightboxProgrammaticSeek = true;
     lightboxVideo.currentTime = startSec;
     lightboxVideo.play().catch(() => {
     });
@@ -482,6 +540,7 @@ async function mount(opts) {
   function closeLightbox() {
     if (!lightbox || !lightboxVideo) return;
     lightboxVideo.pause();
+    lightboxSoftStop = null;
     lightbox.style.display = "none";
   }
   document.addEventListener("keydown", (e) => {
@@ -615,7 +674,7 @@ async function mount(opts) {
         wrap.className = "dw-msg dw-msg-assistant";
         if (isLast && s.lastResponse) {
           if (s.lastResponse.kind === "answer") {
-            renderParts(wrap, s.lastResponse.parts, openLightbox, (p) => resolveVideoSource(p, demos));
+            renderParts(wrap, s.lastResponse.parts, openLightbox, (ref) => resolveVideoSource(ref, demos), { playDemo: strings.playDemo });
           } else {
             const p = document.createElement("p");
             p.textContent = `${strings.noMatchPrefix} ${s.lastResponse.text}`;
