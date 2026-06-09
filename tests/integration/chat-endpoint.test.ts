@@ -53,7 +53,7 @@ describe("POST /chat", () => {
     await setupWidget(dataRoot);
 
     const fakeEmbed = vi.fn().mockResolvedValue([1, 0, 0]);
-    const fakeRewrite = vi.fn().mockResolvedValue("How do I open the dialog?");
+    const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["How do I open the dialog?"], catalogIntent: false });
     const fakeAnswer = vi.fn().mockResolvedValue({
       kind: "answer", parts: [
         { kind: "text", text: "Click + New project." },
@@ -86,13 +86,15 @@ describe("POST /chat", () => {
     server.close();
   });
 
-  it("returns no_match when topCosineScore is below 0.55", async () => {
+  it("returns no_match with retrievalConfidence:low when topCosineScore is below threshold", async () => {
     const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
     await setupWidget(dataRoot);
 
+    // Embedding orthogonal to chunk → topCosine = 0 → retrievalConfidence = "low"
     const fakeEmbed = vi.fn().mockResolvedValue([0, 1, 0]);
-    const fakeRewrite = vi.fn();
-    const fakeAnswer = vi.fn();
+    const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["weird question"], catalogIntent: false });
+    // answerFn IS called (confidence is a signal, never a gate); it returns no_match
+    const fakeAnswer = vi.fn().mockResolvedValue({ kind: "no_match", text: "I don't know.", suggestions: [] });
 
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,
@@ -106,6 +108,10 @@ describe("POST /chat", () => {
     );
     expect(resp.status).toBe(200);
     expect(JSON.parse(resp.body).kind).toBe("no_match");
+    // answerFn was called with retrievalConfidence: "low" (signal, not a gate)
+    expect(fakeAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ retrievalConfidence: "low" }),
+    );
     server.close();
   });
 
@@ -149,7 +155,7 @@ describe("POST /chat", () => {
     const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
     await setupWidget(dataRoot);
     const fakeEmbed = vi.fn().mockResolvedValue([0, 1, 0]);
-    const fakeRewrite = vi.fn().mockResolvedValue("x");
+    const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["x"], catalogIntent: false });
     const fakeAnswer = vi.fn().mockResolvedValue({ kind: "no_match", text: "x" });
     const server = await startServer({
       port: 0, host: "127.0.0.1", dataRoot,

@@ -33,7 +33,7 @@ function baseOpts(over: Partial<CreateChatRouteOpts> = {}): CreateChatRouteOpts 
     suggestedQuestions: ["How do I create a note?"],
     defaultLocale: "en",
     embedQuery: async () => [0, 1],
-    rewriteQuery: async () => "create note",
+    rewriteQuery: async () => ({ queries: ["create note"], catalogIntent: false }),
     answer: async () => ({ kind: "no_match", text: "no" }),
     rateLimitPerMinute: 2,
     ...over,
