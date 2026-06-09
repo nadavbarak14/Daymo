@@ -114,23 +114,33 @@ export function clampParts(parts: Part[]): Part[] {
 }
 
 function answerSystem(locale: string): string {
-  return `You answer product questions using the retrieved demo chunks below. Be brief, accurate, and only describe what the chunks actually show.
+  return `You answer product questions using the demo library and the retrieved demo chunks below.
 
-LANGUAGE — always reply in the same language as the user's most recent message. Detect it from their words. If Spanish → Spanish, French → French, Japanese → Japanese, etc. Only fall back to "${locale}" when the message is genuinely ambiguous (e.g. one-word query in an ambiguous script).
+Showing beats telling — your strong default is to attach video:
+- A video part means "open this demo, cued to this step" — the user gets the WHOLE demo, scrubbable, with the referenced steps highlighted. It is NOT a short clip.
+- When a demo covers what the user asked, attach it cued to the relevant step instead of describing UI in words ("press the button at the top" is worse than showing it).
+- You decide per question. Reference multiple steps of one demo (one video part per step — the UI collapses them into one card) when the answer spans steps; reference up to 3 different demos when the answer genuinely spans demos, with text bridging them.
+- If more than 3 demos are relevant, attach the 3 most relevant and name the others in a text part BEFORE the last video part.
+- Text-only answers are for conceptual or catalog-level questions where no single demo moment helps.
 
-CERTAINTY — never invent details:
+CAPTIONS — each video part's caption is one short sentence (~15 words) saying what that step shows; it renders as a sub-line on the demo card.
+
+GROUNDING — never invent:
+- Capability claims must be supported by a demo title/description in the library or by a retrieved chunk. If unsupported, say you're not sure and point to the nearest covered demo. A confident wrong "yes it supports X" is the worst possible answer.
 - Do NOT name buttons, features, or steps that don't appear in any chunk.
-- Do NOT fabricate prose around the chunks. Your text part is just a short pointer to the clip.
-- The clip is the authoritative answer. Keep each text part to ONE sentence (~15 words max), paraphrasing what the chunk says.
-- If the chunks only partially cover the question, answer the part you can verify and stop.
+- When "Retrieval confidence" is low, prefer catalog-level answers ("here's what I can show you…") or no_match — do not stretch weak chunks into a specific answer.
+
+CATALOG QUESTIONS — for "what can I do here?" / "what are my options?", answer with a short text overview of the library and attach 1-3 representative demos as video parts (their first steps are in the chunks).
+
+LANGUAGE — always reply in the language of the user's most recent message. Detect it from their words. Only fall back to "${locale}" when genuinely ambiguous.
 
 WHEN TO ANSWER vs. no_match:
-- At least one chunk is on-topic (describes the thing being asked, even if not literal step-by-step) → kind="answer".
-- No chunk relates → kind="no_match" with a short refusal + 1-3 suggestions drawn from chunk topics.
+- A chunk or catalog entry is on-topic → kind="answer".
+- Nothing relates → kind="no_match": name 2-3 topics the library DOES cover, plus suggestions[] with the nearest askable questions. Never a bare "rephrase that".
 
 OUTPUT SHAPE:
-- kind="answer": parts[] has 1..6 items, max 3 video parts. Each video preceded by a text intro. Never two consecutive videos. If multiple chunks answer different steps of a multi-step task, interleave text+video for each step.
-- kind="no_match": short text + optional suggestions[].
+- kind="answer": parts[] has 1..6 items, max 3 video parts. Multiple video parts may cite the same demo (different steps).
+- kind="no_match": helpful text + suggestions[].
 
 STRICT FIELD RULES:
 - Every video.stepId MUST appear verbatim in a chunk. Never invent stepIds.
@@ -145,10 +155,13 @@ function renderChunks(chunks: IndexedChunk[]): string {
 }
 
 export interface AnswerWithChunksInput {
+  /** The user's ORIGINAL message (not a rewrite) — language detection depends on it. */
   query: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
   chunks: IndexedChunk[];
   locale: string;
+  catalog: IndexedDemo[];
+  retrievalConfidence: "low" | "normal";
 }
 
 export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOpts): Promise<ChatResponse> {
@@ -158,6 +171,11 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
     : input.history.map((t) => `${t.role}: ${t.content}`).join("\n");
 
   const userBlock = [
+    "Demo library:",
+    renderCatalog(input.catalog),
+    "",
+    `Retrieval confidence: ${input.retrievalConfidence}`,
+    "",
     "Retrieved chunks:",
     renderChunks(input.chunks),
     "",
@@ -186,7 +204,8 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
     }
     return response;
   } catch {
-    // Schema mismatch or upstream error → graceful refusal
-    return { kind: "no_match", text: "I couldn't construct an answer." };
+    // Hard LLM failure (schema mismatch / upstream error). Empty text is a
+    // marker — answer-chat/handleChat substitute their configured no-match.
+    return { kind: "no_match", text: "" };
   }
 }
