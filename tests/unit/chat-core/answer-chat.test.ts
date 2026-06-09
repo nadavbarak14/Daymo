@@ -12,27 +12,23 @@ const index: IndexFile = {
   videoBaseUrl: "https://cdn/help/v1",
   createdAt: "2026-06-04T00:00:00Z",
   etag: "sha256:x",
-  demos: [],
+  demos: [
+    { demoId: "d", title: "Create a note", description: "Notes basics", durationMs: 60000 },
+    { demoId: "e", title: "Share a course", description: "Invite people", durationMs: 70000 },
+  ],
   chunks: [
-    {
-      stepId: "d:0:1",
-      demoId: "d",
-      sceneIndex: 0,
-      stepIndex: 1,
-      globalStartMs: 100,
-      globalEndMs: 900,
-      text: "create a note",
-      embedding: [1, 0],
-      keywords: ["create", "note"],
-    },
+    { stepId: "d:0:1", demoId: "d", sceneIndex: 0, stepIndex: 1, globalStartMs: 100, globalEndMs: 900,
+      text: "create a note", embedding: [1, 0], keywords: ["create", "note"] },
+    { stepId: "e:0:1", demoId: "e", sceneIndex: 0, stepIndex: 1, globalStartMs: 0, globalEndMs: 500,
+      text: "share a course", embedding: [0, 1], keywords: ["share", "course"] },
   ],
 };
 
 function deps(over: Partial<CoreDeps> = {}): CoreDeps {
   return {
     loaded: loadIndex(index, { suggestedQuestions: ["How do I create a note?"], defaultLocale: "en" }),
-    embedQuery: async () => [1, 0], // identical to the chunk → high cosine
-    rewriteQuery: async () => "create note",
+    embedQuery: async () => [1, 0],
+    rewriteQuery: async () => ({ queries: ["create note"], catalogIntent: false }),
     answer: async () => ({
       kind: "answer",
       parts: [
@@ -54,21 +50,67 @@ describe("answerChat", () => {
     expect(video && "mp4Url" in video && video.mp4Url).toBe("https://cdn/help/v1/d/output.mp4");
     const ev = onEvent.mock.calls[0][0] as HelpChatEvent;
     expect(ev.outcome).toBe("answered");
+    expect(ev.rewrittenQueries).toEqual(["create note"]);
     expect(ev.matchedStepIds).toContain("d:0:1");
   });
 
-  it("returns no_match (with suggestions) when top cosine is below threshold", async () => {
+  it("low cosine no longer short-circuits: the answer model runs with retrievalConfidence 'low'", async () => {
+    const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "catalog overview" }] }));
     const res = await answerChat(
       { message: "unrelated", history: [], requestId: "r2" },
-      deps({ embedQuery: async () => [0, 1] }), // orthogonal → low cosine
+      deps({ embedQuery: async () => [-1, 0.05], answer }),
     );
-    expect(res.body.kind).toBe("no_match");
-    if (res.body.kind === "no_match") expect(res.body.suggestions).toEqual(["How do I create a note?"]);
+    expect(answer).toHaveBeenCalled();
+    expect(answer.mock.calls[0][0].retrievalConfidence).toBe("low");
+    expect(res.body.kind).toBe("answer");
+  });
+
+  it("passes the ORIGINAL message (not the rewrite) to the answer model, plus catalog + confidence", async () => {
+    const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "ok" }] }));
+    await answerChat({ message: "¿cómo lo comparto?", history: [], requestId: "r3" }, deps({ answer }));
+    const arg = answer.mock.calls[0][0];
+    expect(arg.query).toBe("¿cómo lo comparto?");
+    expect(arg.catalog.map((d: { demoId: string }) => d.demoId)).toEqual(["d", "e"]);
+    expect(["low", "normal"]).toContain(arg.retrievalConfidence);
+  });
+
+  it("catalogIntent injects each demo's first chunk so every demo is citable", async () => {
+    const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "ok" }] }));
+    await answerChat(
+      { message: "what can I do here?", history: [], requestId: "r4" },
+      deps({ rewriteQuery: async () => ({ queries: ["product overview"], catalogIntent: true }), answer }),
+    );
+    const stepIds = answer.mock.calls[0][0].chunks.map((c: { stepId: string }) => c.stepId);
+    expect(stepIds).toContain("d:0:1");
+    expect(stepIds).toContain("e:0:1");
+  });
+
+  it("unions retrieval across rewrite queries and the raw message without duplicates", async () => {
+    const embedQuery = vi.fn(async (text: string) => (text.includes("share") ? [0, 1] : [1, 0]));
+    const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "ok" }] }));
+    await answerChat(
+      { message: "create and share", history: [], requestId: "r5" },
+      deps({ embedQuery, rewriteQuery: async () => ({ queries: ["create note", "share course"], catalogIntent: false }), answer }),
+    );
+    const stepIds = answer.mock.calls[0][0].chunks.map((c: { stepId: string }) => c.stepId);
+    expect(new Set(stepIds).size).toBe(stepIds.length);
+    expect(stepIds).toContain("d:0:1");
+    expect(stepIds).toContain("e:0:1");
+  });
+
+  it("replaces the empty-text no_match marker with the configured no-match", async () => {
+    const res = await answerChat(
+      { message: "x", history: [], requestId: "r6" },
+      deps({ answer: async () => ({ kind: "no_match", text: "" }) }),
+    );
+    if (res.body.kind !== "no_match") throw new Error("expected no_match");
+    expect(res.body.text).toBe("I don't have that in the demos. Try one of these:");
+    expect(res.body.suggestions).toEqual(["How do I create a note?"]);
   });
 
   it("downgrades to no_match when the LLM returns an unknown stepId", async () => {
     const res = await answerChat(
-      { message: "create", history: [], requestId: "r3" },
+      { message: "create", history: [], requestId: "r7" },
       deps({
         answer: async () => ({
           kind: "answer",
@@ -82,15 +124,26 @@ describe("answerChat", () => {
     expect(res.body.kind).toBe("no_match");
   });
 
+  it("empty index AND empty catalog → canned no_match without calling the LLM", async () => {
+    const empty: IndexFile = { ...index, demos: [], chunks: [] };
+    const answer = vi.fn();
+    const res = await answerChat(
+      { message: "anything", history: [], requestId: "r8" },
+      deps({ loaded: loadIndex(empty, { suggestedQuestions: ["Try this?"], defaultLocale: "en" }), answer }),
+    );
+    expect(answer).not.toHaveBeenCalled();
+    expect(res.body.kind).toBe("no_match");
+  });
+
   it("caps history to the last 2 turns before rewrite", async () => {
-    const rewriteQuery = vi.fn(async () => "create note");
+    const rewriteQuery = vi.fn(async () => ({ queries: ["create note"], catalogIntent: false }));
     const history = [
       { role: "user" as const, content: "a" },
       { role: "assistant" as const, content: "b" },
       { role: "user" as const, content: "c" },
       { role: "assistant" as const, content: "d" },
     ];
-    await answerChat({ message: "more", history, requestId: "r4" }, deps({ rewriteQuery }));
+    await answerChat({ message: "more", history, requestId: "r9" }, deps({ rewriteQuery }));
     expect(rewriteQuery.mock.calls[0][0].history).toHaveLength(2);
   });
 });

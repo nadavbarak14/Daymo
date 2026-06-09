@@ -42,4 +42,11 @@ describe("loadIndex", () => {
       }),
     ).toThrow(/unsupported index version/);
   });
+
+  it("defaults noMatchText and accepts an override", () => {
+    const a = loadIndex(index, { suggestedQuestions: [], defaultLocale: "en" });
+    expect(a.noMatchText).toBe("I don't have that in the demos. Try one of these:");
+    const b = loadIndex(index, { suggestedQuestions: [], defaultLocale: "en", noMatchText: "Nada de eso." });
+    expect(b.noMatchText).toBe("Nada de eso.");
+  });
 });
