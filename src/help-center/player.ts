@@ -70,6 +70,9 @@ export function createPlayer(
   let prevOverflow = "";
   let pendingSeek: (() => void) | null = null;
   let autoplay = true;
+  // "Up next" can get long; default it folded away and let users open it.
+  // Remembered across re-opens.
+  let queueCollapsed = true;
 
   function clearPendingSeek(): void {
     if (pendingSeek) {
@@ -162,9 +165,14 @@ export function createPlayer(
 
     const head = doc.createElement("div");
     head.className = "daymo-help-queue-h";
-    const headTx = doc.createElement("span");
-    headTx.className = "daymo-help-queue-h-tx";
-    headTx.textContent = strings.upNext;
+    // The heading doubles as a collapse toggle for the (potentially long) list.
+    const toggle = doc.createElement("button");
+    toggle.type = "button";
+    toggle.className = "daymo-help-queue-toggle";
+    toggle.setAttribute("aria-label", strings.upNext);
+    toggle.innerHTML =
+      `<span class="daymo-help-queue-caret">${ICONS.chevron}</span><span class="daymo-help-queue-h-tx"></span>`;
+    (toggle.querySelector(".daymo-help-queue-h-tx") as HTMLElement).textContent = strings.upNext;
     const autoBtn = doc.createElement("button");
     autoBtn.type = "button";
     autoBtn.className = "daymo-help-autoplay";
@@ -178,12 +186,23 @@ export function createPlayer(
       autoBtn.setAttribute("aria-pressed", String(autoplay));
       autoBtn.classList.toggle("off", !autoplay);
     });
-    head.append(headTx, autoBtn);
+    head.append(toggle, autoBtn);
     queueSec.appendChild(head);
 
     const list = doc.createElement("div");
     list.className = "daymo-help-queue";
     queueSec.appendChild(list);
+
+    const applyCollapsed = (): void => {
+      queueSec.classList.toggle("collapsed", queueCollapsed);
+      list.hidden = queueCollapsed;
+      toggle.setAttribute("aria-expanded", String(!queueCollapsed));
+    };
+    toggle.addEventListener("click", () => {
+      queueCollapsed = !queueCollapsed;
+      applyCollapsed();
+    });
+    applyCollapsed();
 
     for (const d of items) {
       const it = doc.createElement("button");

@@ -125,6 +125,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   let libGroupHead: HTMLElement | null = null;
   let libCount: HTMLElement | null = null;
   let topbarTitleSub: HTMLElement | null = null;
+  let topbarBack: HTMLButtonElement | null = null;
 
   if (chrome) {
     side = el("aside", "daymo-help-side");
@@ -180,10 +181,13 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   if (chrome) {
     const topbar = el("header", "daymo-help-topbar");
     topbar.innerHTML =
-      `<button type="button" class="daymo-help-icon-btn daymo-help-topbar-menu">${ICONS.menu}</button><div class="daymo-help-topbar-title"><span class="daymo-help-topbar-title-tx"></span><span class="daymo-help-topbar-title-sub"></span></div><span class="daymo-help-topbar-sp"></span><a class="daymo-help-contact" hidden>${ICONS.contact}<span></span></a>`;
+      `<button type="button" class="daymo-help-icon-btn daymo-help-topbar-menu">${ICONS.menu}</button><button type="button" class="daymo-help-topbar-back" hidden>${ICONS.back}<span></span></button><div class="daymo-help-topbar-title"><span class="daymo-help-topbar-title-tx"></span><span class="daymo-help-topbar-title-sub"></span></div><span class="daymo-help-topbar-sp"></span><a class="daymo-help-contact" hidden>${ICONS.contact}<span></span></a>`;
     sq(topbar, ".daymo-help-topbar-title-tx").textContent = strings.topbarTitle;
     topbarTitleSub = sq(topbar, ".daymo-help-topbar-title-sub");
     topbarTitleSub.textContent = ` · ${strings.topbarWelcome}`;
+    topbarBack = sq<HTMLButtonElement>(topbar, ".daymo-help-topbar-back");
+    sq(topbarBack, "span").textContent = strings.backToGuides;
+    topbarBack.addEventListener("click", () => resetChat());
     sq(topbar, ".daymo-help-topbar-menu").setAttribute("aria-label", strings.newQuestion);
     sq(topbar, ".daymo-help-topbar-menu").addEventListener("click", () => {
       root.dataset.sidebar = root.dataset.sidebar === "open" ? "closed" : "open";
@@ -291,41 +295,33 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     return ta;
   }
 
+  // The home hero is a poster, not an inline <video>: clicking the stage (or the
+  // "Watch walkthrough" cue) opens the full theater player and plays. The rail
+  // below swaps which walkthrough is featured.
   function inlineHomePlayer(): HTMLElement {
     const wrap = el("div", "daymo-help-home-player");
     wrap.innerHTML =
-      `<div class="daymo-help-hp-stage"><video class="daymo-help-hp-video" playsinline preload="metadata"></video><button type="button" class="daymo-help-hp-overlay">${ICONS.play}</button><div class="daymo-help-hp-bar"><div class="daymo-help-hp-bar-tx"><span class="daymo-help-hp-kicker"></span><span class="daymo-help-hp-title"></span></div><button type="button" class="daymo-help-hp-expand">${ICONS.expand}<span></span></button></div></div><div class="daymo-help-hp-rail"></div>`;
+      `<button type="button" class="daymo-help-hp-stage"><span class="daymo-help-hp-poster"><img alt="" /></span><span class="daymo-help-hp-overlay">${ICONS.play}</span><span class="daymo-help-hp-bar"><span class="daymo-help-hp-bar-tx"><span class="daymo-help-hp-kicker"></span><span class="daymo-help-hp-title"></span></span><span class="daymo-help-hp-watch">${ICONS.play}<span></span></span></span></button><div class="daymo-help-hp-rail"></div>`;
 
-    const video = sq<HTMLVideoElement>(wrap, ".daymo-help-hp-video");
-    const overlay = sq<HTMLButtonElement>(wrap, ".daymo-help-hp-overlay");
+    const stage = sq<HTMLButtonElement>(wrap, ".daymo-help-hp-stage");
+    const posterImg = sq<HTMLImageElement>(wrap, ".daymo-help-hp-poster img");
     const kicker = sq(wrap, ".daymo-help-hp-kicker");
     const titleEl = sq(wrap, ".daymo-help-hp-title");
-    const expand = sq(wrap, ".daymo-help-hp-expand");
     const rail = sq(wrap, ".daymo-help-hp-rail");
-    sq(expand, "span").textContent = strings.theaterLabel;
+    sq(wrap, ".daymo-help-hp-watch span").textContent = strings.watchLabel;
     let cur = demos[0];
 
-    const play = (): void => {
-      overlay.style.display = "none";
-      video.controls = true;
-      void Promise.resolve(video.play()).catch(() => undefined);
-    };
-    const load = (d: ManifestDemo, autoplay: boolean): void => {
+    const load = (d: ManifestDemo): void => {
       cur = d;
-      video.src = d.videoUrl;
-      video.poster = d.posterUrl;
-      video.controls = false;
+      posterImg.src = d.posterUrl;
       kicker.textContent = strings.featuredLabel;
       titleEl.textContent = d.title;
       wrap.querySelectorAll<HTMLElement>(".daymo-help-hp-chip").forEach((c) =>
         c.classList.toggle("on", c.dataset.demoId === d.demoId),
       );
-      overlay.style.display = "grid";
-      if (autoplay) play();
     };
 
-    overlay.addEventListener("click", play);
-    expand.addEventListener("click", () => openPlayer(cur));
+    stage.addEventListener("click", () => openPlayer(cur));
 
     for (const d of demos) {
       const c = el("button", "daymo-help-hp-chip");
@@ -336,11 +332,11 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       sq<HTMLImageElement>(c, "img").src = d.posterUrl;
       sq(c, ".daymo-help-hp-chip-dur").textContent = formatDuration(d.durationMs);
       sq(c, ".daymo-help-hp-chip-title").textContent = d.title;
-      c.addEventListener("click", () => load(d, true));
+      c.addEventListener("click", () => load(d));
       rail.appendChild(c);
     }
 
-    load(demos[0], false);
+    load(demos[0]);
     return wrap;
   }
 
@@ -401,6 +397,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     content.appendChild(thread);
     composerDock.hidden = false;
     if (topbarTitleSub) topbarTitleSub.textContent = ` · ${strings.topbarConversation}`;
+    if (topbarBack) topbarBack.hidden = false;
   }
   function resetChat(): void {
     history.length = 0;
@@ -409,6 +406,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     markPlaying(null);
     composerDock.hidden = true;
     if (topbarTitleSub) topbarTitleSub.textContent = ` · ${strings.topbarWelcome}`;
+    if (topbarBack) topbarBack.hidden = true;
     thread = null;
     renderHome();
   }
@@ -428,7 +426,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     sq(qa, ".daymo-help-a-nm").textContent = strings.assistantName;
     sq(qa, ".daymo-help-a-tag").textContent = strings.assistantTag;
     thread!.appendChild(qa);
-    qa.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    scrollToStart(qa);
 
     const body = sq(qa, ".daymo-help-a-text");
 
@@ -461,6 +459,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
   function renderResponse(body: HTMLElement, resp: ChatResponse): void {
     body.textContent = ""; // removes the typing indicator
+    const qa = body.closest<HTMLElement>(".daymo-help-qa");
     if (resp.kind === "no_match") {
       const p = el("p", "daymo-help-a-p");
       p.textContent = resp.text;
@@ -477,6 +476,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       // a playlist of whatever guides we do have
       if (demos.length > 0) body.appendChild(relatedPlaylist(demos.slice(0, 8)));
       body.appendChild(actionRow(resp.text));
+      if (qa) scrollToStart(qa);
       history.push({ role: "assistant", content: resp.text });
       return;
     }
@@ -505,7 +505,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const followups = opts.suggestedQuestions ?? [];
     if (followups.length > 0) body.appendChild(followupRow(followups));
     body.appendChild(actionRow(summary.join(" ")));
-    scrollDown();
+    if (qa) scrollToStart(qa);
     history.push({ role: "assistant", content: summary.join(" ") });
   }
 
@@ -624,10 +624,30 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     return r;
   }
 
-  function scrollDown(): void {
-    requestAnimationFrame(() => {
-      scroll.scrollTo?.({ top: scroll.scrollHeight, behavior: "smooth" });
-    });
+  // Bring the TOP of a Q&A block to the top of the scroll area, so each new
+  // answer is read from the beginning (not scrolled to its end). A tail spacer
+  // guarantees there's room below for the latest block to reach the top even
+  // when the answer is short.
+  function scrollToStart(node: HTMLElement): void {
+    if (!thread) return;
+    let tail = thread.querySelector<HTMLElement>(":scope > .daymo-help-thread-tail");
+    if (!tail) tail = el("div", "daymo-help-thread-tail");
+    thread.appendChild(tail); // keep it last
+    const apply = (): void => {
+      const need = Math.max(0, scroll.clientHeight - node.getBoundingClientRect().height - 40);
+      tail!.style.height = `${need}px`;
+      const target =
+        scroll.scrollTop +
+        (node.getBoundingClientRect().top - scroll.getBoundingClientRect().top) -
+        18;
+      const prev = scroll.style.scrollBehavior;
+      scroll.style.scrollBehavior = "auto";
+      scroll.scrollTop = Math.max(0, target);
+      scroll.style.scrollBehavior = prev;
+    };
+    // Run once layout has settled, then again to defeat scroll-anchoring.
+    setTimeout(apply, 40);
+    setTimeout(apply, 160);
   }
 
   /* ---------- manifest load ---------- */
@@ -658,10 +678,23 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     root.appendChild(scrim);
   }
   renderHome();
+  // On mobile the sidebar is a fixed overlay drawer — start it closed so it
+  // doesn't cover the content on first load.
+  if (chrome && isMobile()) root.dataset.sidebar = "closed";
   container.appendChild(root);
+
+  // Crossing into mobile (e.g. rotating to portrait, or shrinking the window)
+  // turns the inline sidebar into a fixed drawer — if it was open it would now
+  // cover the content, so force it closed on that transition.
+  const mq = doc.defaultView?.matchMedia?.("(max-width: 760px)");
+  const onViewport = (e: MediaQueryListEvent): void => {
+    if (chrome && e.matches) root.dataset.sidebar = "closed";
+  };
+  mq?.addEventListener?.("change", onViewport);
 
   return () => {
     cancelled = true;
+    mq?.removeEventListener?.("change", onViewport);
     player.destroy();
     root.remove();
   };

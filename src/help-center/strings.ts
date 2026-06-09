@@ -29,6 +29,10 @@ export interface HelpCenterStrings {
   featuredLabel: string;
   /** Open-in-theater button on the inline player. */
   theaterLabel: string;
+  /** Play cue on the inline hero — clicking opens the theater ("Watch walkthrough"). */
+  watchLabel: string;
+  /** Topbar button shown during a conversation; returns to the home landing. */
+  backToGuides: string;
   askPlaceholder: string;
   askButton: string;
   popularLabel: string;
@@ -89,6 +93,8 @@ export const DEFAULT_STRINGS: HelpCenterStrings = {
   lede: "Watch a quick walkthrough, or just ask — answers come cued to the exact moment.",
   featuredLabel: "Featured walkthrough",
   theaterLabel: "Theater",
+  watchLabel: "Watch walkthrough",
+  backToGuides: "Back to guides",
   askPlaceholder: "Ask anything — e.g. how do I…?",
   askButton: "Send",
   popularLabel: "Popular searches",

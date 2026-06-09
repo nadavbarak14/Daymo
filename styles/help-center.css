@@ -220,6 +220,15 @@
   backdrop-filter: blur(10px);
 }
 .daymo-help-topbar-menu { display: none; }
+.daymo-help-topbar-back {
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  height: 34px; padding: 0 13px; border-radius: 9px;
+  border: 1px solid var(--daymo-border); background: var(--daymo-surface);
+  font-size: 13px; font-weight: 600; color: var(--daymo-fg-2); transition: 0.14s;
+}
+.daymo-help-topbar-back:hover { background: var(--daymo-bg-2); color: var(--daymo-fg); }
+.daymo-help-topbar-back svg { width: 15px; height: 15px; }
+.daymo-help-topbar-back[hidden] { display: none; }
 .daymo-help-topbar-title {
   font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -243,65 +252,92 @@
    HOME LANDING (centered, fits one screen)
    ================================================================= */
 .daymo-help-home {
-  max-width: 576px; margin: 0 auto; min-height: calc(100dvh - 110px);
-  padding: 16px 24px 24px;
-  display: flex; flex-direction: column; justify-content: center; gap: 13px;
+  /* vertical space taken by everything but the video; the hero is sized to
+     fill the rest at 16:9 so the whole landing fits one screen, no scroll. */
+  --daymo-home-reserve: 434px;
+  max-width: 1060px; margin: 0 auto; min-height: calc(100dvh - 60px);
+  padding: 12px 24px 16px;
+  display: flex; flex-direction: column; justify-content: center; gap: clamp(10px, 1.6vh, 18px);
 }
 .daymo-help-home-greeting { text-align: center; }
 .daymo-help-eyebrow {
   display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
   font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--daymo-accent); margin-bottom: 11px; justify-content: center;
+  color: var(--daymo-accent); margin-bottom: 7px; justify-content: center;
 }
 .daymo-help-pip { width: 6px; height: 6px; border-radius: 50%; background: var(--daymo-accent); }
 .daymo-help-h1 {
   font-family: var(--daymo-font-display); font-weight: 600; text-align: center;
-  font-size: clamp(30px, 3.6vw, 44px); line-height: 1.05; letter-spacing: -0.008em; margin: 0;
+  font-size: clamp(26px, 3.2vw, 40px); line-height: 1.03; letter-spacing: -0.008em; margin: 0;
 }
 .daymo-help-lede {
-  margin: 9px auto 0; font-size: 15px; line-height: 1.5;
-  color: var(--daymo-muted); max-width: 46ch;
+  margin: 6px auto 0; font-size: 14.5px; line-height: 1.4;
+  color: var(--daymo-muted); max-width: 48ch;
+  display: none; /* hidden on the home hero to give the video more room */
 }
 
-/* inline media player */
-.daymo-help-home-player { display: flex; flex-direction: column; gap: 10px; }
+/* inline media hero — a poster you click to open in the theater player. The
+   stage is sized to fill the leftover viewport height at 16:9 so the landing
+   fits one screen. The poster is contained on the surface so any aspect ratio
+   sits clean (16:9 frames fill it; portrait shots center). */
+/* The width clamp lives on the player (not just the stage) so the chip rail
+   below shares the video's exact box — same width, same centering. */
+.daymo-help-home-player {
+  display: flex; flex-direction: column; gap: 8px;
+  width: min(100%, calc((100dvh - var(--daymo-home-reserve)) * 16 / 9));
+  margin: 0 auto;
+}
 .daymo-help-hp-stage {
   position: relative; aspect-ratio: 16 / 9; width: 100%;
   border-radius: var(--daymo-r-lg); overflow: hidden;
-  background: #0d0b07; border: 1px solid var(--daymo-border); box-shadow: var(--daymo-shadow);
+  background: var(--daymo-surface);
+  border: 1px solid var(--daymo-border); box-shadow: var(--daymo-shadow);
+  display: block; padding: 0; text-align: left; cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.18s;
 }
-.daymo-help-hp-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #0d0b07; }
+.daymo-help-hp-stage:hover { box-shadow: var(--daymo-shadow-lg); }
+.daymo-help-hp-stage:hover .daymo-help-hp-overlay { transform: translate(-50%, -50%) scale(1.07); }
+.daymo-help-hp-stage:focus-visible { outline: 3px solid var(--daymo-accent); outline-offset: 3px; }
+.daymo-help-hp-poster { position: absolute; inset: 4% 4% 8%; }
+.daymo-help-hp-poster img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .daymo-help-hp-overlay {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 60px; height: 60px; border-radius: 50%; border: 0;
-  background: rgba(255, 255, 255, 0.95); display: grid; place-items: center;
-  box-shadow: var(--daymo-shadow-lg); transition: 0.16s;
+  width: 68px; height: 68px; border-radius: 50%; pointer-events: none;
+  background: var(--daymo-accent); display: grid; place-items: center;
+  box-shadow: 0 12px 30px -8px color-mix(in srgb, var(--daymo-accent) 55%, transparent); transition: 0.16s;
 }
-.daymo-help-hp-overlay:hover { transform: translate(-50%, -50%) scale(1.07); }
-.daymo-help-hp-overlay svg { width: 26px; height: 26px; color: var(--daymo-accent); margin-left: 3px; }
+.daymo-help-hp-overlay svg { width: 27px; height: 27px; color: var(--daymo-accent-ink); margin-left: 3px; }
 .daymo-help-hp-bar {
   position: absolute; inset: auto 0 0 0; display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 12px; padding: 30px 16px 14px;
-  background: linear-gradient(0deg, rgba(13, 11, 7, 0.82), rgba(13, 11, 7, 0)); pointer-events: none;
+  gap: 12px; padding: 40px 18px 16px;
+  background: linear-gradient(0deg, var(--daymo-surface) 28%, transparent);
+  pointer-events: none;
 }
-.daymo-help-hp-bar-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.daymo-help-hp-bar-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; max-width: 64%; }
 .daymo-help-hp-kicker {
-  font-family: var(--daymo-font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #efe4cd;
+  font-family: var(--daymo-font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--daymo-accent);
 }
-.daymo-help-hp-title { font-size: 17px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
-.daymo-help-hp-expand {
-  pointer-events: auto; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
-  height: 32px; padding: 0 12px; border-radius: 9px; border: 0;
-  background: rgba(255, 255, 255, 0.16); color: #fff; font-size: 12px; font-weight: 600;
-  backdrop-filter: blur(6px); transition: 0.14s;
+.daymo-help-hp-title {
+  font-size: 16px; font-weight: 600; color: var(--daymo-fg); letter-spacing: -0.01em; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.daymo-help-hp-expand:hover { background: rgba(255, 255, 255, 0.28); }
-.daymo-help-hp-expand svg { width: 14px; height: 14px; }
+.daymo-help-hp-watch {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  height: 32px; padding: 0 14px; border-radius: 9px;
+  background: var(--daymo-accent); color: var(--daymo-accent-ink); font-size: 12px; font-weight: 600;
+}
+.daymo-help-hp-watch svg { width: 13px; height: 13px; }
+.daymo-help-hp-stage:hover .daymo-help-hp-watch { background: var(--daymo-a-hover); }
 
-.daymo-help-hp-rail { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
-.daymo-help-hp-rail::-webkit-scrollbar { height: 6px; }
+.daymo-help-hp-rail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 2px; scroll-snap-type: x proximity; }
+.daymo-help-hp-rail::-webkit-scrollbar { height: 5px; }
 .daymo-help-hp-rail::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--daymo-muted) 25%, transparent); border-radius: 6px; }
-.daymo-help-hp-chip { flex: 0 0 132px; scroll-snap-align: start; text-align: left; padding: 0; border: 0; background: transparent; }
+/* min-width:0 is load-bearing: a flex item's default `min-width:auto` floors it
+   at min-content, so the nowrap title would widen each chip past flex-basis —
+   and since the thumb is aspect-ratio'd off the chip width, longer titles gave
+   taller, misaligned thumbnails. Pinning min-width:0 keeps every chip 98px. */
+.daymo-help-hp-chip { flex: 0 0 98px; min-width: 0; scroll-snap-align: start; text-align: left; padding: 0; border: 0; background: transparent; }
 .daymo-help-hp-chip-thumb {
   position: relative; display: block; aspect-ratio: 16/9; border-radius: 9px; overflow: hidden;
   background: var(--daymo-bg-2); border: 1.5px solid transparent; transition: 0.14s;
@@ -314,7 +350,7 @@
   color: #fff; background: rgba(13, 11, 7, 0.78); padding: 1px 5px; border-radius: 4px;
 }
 .daymo-help-hp-chip-title {
-  display: block; font-size: 11.5px; font-weight: 500; line-height: 1.3; margin-top: 6px;
+  display: block; font-size: 10.5px; font-weight: 500; line-height: 1.2; margin-top: 4px;
   color: var(--daymo-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .daymo-help-hp-chip.on .daymo-help-hp-chip-title { color: var(--daymo-fg); font-weight: 600; }
@@ -326,7 +362,7 @@
   border-radius: var(--daymo-r-lg); box-shadow: var(--daymo-shadow);
   transition: border-color 0.16s, box-shadow 0.16s;
 }
-.daymo-help-home-ask { margin-top: 6px; }
+.daymo-help-home-ask { margin: 0 auto; width: 100%; max-width: 780px; }
 .daymo-help-askbar:focus-within { border-color: var(--daymo-accent); box-shadow: var(--daymo-shadow-lg); }
 .daymo-help-lead { color: var(--daymo-accent); padding-bottom: 9px; }
 .daymo-help-lead svg { width: 19px; height: 19px; }
@@ -344,13 +380,16 @@
 .daymo-help-send:hover { background: var(--daymo-a-hover); }
 .daymo-help-send svg { width: 18px; height: 18px; }
 
-/* popular searches */
-.daymo-help-suggest { margin-top: 4px; width: 100%; }
+/* popular searches — capped to a single row so the landing stays one screen */
+.daymo-help-suggest { margin: 0 auto; width: 100%; max-width: 780px; }
 .daymo-help-suggest-lbl {
   font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-  color: var(--daymo-muted); margin-bottom: 11px; text-align: center;
+  color: var(--daymo-muted); margin-bottom: 9px; text-align: center;
 }
-.daymo-help-suggest-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.daymo-help-suggest-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  max-height: 38px; overflow: hidden;
+}
 .daymo-help-chip {
   display: inline-flex; align-items: center; gap: 8px; text-align: left; flex-shrink: 0; white-space: nowrap;
   border: 1px solid var(--daymo-border); background: var(--daymo-surface); border-radius: 11px;
@@ -372,6 +411,8 @@
   .daymo-help-qa { animation: daymo-help-rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 @keyframes daymo-help-rise { from { transform: translateY(9px); } to { transform: none; } }
+/* dynamic spacer: lets the latest Q&A scroll up so its top reaches the view top */
+.daymo-help-thread-tail { flex-shrink: 0; }
 
 .daymo-help-q-row { display: flex; justify-content: flex-end; }
 .daymo-help-q-bubble {
@@ -622,7 +663,20 @@
 .daymo-help-autoplay.off .daymo-help-switch { background: color-mix(in srgb, var(--daymo-muted) 45%, transparent); }
 .daymo-help-autoplay.off .daymo-help-switch::after { right: 13px; }
 
+/* collapse toggle for the "Up next" list */
+.daymo-help-queue-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; background: transparent; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.daymo-help-queue-caret { display: grid; place-items: center; color: var(--daymo-muted); transition: transform 0.16s; }
+.daymo-help-queue-caret svg { width: 14px; height: 14px; }
+.daymo-help-queue-toggle:hover .daymo-help-queue-caret { color: var(--daymo-fg); }
+.daymo-help-queue-sec.collapsed .daymo-help-queue-caret { transform: rotate(-90deg); }
+
 .daymo-help-queue { display: flex; flex-direction: column; gap: 2px; }
+/* `display: flex` above outranks the [hidden] UA rule, so hide it explicitly */
+.daymo-help-queue[hidden] { display: none; }
 .daymo-help-qitem {
   display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
   border: 0; background: transparent; padding: 8px; border-radius: 10px; transition: 0.13s;
@@ -647,13 +701,21 @@
 .daymo-help-scrim { display: none; }
 
 @media (max-width: 920px) {
-  .daymo-help-player-main { flex-direction: column; max-height: 90dvh; overflow-y: auto; }
-  .daymo-help-stage { flex: none; }
-  .daymo-help-stage video { max-height: 46dvh; }
-  .daymo-help-player-aside { flex: none; max-width: none; min-width: 0; border-left: 0; border-top: 1px solid var(--daymo-border); }
+  /* Stack the theater: video on top, aside below. The video stage grows to eat
+     whatever the aside doesn't use, so folding "Up next" away genuinely hands
+     that space back to the video instead of leaving a dead gap. */
+  .daymo-help-player-main { flex-direction: column; height: 90dvh; max-height: 90dvh; overflow: hidden; }
+  .daymo-help-stage { flex: 1 1 40dvh; min-height: 180px; }
+  .daymo-help-stage video { max-height: none; height: 100%; }
+  .daymo-help-player-aside { flex: 0 1 auto; max-width: none; min-width: 0; border-left: 0; border-top: 1px solid var(--daymo-border); overflow-y: auto; }
 }
 @media (max-width: 760px) {
-  .daymo-help { grid-template-columns: 0 1fr; }
+  /* The sidebar becomes a fixed overlay drawer (out of grid flow), so the app
+     must be a single full-width column in BOTH states — otherwise .main falls
+     into an empty first column and collapses to zero width (a blank page). */
+  .daymo-help,
+  .daymo-help[data-sidebar="open"],
+  .daymo-help[data-sidebar="closed"] { grid-template-columns: 1fr; }
   .daymo-help-side {
     position: fixed; inset: 0 auto 0 0; width: var(--daymo-sidebar-w); z-index: 60;
     transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -663,12 +725,40 @@
   .daymo-help[data-sidebar="open"] .daymo-help-scrim { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(20, 16, 10, 0.4); }
   .daymo-help-side-collapse { display: none; }
   .daymo-help-topbar-menu { display: grid; }
-  .daymo-help-home { min-height: 0; padding-left: 16px; padding-right: 16px; }
+  /* in a conversation the "Back to guides" button stands in for the title — drop
+     the title so the crowded topbar reads cleanly at phone width. */
+  .daymo-help-topbar:has(.daymo-help-topbar-back:not([hidden])) .daymo-help-topbar-title { display: none; }
   .daymo-help-thread, .daymo-help-composer { padding-left: 16px; padding-right: 16px; }
   .daymo-help-clip { flex-direction: column; }
   .daymo-help-clip-poster { width: 100%; aspect-ratio: 16/9; min-height: 0; }
   .daymo-help-modal { padding: 0; place-items: stretch; }
-  .daymo-help-player { width: 100%; max-height: 100dvh; border-radius: 0; }
-  .daymo-help-player-main { max-height: 100dvh; }
-  .daymo-help-stage video { max-height: 38dvh; }
+  .daymo-help-player { width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+  .daymo-help-player-main { height: 100dvh; max-height: 100dvh; }
+  .daymo-help-stage { flex: 1 1 38dvh; min-height: 150px; }
+
+  /* home: full-width hero, fits one screen, tidy chat line + swipeable chips */
+  .daymo-help-home {
+    padding: 10px 15px 16px; min-height: calc(100dvh - 60px);
+    justify-content: center; gap: clamp(10px, 1.8vh, 16px);
+  }
+  .daymo-help-home-greeting { padding-top: 0; }
+  .daymo-help-h1 { font-size: clamp(25px, 7.6vw, 34px); }
+  .daymo-help-home-player { width: 100%; }
+  .daymo-help-hp-stage { width: 100%; }
+  .daymo-help-hp-bar { padding: 22px 13px 11px; }
+  .daymo-help-hp-title { font-size: 15px; }
+  .daymo-help-hp-chip { flex-basis: 120px; }
+  .daymo-help-home-ask { padding: 6px 6px 6px 15px; align-items: center; border-radius: 15px; }
+  .daymo-help-home-ask .daymo-help-lead { padding-bottom: 0; }
+  .daymo-help-home-ask .daymo-help-input { font-size: 15px; padding: 9px 0; }
+  .daymo-help-home-ask .daymo-help-send { width: 38px; height: 38px; border-radius: 11px; }
+  .daymo-help-suggest-lbl { margin-bottom: 8px; text-align: left; }
+  .daymo-help-suggest-chips {
+    flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start;
+    max-height: none; padding-bottom: 5px; scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .daymo-help-suggest-chips::-webkit-scrollbar { height: 5px; }
+  .daymo-help-suggest-chips::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--daymo-muted) 25%, transparent); border-radius: 6px; }
+  .daymo-help-chip { flex-shrink: 0; scroll-snap-align: start; }
 }
