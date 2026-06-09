@@ -70,18 +70,16 @@ const ChatResponseSchema = z.discriminatedUnion("kind", [
 ]);
 
 const MAX_VIDEO_PARTS = 3;
+const MAX_PARTS = 6;
 
-/** Enforce the product shape the prompt asks for (max 3 clips): keep parts in
- *  order until the 3rd video part, then stop. Trailing text after the last
- *  kept clip adds nothing the captions don't already say. */
-function clampParts(parts: Part[]): Part[] {
-  const out: Part[] = [];
+/** Enforce the product shape (≤3 videos, ≤6 parts) WITHOUT dropping text:
+ *  a >3-demos answer is told to name the overflow demos in text, and that
+ *  text must survive the clamp. Excess videos are dropped in place; if the
+ *  result still exceeds 6 parts, trailing parts go. */
+export function clampParts(parts: Part[]): Part[] {
   let videos = 0;
-  for (const p of parts) {
-    out.push(p);
-    if (p.kind === "video" && ++videos >= MAX_VIDEO_PARTS) break;
-  }
-  return out;
+  const out = parts.filter((p) => p.kind !== "video" || ++videos <= MAX_VIDEO_PARTS);
+  return out.slice(0, MAX_PARTS);
 }
 
 function answerSystem(locale: string): string {

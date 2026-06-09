@@ -46,12 +46,12 @@ describe("validateChatResponse", () => {
     expect(validateChatResponse(resp, stepLookup).ok).toBe(false);
   });
 
-  it("downgrades when two consecutive parts are videos", () => {
+  it("passes consecutive videos and repeated demoIds (renderer collapses them)", () => {
     const resp: ChatResponse = { kind: "answer", parts: [
       { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 1000, endMs: 2000, caption: "", mp4Url: "" },
       { kind: "video", stepId: "d:0:2", demoId: "d", startMs: 2000, endMs: 3000, caption: "", mp4Url: "" },
     ]};
-    expect(validateChatResponse(resp, stepLookup).ok).toBe(false);
+    expect(validateChatResponse(resp, stepLookup).ok).toBe(true);
   });
 
   it("downgrades when total parts > 6", () => {
