@@ -274,10 +274,10 @@ Stable class names (the restyling surface), all prefixed `daymo-help`:
   `-hp-chip`, `-askbar`, `-lead`, `-input`, `-send`, `-suggest`, `-chip`.
 - **Conversation:** `-thread`, `-qa`, `-q-bubble`, `-a-row`, `-a-av`,
   `-a-name`, `-a-tag`, `-a-text`, `-typing`, `-error`, `-clip`,
-  `-clip-poster`, `-clip-cap`, `-clip-cta`, `-clip-steps`, `-clip-step-line`,
-  `-related`, `-rcard`, `-followups`, `-fchip`, `-a-chips`, `-a-actions`,
-  `-act-btn`, `-composer-dock`, `-composer`, `-composer-input`,
-  `-composer-send`.
+  `-clip-poster`, `-clip-kicker`, `-clip-cap`, `-clip-cta`, `-clip-steps`,
+  `-clip-step-line`, `-related`, `-rcard`, `-followups`, `-fchip`,
+  `-a-chips`, `-a-actions`, `-act-btn`, `-composer-dock`, `-composer`,
+  `-composer-input`, `-composer-send`.
 - **Theater player (step highlight):** `-step.referenced` (on a `-step`
   element inside `-steps` — marks steps cited in the answer).
 - **Theater player:** `-modal`, `-player`, `-player-close`, `-player-main`,
@@ -362,10 +362,11 @@ Theme tokens (set any subset): geometry `--dw-panel-w`, `--dw-panel-h`,
 `widget/src/styles.css` never change between themes — only token values do.
 
 Stable widget class names (a `dw-` prefix separates them from help-center
-classes): answer cards `.dw-card`, `.dw-card-poster`, `.dw-card-title`,
-`.dw-card-meta`; lightbox `.dw-lb`, `.dw-lb-video`, `.dw-lb-close`;
-soft-pause overlay `.dw-lb-keep` (the "Keep watching" button rendered when
-playback reaches the end of the referenced range).
+classes): answer cards `.dw-video-card`, `.dw-thumb`, `.dw-duration`,
+`.dw-card-foot`, `.dw-card-label`; lightbox `.dw-lightbox`, `.dw-lb-inner`,
+`.dw-lb-close`, `.dw-lb-caption`; soft-pause overlay `.dw-lb-keep` (the
+"Keep watching" button rendered when playback reaches the end of the
+referenced range).
 
 ### Sharing videos with the help center
 

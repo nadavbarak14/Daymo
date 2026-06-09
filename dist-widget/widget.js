@@ -232,7 +232,7 @@ var en_default = {
   caption: "Caption",
   subtitle: "How-to assistant",
   greetingSub: "Ask a question and I'll point you to the exact moment in a short walkthrough.",
-  footerNote: "Answers shown as clips \u2014 powered by",
+  footerNote: "Answers point you to the exact moment \u2014 powered by",
   keepWatching: "Keep watching",
   playDemo: "Play demo:"
 };
@@ -253,7 +253,7 @@ var es_default = {
   caption: "Subt\xEDtulo",
   subtitle: "Asistente de ayuda",
   greetingSub: "Haz una pregunta y te llevar\xE9 al momento exacto de un breve tutorial.",
-  footerNote: "Respuestas en forma de clips \u2014 con tecnolog\xEDa de",
+  footerNote: "Las respuestas te llevan al momento exacto \u2014 con tecnolog\xEDa de",
   keepWatching: "Seguir viendo",
   playDemo: "Reproducir demo:"
 };
@@ -274,7 +274,7 @@ var fr_default = {
   caption: "L\xE9gende",
   subtitle: "Assistant d'aide",
   greetingSub: "Posez une question et je vous montrerai le moment exact dans une courte d\xE9monstration.",
-  footerNote: "R\xE9ponses sous forme de clips \u2014 propuls\xE9 par",
+  footerNote: "Les r\xE9ponses vous am\xE8nent au moment exact \u2014 propuls\xE9 par",
   keepWatching: "Continuer \xE0 regarder",
   playDemo: "Lire la d\xE9mo :"
 };
@@ -295,7 +295,7 @@ var de_default = {
   caption: "Untertitel",
   subtitle: "Hilfe-Assistent",
   greetingSub: "Stelle eine Frage und ich zeige dir den genauen Moment in einem kurzen Rundgang.",
-  footerNote: "Antworten als Clips \u2014 bereitgestellt von",
+  footerNote: "Antworten f\xFChren dich zum genauen Moment \u2014 bereitgestellt von",
   keepWatching: "Weiterschauen",
   playDemo: "Demo abspielen:"
 };
@@ -316,7 +316,7 @@ var ja_default = {
   caption: "\u30AD\u30E3\u30D7\u30B7\u30E7\u30F3",
   subtitle: "\u64CD\u4F5C\u30AC\u30A4\u30C9\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8",
   greetingSub: "\u8CEA\u554F\u3059\u308B\u3068\u3001\u77ED\u3044\u30A6\u30A9\u30FC\u30AF\u30B9\u30EB\u30FC\u306E\u8A72\u5F53\u7B87\u6240\u3092\u30D4\u30F3\u30DD\u30A4\u30F3\u30C8\u3067\u3054\u6848\u5185\u3057\u307E\u3059\u3002",
-  footerNote: "\u56DE\u7B54\u306F\u30AF\u30EA\u30C3\u30D7\u3067\u8868\u793A \u2014 \u63D0\u4F9B:",
+  footerNote: "\u56DE\u7B54\u306F\u6B63\u78BA\u306A\u77AC\u9593\u3078\u6848\u5185\u3057\u307E\u3059 \u2014 \u63D0\u4F9B:",
   keepWatching: "\u7D9A\u304D\u3092\u898B\u308B",
   playDemo: "\u30C7\u30E2\u3092\u518D\u751F:"
 };
@@ -337,7 +337,7 @@ var pt_default = {
   caption: "Legenda",
   subtitle: "Assistente de ajuda",
   greetingSub: "Fa\xE7a uma pergunta e eu aponto o momento exato em um breve tutorial.",
-  footerNote: "Respostas em forma de clipes \u2014 desenvolvido por",
+  footerNote: "As respostas levam voc\xEA ao momento exato \u2014 desenvolvido por",
   keepWatching: "Continuar assistindo",
   playDemo: "Reproduzir demo:"
 };
@@ -358,7 +358,7 @@ var zh_CN_default = {
   caption: "\u5B57\u5E55",
   subtitle: "\u64CD\u4F5C\u6307\u5357\u52A9\u624B",
   greetingSub: "\u63D0\u51FA\u95EE\u9898\uFF0C\u6211\u4F1A\u5E26\u4F60\u76F4\u8FBE\u77ED\u89C6\u9891\u6F14\u793A\u4E2D\u7684\u786E\u5207\u65F6\u523B\u3002",
-  footerNote: "\u56DE\u7B54\u4EE5\u7247\u6BB5\u5F62\u5F0F\u5448\u73B0 \u2014 \u6280\u672F\u652F\u6301\uFF1A",
+  footerNote: "\u56DE\u7B54\u4F1A\u5E26\u4F60\u5230\u786E\u5207\u7684\u65F6\u523B \u2014 \u6280\u672F\u652F\u6301\uFF1A",
   keepWatching: "\u7EE7\u7EED\u89C2\u770B",
   playDemo: "\u64AD\u653E\u6F14\u793A\uFF1A"
 };
@@ -379,7 +379,7 @@ var it_default = {
   caption: "Didascalia",
   subtitle: "Assistente di aiuto",
   greetingSub: "Fai una domanda e ti indicher\xF2 il momento esatto in una breve guida.",
-  footerNote: "Risposte sotto forma di clip \u2014 realizzato con",
+  footerNote: "Le risposte ti portano al momento esatto \u2014 realizzato con",
   keepWatching: "Continua a guardare",
   playDemo: "Riproduci demo:"
 };
@@ -532,7 +532,7 @@ async function mount(opts) {
     const caps = ref.steps.map((s) => s.caption).filter(Boolean).join(" \xB7 ");
     if (caps && source.title) lightboxCaption.appendChild(document.createTextNode(` \u2014 ${caps}`));
     lightbox.style.display = "flex";
-    lightboxProgrammaticSeek = true;
+    lightboxProgrammaticSeek = lightboxVideo.readyState > 0;
     lightboxVideo.currentTime = startSec;
     lightboxVideo.play().catch(() => {
     });

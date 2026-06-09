@@ -530,7 +530,8 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
       `<span class="daymo-help-clip-poster"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span><span class="daymo-help-clip-dur"></span></span><span class="daymo-help-clip-ci"><span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span><span class="daymo-help-clip-cap"></span><span class="daymo-help-clip-steps"></span><span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
     sq<HTMLImageElement>(clip, "img").src = demo.posterUrl;
     sq(clip, ".daymo-help-clip-dur").textContent = formatDuration(demo.durationMs);
-    const stepIx = demo.steps.findIndex((s) => s.stepId === ref.steps[0]?.stepId);
+    const earliest = ref.steps.reduce((a, b) => (b.startMs < a.startMs ? b : a), ref.steps[0]);
+    const stepIx = demo.steps.findIndex((s) => s.stepId === earliest?.stepId);
     const stepPos = stepIx >= 0
       ? stepIx + 1
       : Math.max(1, demo.steps.filter((s) => s.startMs <= ref.startMs).length);

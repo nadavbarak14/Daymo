@@ -195,12 +195,10 @@ describe("widget lightbox — soft pause", () => {
     await lightboxVideo.play(); // sets paused.paused = false
     expect(paused.paused).toBe(false);
 
-    // openLightbox sets lightboxProgrammaticSeek=true then sets currentTime.
-    // In jsdom, setting currentTime does NOT auto-fire seeking, so the flag
-    // is still true.  Consume it with one seeking event (simulates the
-    // programmatic seek), then fire a second one to simulate a real user drag.
-    fireSeeking(lightboxVideo); // consumes programmatic flag (no-op for softStop)
-    fireSeeking(lightboxVideo); // now treated as a user seek → clears softStop
+    // In jsdom readyState is 0 when openLightbox runs, so lightboxProgrammaticSeek
+    // stays false (the flag is only armed when readyState > 0).  The very first
+    // seeking event is therefore treated as a user seek and clears softStop.
+    fireSeeking(lightboxVideo); // user seek → clears softStop
 
     // timeupdate past the stop point: should NOT pause now
     fireTimeUpdate(lightboxVideo, 10.0);

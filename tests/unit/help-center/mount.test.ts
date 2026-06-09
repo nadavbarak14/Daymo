@@ -338,6 +338,28 @@ describe("mountHelpCenter — chat", () => {
     expect(container.querySelector(".daymo-help-lib-title")?.textContent).toContain("onerror");
   });
 
+  it("kicker shows the EARLIER step position when same-demo parts are cited out of chronological order", async () => {
+    // d:0:2 (step 2, startMs=5000) is cited first; d:0:1 (step 1, startMs=0) second.
+    // The kicker must report "Step 1/2" (the earliest referenced step), not "Step 2/2".
+    const chat: ChatResponse = {
+      kind: "answer",
+      parts: [
+        { kind: "video", stepId: "d:0:2", demoId: "d", startMs: 5000, endMs: 8000, caption: "Step two caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 0, endMs: 3000, caption: "Step one caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+      ],
+    };
+    const { container } = mount({}, makeFetch({ chat }));
+    await libLoaded(container);
+    askQuestion(container, "how?");
+    await vi.waitFor(() => {
+      expect(container.querySelector(".daymo-help-clip")).toBeTruthy();
+    });
+    const kicker = container.querySelector(".daymo-help-clip-kicker span:last-child")!;
+    // Step 1 is the earliest cited step — kicker must say "1/2", not "2/2"
+    expect(kicker.textContent).toContain("1/2");
+    expect(kicker.textContent).not.toContain("2/2");
+  });
+
   it("renders ONE card for two video parts citing the same demo, with both captions as step lines", async () => {
     const chat: ChatResponse = {
       kind: "answer",

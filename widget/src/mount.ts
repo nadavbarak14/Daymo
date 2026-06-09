@@ -167,7 +167,9 @@ export async function mount(opts: MountOpts): Promise<void> {
     const caps = ref.steps.map((s) => s.caption).filter(Boolean).join(" · ");
     if (caps && source.title) lightboxCaption!.appendChild(document.createTextNode(` — ${caps}`));
     lightbox!.style.display = "flex";
-    lightboxProgrammaticSeek = true;
+    // Pre-metadata currentTime sets the default start position without firing a
+    // seeking event — only arm the flag when a real seek will actually fire.
+    lightboxProgrammaticSeek = lightboxVideo!.readyState > 0;
     lightboxVideo!.currentTime = startSec;
     lightboxVideo!.play().catch(() => { /* user can press native play */ });
   }
