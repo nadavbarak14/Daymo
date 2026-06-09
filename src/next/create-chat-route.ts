@@ -83,7 +83,7 @@ export function createChatRoute(opts: CreateChatRouteOpts): (req: Request) => Pr
       opts.onEvent?.({
         requestId,
         question: String(body.message),
-        rewrittenQuery: "",
+        rewrittenQueries: [],
         outcome: "error",
         matchedStepIds: [],
         topCosine: 0,

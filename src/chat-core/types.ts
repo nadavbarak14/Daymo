@@ -1,4 +1,4 @@
-import type { ChatResponse, IndexedChunk, IndexFile } from "../types.js";
+import type { ChatResponse, IndexedChunk, IndexedDemo, IndexFile } from "../types.js";
 
 export interface LoadedIndex {
   index: IndexFile;
@@ -6,6 +6,7 @@ export interface LoadedIndex {
   videoBaseUrl: string;
   suggestedQuestions: string[];
   defaultLocale: string;
+  noMatchText: string;
 }
 
 export interface CoreInput {
@@ -15,22 +16,33 @@ export interface CoreInput {
   requestId: string;
 }
 
+export interface RewriteResult {
+  /** 1-2 self-contained search strings (retrieval-only — never shown to the answer model as the user's message). */
+  queries: string[];
+  /** True for "what's available / what can I do here"-shaped questions. */
+  catalogIntent: boolean;
+}
+
 export type RewriteQueryFn = (input: {
   message: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
-}) => Promise<string>;
+  catalog: IndexedDemo[];
+}) => Promise<RewriteResult>;
 
 export type AnswerFn = (input: {
+  /** The user's ORIGINAL message — language detection depends on this. */
   query: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
   chunks: IndexedChunk[];
   locale: string;
+  catalog: IndexedDemo[];
+  retrievalConfidence: "low" | "normal";
 }) => Promise<ChatResponse>;
 
 export interface HelpChatEvent {
   requestId: string;
   question: string;
-  rewrittenQuery: string;
+  rewrittenQueries: string[];
   outcome: "answered" | "no_match" | "error";
   matchedStepIds: string[];
   topCosine: number;

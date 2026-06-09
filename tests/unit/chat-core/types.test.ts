@@ -16,17 +16,18 @@ describe("chat-core types", () => {
       videoBaseUrl: "https://x",
       suggestedQuestions: [],
       defaultLocale: "en",
+      noMatchText: "I don't have that in the demos.",
     } satisfies LoadedIndex;
     const deps: CoreDeps = {
       loaded,
       embedQuery: async () => [0],
-      rewriteQuery: async () => "q",
+      rewriteQuery: async () => ({ queries: ["q"], catalogIntent: false }),
       answer: async () => ({ kind: "no_match", text: "no" }),
     };
     const ev: HelpChatEvent = {
       requestId: "r1",
       question: "hi",
-      rewrittenQuery: "q",
+      rewrittenQueries: ["q"],
       outcome: "no_match",
       matchedStepIds: [],
       topCosine: 0,
