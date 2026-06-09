@@ -29,6 +29,10 @@ export interface WidgetConfigResp {
   suggestedQuestions: string[];
   /** Shipped theme name ("aurelia" | "lume" | "onyx"); data-theme on the script tag wins. */
   theme?: string;
+  /** Launcher bubble icon preset ("chat" | "help" | "play" | "book" | "life-ring"). Defaults to "chat". */
+  bubbleIcon?: string;
+  /** Launcher bubble background color (CSS color). Overrides brandColor for the bubble only, so the panel can stay on-brand while the bubble is visually distinct. */
+  bubbleColor?: string;
   /** URL of the published help-center manifest.json — lets the widget reuse the help page's videos/posters. */
   manifestUrl?: string;
 }
