@@ -512,6 +512,20 @@ button { font-family: inherit; }
 }
 .dw-lb-close:hover { background: rgba(255, 255, 255, 0.24); }
 .dw-lb-close svg { width: 18px; height: 18px; }
+.dw-lb-keep {
+  align-self: center;
+  margin: 0 auto;
+  background: var(--dw-accent);
+  color: var(--dw-accent-fg);
+  border: 0;
+  border-radius: var(--dw-radius-pill);
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.14s, transform 0.14s var(--dw-ease);
+}
+.dw-lb-keep:hover { opacity: 0.88; transform: translateY(-1px); }
 
 /* ---- Mobile ------------------------------------------------------------------ */
 @media (max-width: 600px) {

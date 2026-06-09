@@ -25,6 +25,8 @@ export interface StringBundle {
   noMatchPrefix: string;
   notConfiguredMessage: string;
   caption: string;
+  keepWatching: string;
+  playDemo: string;
 }
 
 const BUNDLES: Record<SupportedLocale, StringBundle> = {

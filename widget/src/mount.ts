@@ -88,7 +88,12 @@ export async function mount(opts: MountOpts): Promise<void> {
   let lightbox: HTMLDivElement | null = null;
   let lightboxVideo: HTMLVideoElement | null = null;
   let lightboxCaption: HTMLDivElement | null = null;
-  let lightboxClipEnd: number | null = null;
+  let keepWatchingBtn: HTMLButtonElement | null = null;
+  /** One-shot soft stop at the end of the referenced range (seconds).
+   *  Cleared when it fires, on any user seek, and on close — NEVER sticky
+   *  (the old lightboxClipEnd re-paused on every play; that was a bug). */
+  let lightboxSoftStop: number | null = null;
+  let lightboxProgrammaticSeek = false;
 
   function buildLightbox(): void {
     lightbox = document.createElement("div");
@@ -111,11 +116,30 @@ export async function mount(opts: MountOpts): Promise<void> {
     lightboxVideo.controls = true;
     lightboxVideo.setAttribute("playsinline", "");
     lightboxVideo.addEventListener("timeupdate", () => {
-      if (lightboxClipEnd !== null && lightboxVideo!.currentTime >= lightboxClipEnd) {
+      if (lightboxSoftStop !== null && lightboxVideo!.currentTime >= lightboxSoftStop) {
+        lightboxSoftStop = null; // one-shot
         lightboxVideo!.pause();
+        keepWatchingBtn!.style.display = "";
       }
     });
+    lightboxVideo.addEventListener("seeking", () => {
+      if (lightboxProgrammaticSeek) lightboxProgrammaticSeek = false;
+      else lightboxSoftStop = null; // a user seek cancels the soft stop
+    });
+    lightboxVideo.addEventListener("play", () => {
+      keepWatchingBtn!.style.display = "none";
+    });
     inner.appendChild(lightboxVideo);
+
+    keepWatchingBtn = document.createElement("button");
+    keepWatchingBtn.className = "dw-lb-keep";
+    keepWatchingBtn.textContent = strings.keepWatching;
+    keepWatchingBtn.style.display = "none";
+    keepWatchingBtn.addEventListener("click", () => {
+      keepWatchingBtn!.style.display = "none";
+      void lightboxVideo!.play().catch(() => { /* native controls remain */ });
+    });
+    inner.appendChild(keepWatchingBtn);
 
     lightboxCaption = document.createElement("div");
     lightboxCaption.className = "dw-lb-caption";
@@ -132,16 +156,18 @@ export async function mount(opts: MountOpts): Promise<void> {
   function openLightbox(ref: DemoCardRef, source: VideoSource): void {
     if (!lightbox) buildLightbox();
     const startSec = ref.startMs / 1000;
-    const endSec = ref.endMs / 1000;
-    lightboxClipEnd = endSec;
-    lightboxVideo!.src = `${source.mp4Url}#t=${startSec.toFixed(3)},${endSec.toFixed(3)}`;
+    lightboxSoftStop = ref.endMs / 1000;
+    keepWatchingBtn!.style.display = "none";
+    lightboxVideo!.src = `${source.mp4Url}#t=${startSec.toFixed(3)}`;
     if (source.posterUrl) lightboxVideo!.poster = source.posterUrl;
     lightboxCaption!.textContent = "";
     const b = document.createElement("b");
-    b.textContent = ref.steps[0]?.caption ?? "";
+    b.textContent = source.title ?? ref.steps[0]?.caption ?? "";
     lightboxCaption!.appendChild(b);
-    if (source.title) lightboxCaption!.appendChild(document.createTextNode(` — ${source.title}`));
+    const caps = ref.steps.map((s) => s.caption).filter(Boolean).join(" · ");
+    if (caps && source.title) lightboxCaption!.appendChild(document.createTextNode(` — ${caps}`));
     lightbox!.style.display = "flex";
+    lightboxProgrammaticSeek = true;
     lightboxVideo!.currentTime = startSec;
     lightboxVideo!.play().catch(() => { /* user can press native play */ });
   }
@@ -149,6 +175,7 @@ export async function mount(opts: MountOpts): Promise<void> {
   function closeLightbox(): void {
     if (!lightbox || !lightboxVideo) return;
     lightboxVideo.pause();
+    lightboxSoftStop = null;
     lightbox.style.display = "none";
   }
 
@@ -298,7 +325,7 @@ export async function mount(opts: MountOpts): Promise<void> {
         wrap.className = "dw-msg dw-msg-assistant";
         if (isLast && s.lastResponse) {
           if (s.lastResponse.kind === "answer") {
-            renderParts(wrap, s.lastResponse.parts, openLightbox, (ref) => resolveVideoSource(ref, demos), { playDemo: "Play demo:" }); // Task 11 wires strings.playDemo
+            renderParts(wrap, s.lastResponse.parts, openLightbox, (ref) => resolveVideoSource(ref, demos), { playDemo: strings.playDemo });
           } else {
             const p = document.createElement("p");
             p.textContent = `${strings.noMatchPrefix} ${s.lastResponse.text}`;

@@ -13,5 +13,7 @@
   "caption": "Caption",
   "subtitle": "How-to assistant",
   "greetingSub": "Ask a question and I'll point you to the exact moment in a short walkthrough.",
-  "footerNote": "Answers shown as clips — powered by"
+  "footerNote": "Answers shown as clips — powered by",
+  "keepWatching": "Keep watching",
+  "playDemo": "Play demo:"
 }
