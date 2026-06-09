@@ -2,7 +2,7 @@ import type { ChatResponse } from "../types.js";
 import type { HelpManifest, ManifestDemo } from "../publish/types.js";
 import { formatDuration } from "./gallery-model.js";
 import { DEFAULT_STRINGS, type HelpCenterStrings } from "./strings.js";
-import { createPlayer } from "./player.js";
+import { createPlayer, type PlayerCue } from "./player.js";
 import { ICONS } from "./icons.js";
 import { groupVideoParts, type DemoCardRef } from "./answer-cards.js";
 
@@ -107,7 +107,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   function durSteps(d: ManifestDemo): string {
     return `${formatDuration(d.durationMs)} · ${d.steps.length} ${strings.stepsSuffix}`;
   }
-  function openPlayer(d: ManifestDemo, cue?: { startMs?: number; endMs?: number; referencedStepIds?: string[] }): void {
+  function openPlayer(d: ManifestDemo, cue?: PlayerCue): void {
     player.open(d, { ...cue, autoplay: true });
     markPlaying(d.demoId);
     if (chrome && isMobile()) root.dataset.sidebar = "closed";

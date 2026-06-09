@@ -24,7 +24,25 @@ const manifest: HelpManifest = {
 };
 
 beforeAll(() => {
-  // jsdom media stubs (same approach as player.test.ts)
+  // jsdom media stubs (same approach as player.test.ts): back currentTime with
+  // a field so cue seeks are observable, keep readyState at 0 so the player
+  // defers seeks until we fire `loadedmetadata`.
+  Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
+    configurable: true,
+    get() {
+      return (this as unknown as { __ct?: number }).__ct ?? 0;
+    },
+    set(v: number) {
+      (this as unknown as { __ct?: number }).__ct = v;
+      this.dispatchEvent(new Event("seeking"));
+    },
+  });
+  Object.defineProperty(HTMLMediaElement.prototype, "readyState", {
+    configurable: true,
+    get() {
+      return (this as unknown as { __rs?: number }).__rs ?? 0;
+    },
+  });
   HTMLMediaElement.prototype.play = vi.fn(() => Promise.resolve());
   HTMLMediaElement.prototype.pause = vi.fn();
 });
@@ -349,11 +367,14 @@ describe("mountHelpCenter — chat", () => {
   });
 
   it("opens the player cued at the earliest startMs with referencedStepIds and no end stop", async () => {
+    // Cited out of chronological order on purpose: the cue must be the
+    // EARLIEST referenced startMs (1s), not the first-cited part's (5s) and
+    // not any endMs (3s/8s — no end stop).
     const chat: ChatResponse = {
       kind: "answer",
       parts: [
-        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 0, endMs: 3000, caption: "Step one caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
         { kind: "video", stepId: "d:0:2", demoId: "d", startMs: 5000, endMs: 8000, caption: "Step two caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 1000, endMs: 3000, caption: "Step one caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
       ],
     };
     const { container } = mount({}, makeFetch({ chat }));
@@ -364,9 +385,20 @@ describe("mountHelpCenter — chat", () => {
     });
     const clip = container.querySelector<HTMLButtonElement>(".daymo-help-clip")!;
     clip.click();
-    // player modal opens
-    expect(document.body.querySelector(".daymo-help-modal")?.classList.contains("open")).toBe(true);
+    // player modal opens and plays
+    const modal = document.body.querySelector(".daymo-help-modal")!;
+    expect(modal.classList.contains("open")).toBe(true);
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    // cued at the earliest referenced startMs (seek applies on loadedmetadata)
+    const video = modal.querySelector("video")!;
+    (video as unknown as { __rs: number }).__rs = 1;
+    video.dispatchEvent(new Event("loadedmetadata"));
+    expect(video.currentTime).toBe(1);
+    // BOTH cited stepIds carry the persistent "referenced" timeline state
+    const steps = modal.querySelectorAll(".daymo-help-step");
+    expect(steps).toHaveLength(2);
+    expect(steps[0].classList.contains("referenced")).toBe(true); // d:0:1
+    expect(steps[1].classList.contains("referenced")).toBe(true); // d:0:2
   });
 
   it("serializes concurrent asks: the second request waits for the first answer", async () => {
