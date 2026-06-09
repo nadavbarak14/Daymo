@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { resolveLocale, getStrings } from "../../widget/src/locale.js";
+import en from "../../widget/src/locales/en.json";
+import es from "../../widget/src/locales/es.json";
+import fr from "../../widget/src/locales/fr.json";
+import de from "../../widget/src/locales/de.json";
+import ja from "../../widget/src/locales/ja.json";
+import pt from "../../widget/src/locales/pt.json";
+import zhCN from "../../widget/src/locales/zh-CN.json";
+import itBundle from "../../widget/src/locales/it.json";
 
 describe("resolveLocale", () => {
   it("returns the explicit override when provided", () => {
@@ -31,5 +39,15 @@ describe("getStrings", () => {
   it("returns en strings for an unknown locale", () => {
     const s = getStrings("klingon" as never);
     expect(s).toBe(getStrings("en"));
+  });
+});
+
+describe("locale parity", () => {
+  it("every locale bundle has exactly the same keys as en.json", () => {
+    const enKeys = Object.keys(en).sort();
+    const bundles: Record<string, object> = { es, fr, de, ja, pt, "zh-CN": zhCN, it: itBundle };
+    for (const [name, bundle] of Object.entries(bundles)) {
+      expect(Object.keys(bundle).sort(), `${name}.json key mismatch`).toEqual(enKeys);
+    }
   });
 });

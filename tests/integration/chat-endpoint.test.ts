@@ -27,7 +27,10 @@ async function setupWidget(dataRoot: string) {
     version: "v1", widgetId: id,
     embeddingModel: "gemini-embedding-001", embeddingDims: 3,
     createdAt: "2026-05-14T00:00:00Z", etag: "x",
-    demos: [{ demoId: "d", title: "D", description: "", durationMs: 10000 }],
+    demos: [
+      { demoId: "d", title: "D", description: "", durationMs: 10000 },
+      { demoId: "d2", title: "D2", description: "", durationMs: 5000 },
+    ],
     chunks: [
       {
         stepId: "d:0:1", demoId: "d", sceneIndex: 0, stepIndex: 1,
@@ -35,16 +38,25 @@ async function setupWidget(dataRoot: string) {
         text: "[Demo] D\n[Scene] s\n[Step] Open dialog\nClick + New project.",
         embedding: [1, 0, 0], keywords: ["open", "dialog", "project", "new"],
       },
+      {
+        stepId: "d2:0:1", demoId: "d2", sceneIndex: 0, stepIndex: 1,
+        globalStartMs: 500, globalEndMs: 1500,
+        text: "[Demo] D2\n[Scene] s2\n[Step] Invite team\nInvite a team member.",
+        embedding: [0, 1, 0], keywords: ["invite", "team"],
+      },
     ],
   };
   const cfg: WidgetConfig = {
     widgetId: id, name: "T", locale: "en",
-    allowedOrigins: ["https://example.com"], suggestedQuestions: [],
+    allowedOrigins: ["https://example.com"], suggestedQuestions: ["Try one", "Try two"],
+    noMatchText: "Custom no-match text.",
   };
   await fs.mkdir(path.join(dataRoot, "widgets", id, "demos", "d"), { recursive: true });
+  await fs.mkdir(path.join(dataRoot, "widgets", id, "demos", "d2"), { recursive: true });
   await fs.writeFile(path.join(dataRoot, "widgets", id, "index.json"), JSON.stringify(idx));
   await fs.writeFile(path.join(dataRoot, "widgets", id, "config.json"), JSON.stringify(cfg));
   await fs.writeFile(path.join(dataRoot, "widgets", id, "demos", "d", "output.mp4"), "");
+  await fs.writeFile(path.join(dataRoot, "widgets", id, "demos", "d2", "output.mp4"), "");
 }
 
 describe("POST /chat", () => {
@@ -90,8 +102,8 @@ describe("POST /chat", () => {
     const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
     await setupWidget(dataRoot);
 
-    // Embedding orthogonal to chunk → topCosine = 0 → retrievalConfidence = "low"
-    const fakeEmbed = vi.fn().mockResolvedValue([0, 1, 0]);
+    // Embedding orthogonal to all chunks → topCosine = 0 → retrievalConfidence = "low"
+    const fakeEmbed = vi.fn().mockResolvedValue([0, 0, -1]);
     const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["weird question"], catalogIntent: false });
     // answerFn IS called (confidence is a signal, never a gate); it returns no_match
     const fakeAnswer = vi.fn().mockResolvedValue({ kind: "no_match", text: "I don't know.", suggestions: [] });
@@ -170,6 +182,79 @@ describe("POST /chat", () => {
     const overLimit = await postJson(port, "/chat", { widgetId: "wgt_test", message: "x", history: [] }, { Origin: "https://example.com" });
     expect(overLimit.status).toBe(429);
     expect(overLimit.headers["retry-after"]).toBeDefined();
+    server.close();
+  });
+
+  it("passes a catalog-intent chunk for every demo when rewrite returns catalogIntent:true", async () => {
+    const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
+    await setupWidget(dataRoot);
+
+    const fakeEmbed = vi.fn().mockResolvedValue([0, 0, 1]);
+    // catalogIntent: true → handler injects first chunk of each demo
+    const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["show me everything"], catalogIntent: true });
+    const fakeAnswer = vi.fn().mockResolvedValue({
+      kind: "answer",
+      parts: [
+        { kind: "text", text: "Here are all the demos." },
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 1000, endMs: 2000, caption: "Open dialog", mp4Url: "" },
+        { kind: "video", stepId: "d2:0:1", demoId: "d2", startMs: 500, endMs: 1500, caption: "Invite team", mp4Url: "" },
+      ],
+    });
+
+    const server = await startServer({
+      port: 0, host: "127.0.0.1", dataRoot,
+      rewriteQueryFn: fakeRewrite, answerFn: fakeAnswer, embedQueryFn: fakeEmbed,
+      baseUrl: "https://daymo.dev",
+    });
+
+    const resp = await postJson(
+      (server.address() as { port: number }).port,
+      "/chat",
+      { widgetId: "wgt_test", message: "show me everything", history: [] },
+      { Origin: "https://example.com" },
+    );
+    expect(resp.status).toBe(200);
+
+    // answerFn must have received chunks for BOTH demos (catalogIntent injection)
+    const callChunks = fakeAnswer.mock.calls[0][0].chunks as Array<{ demoId: string }>;
+    const demoIds = callChunks.map((c) => c.demoId);
+    expect(demoIds).toContain("d");
+    expect(demoIds).toContain("d2");
+
+    server.close();
+  });
+
+  it("returns canned no-match text (not empty string) when answerFn returns hard-failure marker", async () => {
+    const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), "daymo-chat-"));
+    await setupWidget(dataRoot);
+
+    const fakeEmbed = vi.fn().mockResolvedValue([1, 0, 0]);
+    const fakeRewrite = vi.fn().mockResolvedValue({ queries: ["x"], catalogIntent: false });
+    // Hard-failure marker: kind=no_match with empty text
+    const fakeAnswer = vi.fn().mockResolvedValue({ kind: "no_match", text: "" });
+
+    const server = await startServer({
+      port: 0, host: "127.0.0.1", dataRoot,
+      rewriteQueryFn: fakeRewrite, answerFn: fakeAnswer, embedQueryFn: fakeEmbed,
+      baseUrl: "https://daymo.dev",
+    });
+
+    const resp = await postJson(
+      (server.address() as { port: number }).port,
+      "/chat",
+      { widgetId: "wgt_test", message: "x", history: [] },
+      { Origin: "https://example.com" },
+    );
+    expect(resp.status).toBe(200);
+    const body = JSON.parse(resp.body);
+    expect(body.kind).toBe("no_match");
+    // Must use the config's noMatchText, NOT the empty string
+    expect(body.text).toBe("Custom no-match text.");
+    expect(body.text).not.toBe("");
+    // Suggestions come from suggestedQuestions
+    expect(Array.isArray(body.suggestions)).toBe(true);
+    expect(body.suggestions.length).toBeGreaterThan(0);
+
     server.close();
   });
 });

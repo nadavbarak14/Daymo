@@ -6,6 +6,7 @@ import { validateChatResponse } from "../validate-response.js";
 import { buildMp4Url } from "../mp4-url.js";
 import type { CacheEntry } from "../index-cache.js";
 import type { RewriteQueryFn, AnswerFn } from "../../chat-core/types.js";
+import { DEFAULT_NO_MATCH_TEXT } from "../../chat-core/load-index.js";
 export type { RewriteQueryFn, AnswerFn };
 
 /** Below this top-cosine the answer model is told retrieval is weak — it
@@ -143,7 +144,7 @@ function firstChunkPerDemo(chunks: IndexedChunk[]): IndexedChunk[] {
 function noMatchWithSuggestions(config: { suggestedQuestions: string[]; noMatchText?: string }): ChatResponse {
   return {
     kind: "no_match",
-    text: config.noMatchText ?? "I don't have that in the demos. Try one of these:",
+    text: config.noMatchText ?? DEFAULT_NO_MATCH_TEXT,
     suggestions: config.suggestedQuestions.slice(0, 3),
   };
 }
