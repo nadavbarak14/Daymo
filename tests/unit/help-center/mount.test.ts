@@ -15,7 +15,10 @@ const manifest: HelpManifest = {
       durationMs: 90000,
       videoUrl: "https://cdn/help/v1/d/output.mp4",
       posterUrl: "https://cdn/help/v1/d/poster.jpg",
-      steps: [{ stepId: "d:0:1", label: "click", startMs: 0 }],
+      steps: [
+        { stepId: "d:0:1", label: "click", startMs: 0 },
+        { stepId: "d:0:2", label: "type", startMs: 5000 },
+      ],
     },
   ],
 };
@@ -152,7 +155,7 @@ describe("mountHelpCenter — library", () => {
     expect(row.getAttribute("data-demo-id")).toBe("d");
     expect(row.textContent).toContain("Create a note");
     expect(row.textContent).toContain("1:30"); // durationLabel
-    expect(row.textContent).toContain("1 steps");
+    expect(row.textContent).toContain("2 steps");
     row.click();
     const modal = document.body.querySelector(".daymo-help-modal")!;
     expect(modal.classList.contains("open")).toBe(true);
@@ -197,9 +200,13 @@ describe("mountHelpCenter — chat", () => {
     const thread = container.querySelector(".daymo-help-thread")!;
     expect(thread.getAttribute("aria-live")).toBe("polite");
     const clip = container.querySelector<HTMLButtonElement>(".daymo-help-clip")!;
+    // caption is rendered as a step line
     expect(clip.textContent).toContain("click new");
-    expect(clip.textContent).toContain("0:01–0:05");
+    // full-demo duration (90 000 ms = 1:30), not clip duration
+    expect(clip.textContent).toContain("1:30");
     expect(clip.textContent).toContain("Create a note");
+    // no steps-mirror list anywhere
+    expect(container.querySelector(".daymo-help-steps-mirror")).toBeNull();
     clip.click();
     expect(document.body.querySelector(".daymo-help-modal")?.classList.contains("open")).toBe(true);
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
@@ -216,7 +223,7 @@ describe("mountHelpCenter — chat", () => {
     askQuestion(container, "q");
     await vi.waitFor(() => {
       const video = container.querySelector<HTMLVideoElement>(".daymo-help-thread video");
-      expect(video?.src).toContain("x.mp4#t=1,5");
+      expect(video?.src).toContain("x.mp4#t=1");
     });
   });
 
@@ -311,6 +318,55 @@ describe("mountHelpCenter — chat", () => {
     expect(container.querySelector(".daymo-help-nm i")).toBeNull();
     expect((window as unknown as { __pwned?: number }).__pwned).toBeUndefined();
     expect(container.querySelector(".daymo-help-lib-title")?.textContent).toContain("onerror");
+  });
+
+  it("renders ONE card for two video parts citing the same demo, with both captions as step lines", async () => {
+    const chat: ChatResponse = {
+      kind: "answer",
+      parts: [
+        { kind: "text", text: "First point." },
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 0, endMs: 3000, caption: "Step one caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+        { kind: "text", text: "Second point." },
+        { kind: "video", stepId: "d:0:2", demoId: "d", startMs: 5000, endMs: 8000, caption: "Step two caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+      ],
+    };
+    const { container } = mount({}, makeFetch({ chat }));
+    await libLoaded(container);
+    askQuestion(container, "how?");
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain("First point.");
+    });
+    // exactly one demo card
+    const clips = container.querySelectorAll(".daymo-help-clip");
+    expect(clips).toHaveLength(1);
+    // both captions are step lines inside the card
+    const stepLines = clips[0].querySelectorAll(".daymo-help-clip-step-line");
+    expect(stepLines).toHaveLength(2);
+    expect(stepLines[0].textContent).toContain("Step one caption");
+    expect(stepLines[1].textContent).toContain("Step two caption");
+    // no steps-mirror anywhere
+    expect(container.querySelector(".daymo-help-steps-mirror")).toBeNull();
+  });
+
+  it("opens the player cued at the earliest startMs with referencedStepIds and no end stop", async () => {
+    const chat: ChatResponse = {
+      kind: "answer",
+      parts: [
+        { kind: "video", stepId: "d:0:1", demoId: "d", startMs: 0, endMs: 3000, caption: "Step one caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+        { kind: "video", stepId: "d:0:2", demoId: "d", startMs: 5000, endMs: 8000, caption: "Step two caption", mp4Url: "https://cdn/help/v1/d/output.mp4" },
+      ],
+    };
+    const { container } = mount({}, makeFetch({ chat }));
+    await libLoaded(container);
+    askQuestion(container, "how?");
+    await vi.waitFor(() => {
+      expect(container.querySelector(".daymo-help-clip")).toBeTruthy();
+    });
+    const clip = container.querySelector<HTMLButtonElement>(".daymo-help-clip")!;
+    clip.click();
+    // player modal opens
+    expect(document.body.querySelector(".daymo-help-modal")?.classList.contains("open")).toBe(true);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
   });
 
   it("serializes concurrent asks: the second request waits for the first answer", async () => {

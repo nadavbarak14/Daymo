@@ -46,13 +46,12 @@ export interface HelpCenterStrings {
   errorText: string;
 
   /** Structured answer pieces. */
-  /** Clip-card kicker prefix; rendered as "Answer clip · cued 0:06". */
-  clipKicker: string;
-  clipCuedLabel: string;
+  /** Demo-card kicker: "Full demo". Rendered as "Full demo · starts at step 3/10". */
+  fullDemoLabel: string;
+  /** Demo-card kicker fragment before "{n}/{m}". */
+  startsAtStep: string;
   /** Clip-card call-to-action. */
   playLabel: string;
-  /** Steps-mirror heading. */
-  stepsInClip: string;
   /** Related-walkthroughs playlist heading. */
   relatedHeading: string;
   /** Answer action buttons (titles). */
@@ -102,13 +101,12 @@ export const DEFAULT_STRINGS: HelpCenterStrings = {
   assistantName: "Assistant",
   assistantTag: "Daymo",
   composerPlaceholder: "Ask a follow-up…",
-  composerNote: "Answers are shown as clips cued to the moment — powered by Daymo",
+  composerNote: "Answers point you to the exact moment in a full walkthrough — powered by Daymo",
   errorText: "Couldn't reach the assistant. Try again.",
 
-  clipKicker: "Answer clip",
-  clipCuedLabel: "cued",
+  fullDemoLabel: "Full demo",
+  startsAtStep: "starts at step",
   playLabel: "Play",
-  stepsInClip: "Steps in this clip",
   relatedHeading: "Related walkthroughs",
   helpfulLabel: "Helpful",
   notHelpfulLabel: "Not helpful",

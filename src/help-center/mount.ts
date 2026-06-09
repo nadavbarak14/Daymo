@@ -1,9 +1,10 @@
-import type { ChatResponse, VideoPart } from "../types.js";
+import type { ChatResponse } from "../types.js";
 import type { HelpManifest, ManifestDemo } from "../publish/types.js";
 import { formatDuration } from "./gallery-model.js";
 import { DEFAULT_STRINGS, type HelpCenterStrings } from "./strings.js";
 import { createPlayer } from "./player.js";
 import { ICONS } from "./icons.js";
+import { groupVideoParts, type DemoCardRef } from "./answer-cards.js";
 
 export interface HelpCenterOptions {
   manifestUrl: string;
@@ -106,7 +107,7 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
   function durSteps(d: ManifestDemo): string {
     return `${formatDuration(d.durationMs)} · ${d.steps.length} ${strings.stepsSuffix}`;
   }
-  function openPlayer(d: ManifestDemo, cue?: { startMs?: number; endMs?: number }): void {
+  function openPlayer(d: ManifestDemo, cue?: { startMs?: number; endMs?: number; referencedStepIds?: string[] }): void {
     player.open(d, { ...cue, autoplay: true });
     markPlaying(d.demoId);
     if (chrome && isMobile()) root.dataset.sidebar = "closed";
@@ -483,23 +484,20 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
 
     const summary: string[] = [];
     const cited = new Set<string>();
-    let firstCited: ManifestDemo | undefined;
-    for (const part of resp.parts) {
+    const cards = groupVideoParts(resp.parts);
+    resp.parts.forEach((part, i) => {
       if (part.kind === "text") {
         const p = el("p", "daymo-help-a-p");
         p.textContent = part.text;
         body.appendChild(p);
         summary.push(part.text);
-      } else {
-        body.appendChild(renderVideoPart(part));
-        const d = demosById.get(part.demoId);
-        if (d) {
-          cited.add(d.demoId);
-          firstCited ??= d;
-        }
+        return;
       }
-    }
-    if (firstCited) body.appendChild(stepsMirror(firstCited));
+      const ref = cards.get(i);
+      if (!ref) return; // same-demo follow-up reference — collapsed into the first card
+      body.appendChild(renderDemoCard(ref));
+      cited.add(ref.demoId);
+    });
     const related = demos.filter((d) => !cited.has(d.demoId)).slice(0, 8);
     if (related.length > 0) body.appendChild(relatedPlaylist(related));
     const followups = opts.suggestedQuestions ?? [];
@@ -509,18 +507,19 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     history.push({ role: "assistant", content: summary.join(" ") });
   }
 
-  function renderVideoPart(part: VideoPart): HTMLElement {
-    const demo = demosById.get(part.demoId);
+  function renderDemoCard(ref: DemoCardRef): HTMLElement {
+    const demo = demosById.get(ref.demoId);
     if (!demo) {
-      // Manifest not loaded (or unknown demo): inline media-fragment fallback.
+      // Manifest not loaded (or unknown demo): open-ended media-fragment fallback.
       const wrap = el("div", "daymo-help-clip-fallback");
       const video = doc.createElement("video");
       video.controls = true;
-      video.src = `${part.mp4Url}#t=${part.startMs / 1000},${part.endMs / 1000}`;
+      video.src = `${ref.mp4Url}#t=${ref.startMs / 1000}`;
       wrap.appendChild(video);
-      if (part.caption) {
+      const caption = ref.steps[0]?.caption;
+      if (caption) {
         const cap = doc.createElement("small");
-        cap.textContent = part.caption;
+        cap.textContent = caption;
         wrap.appendChild(cap);
       }
       return wrap;
@@ -528,38 +527,27 @@ export function mountHelpCenter(container: HTMLElement, opts: HelpCenterOptions)
     const clip = el("button", "daymo-help-clip");
     (clip as HTMLButtonElement).type = "button";
     clip.innerHTML =
-      `<span class="daymo-help-clip-poster"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span><span class="daymo-help-clip-dur"></span></span><span class="daymo-help-clip-ci"><span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span><span class="daymo-help-clip-cap"></span><span class="daymo-help-clip-sub"><b></b></span><span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
+      `<span class="daymo-help-clip-poster"><img alt="" /><span class="daymo-help-clip-play">${ICONS.play}</span><span class="daymo-help-clip-dur"></span></span><span class="daymo-help-clip-ci"><span class="daymo-help-clip-kicker"><span class="daymo-help-dot"></span><span></span></span><span class="daymo-help-clip-cap"></span><span class="daymo-help-clip-steps"></span><span class="daymo-help-clip-cta">${ICONS.play}<span></span></span></span>`;
     sq<HTMLImageElement>(clip, "img").src = demo.posterUrl;
-    sq(clip, ".daymo-help-clip-dur").textContent = formatDuration(part.endMs - part.startMs);
+    sq(clip, ".daymo-help-clip-dur").textContent = formatDuration(demo.durationMs);
+    const stepIx = demo.steps.findIndex((s) => s.stepId === ref.steps[0]?.stepId);
+    const stepPos = stepIx >= 0
+      ? stepIx + 1
+      : Math.max(1, demo.steps.filter((s) => s.startMs <= ref.startMs).length);
     sq(clip, ".daymo-help-clip-kicker span:last-child").textContent =
-      `${strings.clipKicker} · ${strings.clipCuedLabel} ${formatDuration(part.startMs)}`;
-    sq(clip, ".daymo-help-clip-cap").textContent = part.caption;
-    const sub = sq(clip, ".daymo-help-clip-sub");
-    sub.insertBefore(doc.createTextNode(`${demo.title} · `), sub.firstChild);
-    sq(sub, "b").textContent = `${formatDuration(part.startMs)}–${formatDuration(part.endMs)}`;
+      `${strings.fullDemoLabel} · ${strings.startsAtStep} ${stepPos}/${demo.steps.length}`;
+    sq(clip, ".daymo-help-clip-cap").textContent = demo.title;
+    const stepsEl = sq(clip, ".daymo-help-clip-steps");
+    for (const s of ref.steps) {
+      const line = el("span", "daymo-help-clip-step-line");
+      line.textContent = `${formatDuration(s.startMs)} · ${s.caption}`;
+      stepsEl.appendChild(line);
+    }
     sq(clip, ".daymo-help-clip-cta span").textContent = strings.playLabel;
     clip.addEventListener("click", () =>
-      openPlayer(demo, { startMs: part.startMs }),
+      openPlayer(demo, { startMs: ref.startMs, referencedStepIds: ref.steps.map((s) => s.stepId) }),
     );
     return clip;
-  }
-
-  function stepsMirror(d: ManifestDemo): HTMLElement {
-    const wrap = el("div", "daymo-help-steps-mirror");
-    wrap.appendChild(el("div", "daymo-help-steps-mirror-h"));
-    sq(wrap, ".daymo-help-steps-mirror-h").textContent = strings.stepsInClip;
-    const list = el("div", "daymo-help-steps-mirror-list");
-    for (const s of d.steps) {
-      const b = el("button", "daymo-help-mstep");
-      (b as HTMLButtonElement).type = "button";
-      b.innerHTML = `<span class="daymo-help-mstep-ix"></span><span class="daymo-help-mstep-lb"></span>`;
-      sq(b, ".daymo-help-mstep-ix").textContent = formatDuration(s.startMs);
-      sq(b, ".daymo-help-mstep-lb").textContent = s.label;
-      b.addEventListener("click", () => openPlayer(d, { startMs: s.startMs }));
-      list.appendChild(b);
-    }
-    wrap.appendChild(list);
-    return wrap;
   }
 
   function relatedPlaylist(list: ManifestDemo[]): HTMLElement {
