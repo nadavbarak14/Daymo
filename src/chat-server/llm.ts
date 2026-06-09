@@ -1,7 +1,8 @@
-import { generateText, generateObject } from "ai";
+import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
-import type { IndexedChunk, ChatResponse, Part } from "../types.js";
+import type { IndexedChunk, IndexedDemo, ChatResponse, Part } from "../types.js";
+import type { RewriteResult } from "../chat-core/types.js";
 
 const REWRITE_MODEL = "gemini-2.5-flash";
 const ANSWER_MODEL = "gemini-2.5-flash";
@@ -10,31 +11,61 @@ export interface LlmOpts {
   apiKey: string;
 }
 
-const REWRITE_SYSTEM = `You rewrite the user's latest message into a single self-contained search query that captures their full intent given prior conversation turns. Output ONLY the query — no preamble, no quoting, no punctuation beyond what's strictly needed. Keep it <=30 tokens.`;
+function renderCatalog(catalog: IndexedDemo[]): string {
+  if (catalog.length === 0) return "(no demos published)";
+  return catalog
+    .map((d) => `- ${d.demoId}: ${d.title} — ${d.description}`)
+    .join("\n");
+}
+
+function rewriteSystem(catalog: IndexedDemo[]): string {
+  return `You turn the user's latest message into search queries over a library of product demo videos.
+
+Output:
+- queries: 1-2 self-contained search strings capturing the user's full intent. Resolve pronouns and follow-ups from the conversation ("how do I share it?" after a course question → "share a course"). One focused question → ONE query. A question spanning two distinct topics → TWO queries. Each <=30 tokens, in English.
+- catalogIntent: true when the user asks what's available or what they can do in general ("what can I do here?", "what are my options?", "what do you cover?") rather than how to do one specific thing.
+
+Demo library (context for resolving what the user means):
+${renderCatalog(catalog)}`;
+}
+
+const RewriteSchema = z.object({
+  queries: z.array(z.string()).min(1).max(2),
+  catalogIntent: z.boolean(),
+});
 
 export interface RewriteQueryInput {
   message: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
+  catalog: IndexedDemo[];
 }
 
-export async function rewriteQuery(input: RewriteQueryInput, opts: LlmOpts): Promise<string> {
+export async function rewriteQuery(input: RewriteQueryInput, opts: LlmOpts): Promise<RewriteResult> {
   const google = createGoogleGenerativeAI({ apiKey: opts.apiKey });
   const historyText = input.history.map((t) => `${t.role}: ${t.content}`).join("\n");
   const userBlock = [
     historyText ? `Conversation so far:\n${historyText}\n` : "",
     `Latest message: ${input.message}`,
-    "",
-    "Search query:",
   ].join("\n");
 
-  const { text } = await generateText({
-    model: google(REWRITE_MODEL),
-    system: REWRITE_SYSTEM,
-    prompt: userBlock,
-    maxTokens: 100,
-    temperature: 0.0,
-  });
-  return text.trim().replace(/^["'`]+|["'`]+$/g, "").trim();
+  try {
+    const { object } = await generateObject({
+      model: google(REWRITE_MODEL),
+      schema: RewriteSchema,
+      system: rewriteSystem(input.catalog),
+      prompt: userBlock,
+      maxTokens: 200,
+      temperature: 0.0,
+    });
+    const queries = object.queries
+      .map((q) => q.trim().replace(/^["'`]+|["'`]+$/g, "").trim())
+      .filter(Boolean);
+    if (queries.length === 0) return { queries: [input.message], catalogIntent: false };
+    return { queries, catalogIntent: object.catalogIntent };
+  } catch {
+    // Fail open: retrieval falls back to the raw message; never block the answer.
+    return { queries: [input.message], catalogIntent: false };
+  }
 }
 
 // Zod schema for ChatResponse — gets enforced by the model via generateObject
