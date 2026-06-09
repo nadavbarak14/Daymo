@@ -2,9 +2,10 @@ import styles from "./styles.css";
 import { createChatState } from "./chat-state.js";
 import { createApi, ApiError } from "./api.js";
 import { renderParts } from "./render-parts.js";
-import { loadManifest, resolveVideoSource, type ManifestDemo } from "./manifest.js";
+import { loadManifest, resolveVideoSource, type ManifestDemo, type VideoSource } from "./manifest.js";
 import { getStrings, resolveLocale, type SupportedLocale } from "./locale.js";
-import type { ChatResponse, VideoPart, WidgetConfigResp } from "./types.js";
+import type { ChatResponse, WidgetConfigResp } from "./types.js";
+import type { DemoCardRef } from "./answer-cards.js";
 
 export interface MountOpts {
   widgetId: string;
@@ -128,17 +129,16 @@ export async function mount(opts: MountOpts): Promise<void> {
     shadow.appendChild(lightbox);
   }
 
-  function openLightbox(part: VideoPart): void {
+  function openLightbox(ref: DemoCardRef, source: VideoSource): void {
     if (!lightbox) buildLightbox();
-    const source = resolveVideoSource(part, demos);
-    const startSec = part.startMs / 1000;
-    const endSec = part.endMs / 1000;
+    const startSec = ref.startMs / 1000;
+    const endSec = ref.endMs / 1000;
     lightboxClipEnd = endSec;
     lightboxVideo!.src = `${source.mp4Url}#t=${startSec.toFixed(3)},${endSec.toFixed(3)}`;
     if (source.posterUrl) lightboxVideo!.poster = source.posterUrl;
     lightboxCaption!.textContent = "";
     const b = document.createElement("b");
-    b.textContent = part.caption;
+    b.textContent = ref.steps[0]?.caption ?? "";
     lightboxCaption!.appendChild(b);
     if (source.title) lightboxCaption!.appendChild(document.createTextNode(` — ${source.title}`));
     lightbox!.style.display = "flex";
@@ -298,7 +298,7 @@ export async function mount(opts: MountOpts): Promise<void> {
         wrap.className = "dw-msg dw-msg-assistant";
         if (isLast && s.lastResponse) {
           if (s.lastResponse.kind === "answer") {
-            renderParts(wrap, s.lastResponse.parts, openLightbox, (p) => resolveVideoSource(p, demos));
+            renderParts(wrap, s.lastResponse.parts, openLightbox, (ref) => resolveVideoSource(ref, demos), { playDemo: "Play demo:" }); // Task 11 wires strings.playDemo
           } else {
             const p = document.createElement("p");
             p.textContent = `${strings.noMatchPrefix} ${s.lastResponse.text}`;

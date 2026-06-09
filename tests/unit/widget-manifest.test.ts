@@ -86,4 +86,12 @@ describe("resolveVideoSource", () => {
     const source = resolveVideoSource(part("create-project"), new Map());
     expect(source.mp4Url).toBe("https://api.example.com/widgets/w/demos/create-project/output.mp4");
   });
+
+  it("returns durationMs from the manifest when present", () => {
+    const demosWithDuration = new Map<string, ManifestDemo>([
+      ["d", { demoId: "d", title: "My Demo", videoUrl: "https://cdn/d.mp4", durationMs: 79000 }],
+    ]);
+    const source = resolveVideoSource({ demoId: "d", mp4Url: "https://fallback/d.mp4" }, demosWithDuration);
+    expect(source.durationMs).toBe(79000);
+  });
 });
