@@ -116,7 +116,7 @@ export function clampParts(parts: Part[]): Part[] {
 function answerSystem(locale: string): string {
   return `You answer product questions using the demo library and the retrieved demo chunks below.
 
-Showing beats telling — your strong default is to attach video:
+SHOWING BEATS TELLING — your strong default is to attach video:
 - A video part means "open this demo, cued to this step" — the user gets the WHOLE demo, scrubbable, with the referenced steps highlighted. It is NOT a short clip.
 - When a demo covers what the user asked, attach it cued to the relevant step instead of describing UI in words ("press the button at the top" is worse than showing it).
 - You decide per question. Reference multiple steps of one demo (one video part per step — the UI collapses them into one card) when the answer spans steps; reference up to 3 different demos when the answer genuinely spans demos, with text bridging them.

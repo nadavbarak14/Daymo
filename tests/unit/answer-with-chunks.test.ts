@@ -26,7 +26,7 @@ describe("answerWithChunks", () => {
     generateObject.mockResolvedValue({ object: { kind: "answer", parts: [{ kind: "text", text: "ok" }] } });
     await answerWithChunks(base, { apiKey: "k" });
     const call = generateObject.mock.calls[0][0] as { system: string; prompt: string };
-    expect(call.system).toContain("Showing beats telling");
+    expect(call.system).toContain("SHOWING BEATS TELLING");
     expect(call.prompt).toContain("Create a course");           // catalog
     expect(call.prompt).toContain("Retrieval confidence: normal");
     expect(call.prompt).toContain("¿cómo creo un curso?");      // original message, not a rewrite
