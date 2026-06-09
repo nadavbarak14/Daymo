@@ -75,14 +75,118 @@ describe("answerChat", () => {
   });
 
   it("catalogIntent injects each demo's first chunk so every demo is citable", async () => {
+    // Local fixture: 8 "d" chunks fill the k=8 retrieval cap (embedding [1,0]),
+    // plus demo "z" with one chunk (embedding [0,1]) that is never returned by
+    // plain retrieval when embedQuery returns [1,0]. Without catalogIntent
+    // injection, z:0:1 would be absent from the chunks passed to the answer model.
+    const bigIndex: IndexFile = {
+      version: "v1",
+      widgetId: "help",
+      embeddingModel: "gemini-embedding-001",
+      embeddingDims: 2,
+      videoBaseUrl: "https://cdn/help/v1",
+      createdAt: "2026-06-04T00:00:00Z",
+      etag: "sha256:x",
+      demos: [
+        { demoId: "d", title: "Demo D", description: "D basics", durationMs: 60000 },
+        { demoId: "z", title: "Demo Z", description: "Z basics", durationMs: 70000 },
+      ],
+      chunks: [
+        ...(Array.from({ length: 8 }, (_, i) => ({
+          stepId: `d:0:${i + 1}`,
+          demoId: "d",
+          sceneIndex: 0,
+          stepIndex: i + 1,
+          globalStartMs: i * 1000,
+          globalEndMs: (i + 1) * 1000,
+          text: `d step ${i + 1}`,
+          embedding: [1, 0] as [number, number],
+          keywords: ["d"],
+        }))),
+        {
+          stepId: "z:0:1",
+          demoId: "z",
+          sceneIndex: 0,
+          stepIndex: 1,
+          globalStartMs: 0,
+          globalEndMs: 500,
+          text: "z step 1",
+          embedding: [0, 1] as [number, number],
+          keywords: ["z"],
+        },
+      ],
+    };
     const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "ok" }] }));
     await answerChat(
       { message: "what can I do here?", history: [], requestId: "r4" },
-      deps({ rewriteQuery: async () => ({ queries: ["product overview"], catalogIntent: true }), answer }),
+      {
+        loaded: loadIndex(bigIndex, { suggestedQuestions: [], defaultLocale: "en" }),
+        embedQuery: async () => [1, 0],
+        rewriteQuery: async () => ({ queries: ["overview"], catalogIntent: true }),
+        answer,
+      },
     );
     const stepIds = answer.mock.calls[0][0].chunks.map((c: { stepId: string }) => c.stepId);
+    // d:0:1 is retrieved organically; z:0:1 only arrives via catalogIntent injection
     expect(stepIds).toContain("d:0:1");
-    expect(stepIds).toContain("e:0:1");
+    expect(stepIds).toContain("z:0:1");
+    // The injected chunk is allowed past the k=8 cap
+    expect(stepIds.length).toBeGreaterThan(8);
+  });
+
+  it("without catalogIntent, z:0:1 is NOT retrieved when d chunks saturate the cap", async () => {
+    // Same big fixture as above; with catalogIntent: false z:0:1 must be absent.
+    const bigIndex: IndexFile = {
+      version: "v1",
+      widgetId: "help",
+      embeddingModel: "gemini-embedding-001",
+      embeddingDims: 2,
+      videoBaseUrl: "https://cdn/help/v1",
+      createdAt: "2026-06-04T00:00:00Z",
+      etag: "sha256:x",
+      demos: [
+        { demoId: "d", title: "Demo D", description: "D basics", durationMs: 60000 },
+        { demoId: "z", title: "Demo Z", description: "Z basics", durationMs: 70000 },
+      ],
+      chunks: [
+        ...(Array.from({ length: 8 }, (_, i) => ({
+          stepId: `d:0:${i + 1}`,
+          demoId: "d",
+          sceneIndex: 0,
+          stepIndex: i + 1,
+          globalStartMs: i * 1000,
+          globalEndMs: (i + 1) * 1000,
+          text: `d step ${i + 1}`,
+          embedding: [1, 0] as [number, number],
+          keywords: ["d"],
+        }))),
+        {
+          stepId: "z:0:1",
+          demoId: "z",
+          sceneIndex: 0,
+          stepIndex: 1,
+          globalStartMs: 0,
+          globalEndMs: 500,
+          text: "z step 1",
+          embedding: [0, 1] as [number, number],
+          keywords: ["z"],
+        },
+      ],
+    };
+    const answer = vi.fn(async () => ({ kind: "answer" as const, parts: [{ kind: "text" as const, text: "ok" }] }));
+    await answerChat(
+      { message: "what can I do here?", history: [], requestId: "r4b" },
+      {
+        loaded: loadIndex(bigIndex, { suggestedQuestions: [], defaultLocale: "en" }),
+        embedQuery: async () => [1, 0],
+        rewriteQuery: async () => ({ queries: ["overview"], catalogIntent: false }),
+        answer,
+      },
+    );
+    const stepIds = answer.mock.calls[0][0].chunks.map((c: { stepId: string }) => c.stepId);
+    // Without injection, z:0:1 never makes it past the saturated cap
+    expect(stepIds).not.toContain("z:0:1");
+    expect(stepIds.length).toBeLessThanOrEqual(8);
   });
 
   it("unions retrieval across rewrite queries and the raw message without duplicates", async () => {
