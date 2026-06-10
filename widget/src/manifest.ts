@@ -1,5 +1,3 @@
-import type { VideoPart } from "./types.js";
-
 /**
  * Subset of the published help-center manifest (`HelpManifest` in
  * src/publish/types.ts) the widget cares about. `daymo publish` writes
@@ -12,6 +10,8 @@ export interface ManifestDemo {
   title: string;
   videoUrl: string;
   posterUrl?: string;
+  /** Full demo length — the published manifest always carries it. */
+  durationMs?: number;
 }
 
 export interface HelpManifest {
@@ -49,14 +49,16 @@ export interface VideoSource {
   posterUrl?: string;
   /** Demo title from the manifest (e.g. for the card label / caption). */
   title?: string;
+  /** Full demo duration from the manifest. */
+  durationMs?: number;
 }
 
 /** Resolve where a cited clip should play from, preferring the shared manifest. */
 export function resolveVideoSource(
-  part: VideoPart,
+  part: { demoId: string; mp4Url: string },
   demos: Map<string, ManifestDemo>,
 ): VideoSource {
   const demo = demos.get(part.demoId);
   if (!demo) return { mp4Url: part.mp4Url };
-  return { mp4Url: demo.videoUrl, posterUrl: demo.posterUrl, title: demo.title };
+  return { mp4Url: demo.videoUrl, posterUrl: demo.posterUrl, title: demo.title, durationMs: demo.durationMs };
 }

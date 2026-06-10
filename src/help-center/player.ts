@@ -5,9 +5,9 @@ import { ICONS } from "./icons.js";
 
 export interface PlayerCue {
   startMs?: number;
-  /** One-shot stop: playback pauses when it reaches this point. Cleared by
-   *  any user seek or step click. */
-  endMs?: number;
+  /** Steps cited by a chat answer — rendered with a persistent "referenced"
+   *  state in the timeline (distinct from the playhead-following "active"). */
+  referencedStepIds?: string[];
   autoplay?: boolean;
 }
 
@@ -63,8 +63,6 @@ export function createPlayer(
   closeBtn.setAttribute("aria-label", strings.closeLabel);
 
   let demo: ManifestDemo | null = null;
-  let clipEndMs: number | null = null;
-  let programmaticSeek = false;
   let opener: Element | null = null;
   let scrollLocked = false;
   let prevOverflow = "";
@@ -81,16 +79,8 @@ export function createPlayer(
     }
   }
 
-  video.addEventListener("seeking", () => {
-    if (programmaticSeek) programmaticSeek = false;
-    else clipEndMs = null; // a user seek cancels the clip stop
-  });
   video.addEventListener("timeupdate", () => {
     const ms = video.currentTime * 1000;
-    if (clipEndMs !== null && ms >= clipEndMs) {
-      clipEndMs = null;
-      video.pause();
-    }
     highlightStep(ms);
   });
   // Autoplay-to-next: when a clip plays to its natural end and autoplay is on,
@@ -118,13 +108,11 @@ export function createPlayer(
   }
 
   /** Seek once metadata is available (setting currentTime before
-   *  loadedmetadata is unreliable). `programmatic` marks the seek so the
-   *  seeking handler doesn't treat it as a user seek. */
-  function seekWhenReady(startMs: number, programmatic: boolean): void {
+   *  loadedmetadata is unreliable). */
+  function seekWhenReady(startMs: number): void {
     clearPendingSeek();
     const apply = () => {
       pendingSeek = null;
-      programmaticSeek = programmatic;
       video.currentTime = startMs / 1000;
     };
     if (video.readyState >= 1) apply();
@@ -134,12 +122,13 @@ export function createPlayer(
     }
   }
 
-  function buildSteps(d: ManifestDemo): void {
+  function buildSteps(d: ManifestDemo, referenced: Set<string>): void {
     stepsList.textContent = "";
     for (const s of d.steps) {
       const b = doc.createElement("button");
       b.type = "button";
       b.className = "daymo-help-step";
+      if (referenced.has(s.stepId)) b.classList.add("referenced");
       const ix = doc.createElement("span");
       ix.className = "daymo-help-step-ix";
       ix.textContent = formatDuration(s.startMs);
@@ -148,8 +137,7 @@ export function createPlayer(
       lb.textContent = s.label;
       b.append(ix, lb);
       b.addEventListener("click", () => {
-        clipEndMs = null;
-        seekWhenReady(s.startMs, false);
+        seekWhenReady(s.startMs);
         void Promise.resolve(video.play()).catch(() => undefined);
       });
       stepsList.appendChild(b);
@@ -228,14 +216,12 @@ export function createPlayer(
     video.src = d.videoUrl;
     video.poster = d.posterUrl;
 
-    buildSteps(d);
+    buildSteps(d, new Set(cue?.referencedStepIds ?? []));
     buildQueue();
 
-    clipEndMs = cue?.endMs ?? null;
     // Setting video.src above resets the playhead to 0, so only an explicit
-    // cue needs a seek. (Seeking to 0 here would fire `seeking` and wrongly
-    // clear a clip cue that starts at 0.)
-    if (cue?.startMs != null && cue.startMs > 0) seekWhenReady(cue.startMs, true);
+    // cue needs a seek.
+    if (cue?.startMs != null && cue.startMs > 0) seekWhenReady(cue.startMs);
     highlightStep(cue?.startMs ?? 0);
 
     if (!wasOpen) {
@@ -255,7 +241,6 @@ export function createPlayer(
     if (!modal.classList.contains("open")) return;
     video.pause();
     clearPendingSeek();
-    clipEndMs = null;
     modal.classList.remove("open");
     if (scrollLocked) {
       doc.body.style.overflow = prevOverflow;

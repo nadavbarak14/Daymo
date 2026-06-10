@@ -12,9 +12,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
 const RAW_HTML = readFileSync(path.join(__dirname, "app.html"), "utf8");
-const APP_HTML = RAW_HTML.replace(
+// Point the widget at the chat backend on :8766, using whatever hostname the
+// page itself was reached on (so SSH-forwarded localhost and direct-IP both work).
+const appHtml = (host) => RAW_HTML.replace(
   "</body>",
-  `  <script async src="/widget.js" data-widget-id="loomly" data-base-url="http://127.0.0.1:8766"></script>\n</body>`,
+  `  <script async src="/widget.js" data-widget-id="loomly" data-base-url="http://${host.replace(/:\d+$/, "")}:8766"></script>\n</body>`,
 );
 
 const WIDGET_JS = readFileSync(path.join(ROOT, "dist-widget/widget.js"), "utf8");
@@ -43,14 +45,14 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/" || req.url?.startsWith("/index")) {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(APP_HTML);
+    res.end(appHtml(req.headers.host ?? "127.0.0.1:9000"));
     return;
   }
   res.writeHead(404, { "content-type": "text/plain" }).end("Not found");
 });
 
 const PORT = Number(process.env.PORT ?? 9000);
-server.listen(PORT, "127.0.0.1", () => {
+server.listen(PORT, () => {
   console.log(`widget-host: http://127.0.0.1:${PORT}/`);
 });
 

@@ -24,9 +24,6 @@ export function validateChatResponse(
     const p = parts[i];
     if (p.kind === "video") {
       videoCount += 1;
-      if (i > 0 && parts[i - 1].kind === "video") {
-        return { ok: false, reason: `two consecutive video parts at index ${i}` };
-      }
       const idx = stepLookup.get(p.stepId);
       if (!idx) return { ok: false, reason: `unknown stepId: ${p.stepId}` };
       if (idx.globalStartMs !== p.startMs || idx.globalEndMs !== p.endMs) {

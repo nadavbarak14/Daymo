@@ -13,6 +13,8 @@ export interface CreateChatRouteOpts {
   answer: AnswerFn;
   suggestedQuestions?: string[];
   defaultLocale?: string;
+  /** Lead text for canned no-match responses. Localize/brand it here. */
+  noMatchText?: string;
   rateLimitPerMinute?: number;
   maxBodyBytes?: number;
   onEvent?: (e: HelpChatEvent) => void;
@@ -37,6 +39,7 @@ export function createChatRoute(opts: CreateChatRouteOpts): (req: Request) => Pr
   const loaded = loadIndex(opts.index, {
     suggestedQuestions: opts.suggestedQuestions ?? [],
     defaultLocale: opts.defaultLocale ?? "en",
+    noMatchText: opts.noMatchText,
   });
   const limiter = createRateLimiter({ maxPerMinute: opts.rateLimitPerMinute ?? 30 });
   const maxBody = opts.maxBodyBytes ?? 1_000_000;
@@ -83,7 +86,7 @@ export function createChatRoute(opts: CreateChatRouteOpts): (req: Request) => Pr
       opts.onEvent?.({
         requestId,
         question: String(body.message),
-        rewrittenQuery: "",
+        rewrittenQueries: [],
         outcome: "error",
         matchedStepIds: [],
         topCosine: 0,

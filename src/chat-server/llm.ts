@@ -1,7 +1,8 @@
-import { generateText, generateObject } from "ai";
+import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
-import type { IndexedChunk, ChatResponse, Part } from "../types.js";
+import type { IndexedChunk, IndexedDemo, ChatResponse, Part } from "../types.js";
+import type { RewriteResult } from "../chat-core/types.js";
 
 const REWRITE_MODEL = "gemini-2.5-flash";
 const ANSWER_MODEL = "gemini-2.5-flash";
@@ -10,31 +11,61 @@ export interface LlmOpts {
   apiKey: string;
 }
 
-const REWRITE_SYSTEM = `You rewrite the user's latest message into a single self-contained search query that captures their full intent given prior conversation turns. Output ONLY the query — no preamble, no quoting, no punctuation beyond what's strictly needed. Keep it <=30 tokens.`;
+function renderCatalog(catalog: IndexedDemo[]): string {
+  if (catalog.length === 0) return "(no demos published)";
+  return catalog
+    .map((d) => `- ${d.demoId}: ${d.title} — ${d.description}`)
+    .join("\n");
+}
+
+function rewriteSystem(catalog: IndexedDemo[]): string {
+  return `You turn the user's latest message into search queries over a library of product demo videos.
+
+Output:
+- queries: 1-2 self-contained search strings capturing the user's full intent. Resolve pronouns and follow-ups from the conversation ("how do I share it?" after a course question → "share a course"). One focused question → ONE query. A question spanning two distinct topics → TWO queries. Each <=30 tokens, in English.
+- catalogIntent: true when the user asks what's available or what they can do in general ("what can I do here?", "what are my options?", "what do you cover?") rather than how to do one specific thing.
+
+Demo library (context for resolving what the user means):
+${renderCatalog(catalog)}`;
+}
+
+const RewriteSchema = z.object({
+  queries: z.array(z.string()).min(1).max(2),
+  catalogIntent: z.boolean(),
+});
 
 export interface RewriteQueryInput {
   message: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
+  catalog: IndexedDemo[];
 }
 
-export async function rewriteQuery(input: RewriteQueryInput, opts: LlmOpts): Promise<string> {
+export async function rewriteQuery(input: RewriteQueryInput, opts: LlmOpts): Promise<RewriteResult> {
   const google = createGoogleGenerativeAI({ apiKey: opts.apiKey });
   const historyText = input.history.map((t) => `${t.role}: ${t.content}`).join("\n");
   const userBlock = [
     historyText ? `Conversation so far:\n${historyText}\n` : "",
     `Latest message: ${input.message}`,
-    "",
-    "Search query:",
   ].join("\n");
 
-  const { text } = await generateText({
-    model: google(REWRITE_MODEL),
-    system: REWRITE_SYSTEM,
-    prompt: userBlock,
-    maxTokens: 100,
-    temperature: 0.0,
-  });
-  return text.trim().replace(/^["'`]+|["'`]+$/g, "").trim();
+  try {
+    const { object } = await generateObject({
+      model: google(REWRITE_MODEL),
+      schema: RewriteSchema,
+      system: rewriteSystem(input.catalog),
+      prompt: userBlock,
+      maxTokens: 200,
+      temperature: 0.0,
+    });
+    const queries = object.queries
+      .map((q) => q.trim().replace(/^["'`]+|["'`]+$/g, "").trim())
+      .filter(Boolean);
+    if (queries.length === 0) return { queries: [input.message], catalogIntent: false };
+    return { queries, catalogIntent: object.catalogIntent };
+  } catch {
+    // Fail open: retrieval falls back to the raw message; never block the answer.
+    return { queries: [input.message], catalogIntent: false };
+  }
 }
 
 // Zod schema for ChatResponse — gets enforced by the model via generateObject
@@ -70,38 +101,46 @@ const ChatResponseSchema = z.discriminatedUnion("kind", [
 ]);
 
 const MAX_VIDEO_PARTS = 3;
+const MAX_PARTS = 6;
 
-/** Enforce the product shape the prompt asks for (max 3 clips): keep parts in
- *  order until the 3rd video part, then stop. Trailing text after the last
- *  kept clip adds nothing the captions don't already say. */
-function clampParts(parts: Part[]): Part[] {
-  const out: Part[] = [];
+/** Enforce the product shape (≤3 videos, ≤6 parts) WITHOUT dropping text:
+ *  a >3-demos answer is told to name the overflow demos in text, and that
+ *  text must survive the clamp. Excess videos are dropped in place; if the
+ *  result still exceeds 6 parts, trailing parts go. */
+export function clampParts(parts: Part[]): Part[] {
   let videos = 0;
-  for (const p of parts) {
-    out.push(p);
-    if (p.kind === "video" && ++videos >= MAX_VIDEO_PARTS) break;
-  }
-  return out;
+  const out = parts.filter((p) => p.kind !== "video" || ++videos <= MAX_VIDEO_PARTS);
+  return out.slice(0, MAX_PARTS);
 }
 
 function answerSystem(locale: string): string {
-  return `You answer product questions using the retrieved demo chunks below. Be brief, accurate, and only describe what the chunks actually show.
+  return `You answer product questions using the demo library and the retrieved demo chunks below.
 
-LANGUAGE — always reply in the same language as the user's most recent message. Detect it from their words. If Spanish → Spanish, French → French, Japanese → Japanese, etc. Only fall back to "${locale}" when the message is genuinely ambiguous (e.g. one-word query in an ambiguous script).
+SHOWING BEATS TELLING — your strong default is to attach video:
+- A video part means "open this demo, cued to this step" — the user gets the WHOLE demo, scrubbable, with the referenced steps highlighted. It is NOT a short clip.
+- When a demo covers what the user asked, attach it cued to the relevant step instead of describing UI in words ("press the button at the top" is worse than showing it).
+- You decide per question. Reference multiple steps of one demo (one video part per step — the UI collapses them into one card) when the answer spans steps; reference up to 3 different demos when the answer genuinely spans demos, with text bridging them.
+- If more than 3 demos are relevant, attach the 3 most relevant and name the others in a text part BEFORE the last video part.
+- Text-only answers are for conceptual or catalog-level questions where no single demo moment helps.
 
-CERTAINTY — never invent details:
+CAPTIONS — each video part's caption is one short sentence (~15 words) saying what that step shows; it renders as a sub-line on the demo card.
+
+GROUNDING — never invent:
+- Capability claims must be supported by a demo title/description in the library or by a retrieved chunk. If unsupported, say you're not sure and point to the nearest covered demo. A confident wrong "yes it supports X" is the worst possible answer.
 - Do NOT name buttons, features, or steps that don't appear in any chunk.
-- Do NOT fabricate prose around the chunks. Your text part is just a short pointer to the clip.
-- The clip is the authoritative answer. Keep each text part to ONE sentence (~15 words max), paraphrasing what the chunk says.
-- If the chunks only partially cover the question, answer the part you can verify and stop.
+- When "Retrieval confidence" is low, prefer catalog-level answers ("here's what I can show you…") or no_match — do not stretch weak chunks into a specific answer.
+
+CATALOG QUESTIONS — for "what can I do here?" / "what are my options?", answer with a short text overview of the library and attach 1-3 representative demos as video parts (their first steps are in the chunks).
+
+LANGUAGE — always reply in the language of the user's most recent message. Detect it from their words. Only fall back to "${locale}" when genuinely ambiguous.
 
 WHEN TO ANSWER vs. no_match:
-- At least one chunk is on-topic (describes the thing being asked, even if not literal step-by-step) → kind="answer".
-- No chunk relates → kind="no_match" with a short refusal + 1-3 suggestions drawn from chunk topics.
+- A chunk or catalog entry is on-topic → kind="answer".
+- Nothing relates → kind="no_match": name 2-3 topics the library DOES cover, plus suggestions[] with the nearest askable questions. Never a bare "rephrase that".
 
 OUTPUT SHAPE:
-- kind="answer": parts[] has 1..6 items, max 3 video parts. Each video preceded by a text intro. Never two consecutive videos. If multiple chunks answer different steps of a multi-step task, interleave text+video for each step.
-- kind="no_match": short text + optional suggestions[].
+- kind="answer": parts[] has 1..6 items, max 3 video parts. Multiple video parts may cite the same demo (different steps).
+- kind="no_match": helpful text + suggestions[].
 
 STRICT FIELD RULES:
 - Every video.stepId MUST appear verbatim in a chunk. Never invent stepIds.
@@ -116,10 +155,13 @@ function renderChunks(chunks: IndexedChunk[]): string {
 }
 
 export interface AnswerWithChunksInput {
+  /** The user's ORIGINAL message (not a rewrite) — language detection depends on it. */
   query: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
   chunks: IndexedChunk[];
   locale: string;
+  catalog: IndexedDemo[];
+  retrievalConfidence: "low" | "normal";
 }
 
 export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOpts): Promise<ChatResponse> {
@@ -129,6 +171,11 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
     : input.history.map((t) => `${t.role}: ${t.content}`).join("\n");
 
   const userBlock = [
+    "Demo library:",
+    renderCatalog(input.catalog),
+    "",
+    `Retrieval confidence: ${input.retrievalConfidence}`,
+    "",
     "Retrieved chunks:",
     renderChunks(input.chunks),
     "",
@@ -157,7 +204,8 @@ export async function answerWithChunks(input: AnswerWithChunksInput, opts: LlmOp
     }
     return response;
   } catch {
-    // Schema mismatch or upstream error → graceful refusal
-    return { kind: "no_match", text: "I couldn't construct an answer." };
+    // Hard LLM failure (schema mismatch / upstream error). Empty text is a
+    // marker — answer-chat/handleChat substitute their configured no-match.
+    return { kind: "no_match", text: "" };
   }
 }

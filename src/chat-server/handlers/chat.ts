@@ -1,24 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ChatRequest, ChatResponse, Part, VideoPart } from "../../types.js";
+import type { ChatRequest, ChatResponse, IndexedChunk, Part, VideoPart } from "../../types.js";
 import { retrieve } from "../retrieve.js";
 import { extractKeywords } from "../../indexer/keywords.js";
 import { validateChatResponse } from "../validate-response.js";
 import { buildMp4Url } from "../mp4-url.js";
 import type { CacheEntry } from "../index-cache.js";
+import type { RewriteQueryFn, AnswerFn } from "../../chat-core/types.js";
+import { DEFAULT_NO_MATCH_TEXT } from "../../chat-core/load-index.js";
+export type { RewriteQueryFn, AnswerFn };
 
+/** Below this top-cosine the answer model is told retrieval is weak — it
+ *  prefers catalog-level answers or no_match. A signal, never a gate. */
 const SCORE_THRESHOLD = 0.35;
-
-export type RewriteQueryFn = (input: {
-  message: string;
-  history: Array<{ role: "user" | "assistant"; content: string }>;
-}) => Promise<string>;
-
-export type AnswerFn = (input: {
-  query: string;
-  history: Array<{ role: "user" | "assistant"; content: string }>;
-  chunks: import("../../types.js").IndexedChunk[];
-  locale: string;
-}) => Promise<ChatResponse>;
 
 export interface ChatHandlerDeps {
   loadWidget: (id: string) => Promise<CacheEntry>;
@@ -43,29 +36,68 @@ export async function handleChat(
 
   const locale = body.locale ?? entry.config.locale;
   const history = body.history.slice(-2);
+  const catalog = entry.index.demos;
 
-  const rewritten = history.length === 0
-    ? body.message
-    : await deps.rewriteQueryFn({ message: body.message, history });
-
-  const queryEmbedding = await deps.embedQueryFn(rewritten);
-  const queryKeywords = extractKeywords(rewritten);
-  const retrieval = retrieve({
-    query: { embedding: queryEmbedding, keywords: queryKeywords },
-    chunks: entry.index.chunks,
-    k: 8,
-  });
-
-  if (retrieval.topCosineScore < SCORE_THRESHOLD) {
-    return sendJson(res, 200, noMatchWithSuggestions(entry.config.suggestedQuestions));
+  // Nothing published → nothing to ground an answer in. Skip the LLM.
+  if (entry.index.chunks.length === 0 && catalog.length === 0) {
+    return sendJson(res, 200, noMatchWithSuggestions(entry.config));
   }
 
+  // The rewrite is retrieval-only. It runs in parallel with embedding the raw
+  // message so the always-on rewrite doesn't serialize the common path.
+  const [rewrite, originalEmbedding] = await Promise.all([
+    deps.rewriteQueryFn({ message: body.message, history, catalog }),
+    deps.embedQueryFn(body.message),
+  ]);
+  const queries = rewrite.queries.slice(0, 2);
+  const rewriteEmbeddings = await Promise.all(
+    queries.map((q) => (q === body.message ? Promise.resolve(originalEmbedding) : deps.embedQueryFn(q))),
+  );
+
+  // Rewritten queries first (context-resolved), raw message last; union dedupes.
+  const retrievals = [
+    ...rewriteEmbeddings.map((embedding, i) => ({ embedding, keywords: extractKeywords(queries[i]) })),
+    { embedding: originalEmbedding, keywords: extractKeywords(body.message) },
+  ].map((query) => retrieve({ query, chunks: entry.index.chunks, k: 8 }));
+
+  const seen = new Set<string>();
+  const chunks: IndexedChunk[] = [];
+  outer: for (const r of retrievals) {
+    for (const c of r.chunks) {
+      if (chunks.length >= 8) break outer;
+      if (seen.has(c.stepId)) continue;
+      seen.add(c.stepId);
+      chunks.push(c);
+    }
+  }
+
+  // Catalog-shaped question: make every demo citable by including its first
+  // step (validation requires stepIds to come from chunks). Bounded by the
+  // demo count, deliberately allowed past k=8.
+  if (rewrite.catalogIntent) {
+    for (const c of firstChunkPerDemo(entry.index.chunks)) {
+      if (seen.has(c.stepId)) continue;
+      seen.add(c.stepId);
+      chunks.push(c);
+    }
+  }
+
+  const topCosine = retrievals.reduce((m, r) => Math.max(m, r.topCosineScore), 0);
+  const retrievalConfidence = topCosine < SCORE_THRESHOLD ? ("low" as const) : ("normal" as const);
+
   let response = await deps.answerFn({
-    query: rewritten,
+    query: body.message,
     history,
-    chunks: retrieval.chunks,
+    chunks,
     locale,
+    catalog,
+    retrievalConfidence,
   });
+
+  // Empty text = the LLM layer's hard-failure marker (see answerWithChunks).
+  if (response.kind === "no_match" && response.text === "") {
+    return sendJson(res, 200, noMatchWithSuggestions(entry.config));
+  }
 
   if (response.kind === "answer") {
     response = {
@@ -73,26 +105,47 @@ export async function handleChat(
       parts: response.parts.map((p): Part => {
         if (p.kind !== "video") return p;
         const v = p as VideoPart;
-        return {
-          ...v,
-          mp4Url: buildMp4Url({ baseUrl: deps.baseUrl, widgetId: body.widgetId, demoId: v.demoId }),
-        };
+        // The model only chooses WHICH step to cite — the index is
+        // authoritative for where that step lives. Models routinely fudge
+        // startMs/endMs, so repair from the chunk instead of letting
+        // validation refuse the whole answer over a few milliseconds.
+        const chunk = entry.stepLookup.get(v.stepId);
+        if (chunk) {
+          return {
+            ...v,
+            demoId: chunk.demoId,
+            startMs: chunk.globalStartMs,
+            endMs: chunk.globalEndMs,
+            mp4Url: buildMp4Url({ baseUrl: deps.baseUrl, widgetId: body.widgetId, demoId: chunk.demoId }),
+          };
+        }
+        return { ...v, mp4Url: buildMp4Url({ baseUrl: deps.baseUrl, widgetId: body.widgetId, demoId: v.demoId }) };
       }),
     };
   }
+
   const validation = validateChatResponse(response, entry.stepLookup);
   if (!validation.ok) {
-    response = noMatchWithSuggestions(entry.config.suggestedQuestions);
+    return sendJson(res, 200, noMatchWithSuggestions(entry.config));
   }
 
   sendJson(res, 200, response);
 }
 
-function noMatchWithSuggestions(suggestions: string[]): ChatResponse {
+function firstChunkPerDemo(chunks: IndexedChunk[]): IndexedChunk[] {
+  const best = new Map<string, IndexedChunk>();
+  for (const c of chunks) {
+    const cur = best.get(c.demoId);
+    if (!cur || c.globalStartMs < cur.globalStartMs) best.set(c.demoId, c);
+  }
+  return [...best.values()];
+}
+
+function noMatchWithSuggestions(config: { suggestedQuestions: string[]; noMatchText?: string }): ChatResponse {
   return {
     kind: "no_match",
-    text: "I don't have that in the demos. Try one of these:",
-    suggestions: suggestions.slice(0, 3),
+    text: config.noMatchText ?? DEFAULT_NO_MATCH_TEXT,
+    suggestions: config.suggestedQuestions.slice(0, 3),
   };
 }
 

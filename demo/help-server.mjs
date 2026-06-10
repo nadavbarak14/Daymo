@@ -33,23 +33,47 @@ const demos = [
 
 const manifest = { version: "demo", videoBaseUrl: "/assets", demos };
 
-// Mock chat knowledge base (keyword → structured answer).
+// Mock chat knowledge base (keyword → cited steps). Each ref is
+// [demoId, stepIndex]; the renderer groups refs per demo into one full-demo
+// card cued at the earliest referenced step — mirroring the real model output.
 const KB = [
-  { k: ["ring size","size","sizing","fit","measure","resize"], demo: "sizing", clip: [6,22],
-    text: "You can size at home in about a minute. Open the size guide on any ring page, print the chart at 100%, and wrap an existing band against it — or order a free sizer.", caption: "Find your ring size · cued 0:06" },
-  { k: ["track","order","status","arrive","where is","where's","shipped","delivery"], demo: "tracking", clip: [30,46],
-    text: "Everything lives under Orders. Sign in, open the order, and you'll see live carrier tracking plus the estimated delivery date right at the top.", caption: "Track your order · cued 0:30" },
-  { k: ["engrav","custom","initials","personali","message","monogram"], demo: "engraving", clip: [52,70],
-    text: "Most pieces can be engraved. Add the item to your bag, choose “Add engraving,” and type up to 12 characters — you'll see a live preview before you pay.", caption: "Add custom engraving · cued 0:52" },
-  { k: ["return","exchange","refund","send back","doesn't fit","wrong size"], demo: "returns", clip: [78,96],
-    text: "Returns are free within 60 days. Start one from Orders → Return, pick your items and a reason, print the prepaid label, and drop it at any carrier point.", caption: "Start a return · cued 1:18" },
-  { k: ["gift","wrap","present","packaging","note","hide price"], demo: "gift", clip: [100,118],
-    text: "At checkout, toggle Gift options to add wrap, write a handwritten note, and hide the price on the packing slip — perfect for sending straight to someone.", caption: "Gift wrap & delivery · cued 1:40" },
-  { k: ["care","clean","polish","tarnish","maintain","scratch","bright","shower"], demo: "care", clip: [6,24],
-    text: "Gold keeps its shine with a simple routine: avoid lotions and chlorine, do a quick 2-minute soak and soft-brush weekly, and book a pro polish once a year.", caption: "Caring for your jewelry · cued 0:06" },
+  { k: ["ring size","size","sizing","fit","measure","resize"],
+    text: "You can size at home in about a minute — the walkthrough below covers the whole flow, from the printable chart to the free sizer.",
+    refs: [["sizing",0],["sizing",1],["sizing",2]] },
+  { k: ["track","order","status","arrive","where is","where's","shipped","delivery"],
+    text: "Everything lives under Orders. The demo picks up right where you select the order and read the live tracking.",
+    refs: [["tracking",1],["tracking",2]] },
+  { k: ["engrav","initials","personali","monogram"],
+    text: "Most pieces can be engraved with up to 12 characters — you'll see a live preview before you pay.",
+    refs: [["engraving",1],["engraving",2]] },
+  { k: ["return","exchange","refund","send back","doesn't fit","wrong size"],
+    text: "Returns are free within 60 days — prepaid label included. Here's the whole flow:",
+    refs: [["returns",0],["returns",1],["returns",2],["returns",3]] },
+  { k: ["gift","wrap","present","packaging","hide price"],
+    text: "At checkout, toggle Gift options to add wrap, a handwritten note, and hide the price on the slip. If you're engraving it too, the second demo shows that part.",
+    refs: [["gift",0],["gift",2],["engraving",1]] },
+  { k: ["care","clean","polish","tarnish","maintain","scratch","bright","shower"],
+    text: "Gold keeps its shine with a simple routine — the key part is the 2-minute soak, shown here.",
+    refs: [["care",1]] },
+  { k: ["price","cost","how much","shipping fee","expensive"],
+    text: "Shipping is free over $75 (otherwise a $6 flat rate), and engraving adds $25 per piece. Each design's price is on its product page.",
+    refs: [] },
+  { k: ["what can","everything","all of","every option","options","demos","capab","help with","show me what"],
+    text: "Here's everything I can walk you through end to end:",
+    refs: demos.map((d) => [d.demoId, 0]) },
 ];
 
-function answer(message) {
+// One VideoPart per cited step: cue = the step's start, end = next step's
+// start (the widget's soft-pause point). Caption = what that step shows.
+function stepPart(demoId, idx, origin) {
+  const d = demos.find((x) => x.demoId === demoId);
+  const step = d.steps[idx];
+  const endMs = d.steps[idx + 1]?.startMs ?? Math.min(step.startMs + sec(4), d.durationMs ?? step.startMs + sec(4));
+  return { kind: "video", stepId: step.stepId, demoId, startMs: step.startMs, endMs,
+    caption: step.label, mp4Url: origin + VIDEO };
+}
+
+function answer(message, origin) {
   const s = String(message || "").toLowerCase();
   let best = null, score = 0;
   for (const e of KB) {
@@ -57,13 +81,12 @@ function answer(message) {
     if (sc > score) { score = sc; best = e; }
   }
   if (!best) {
-    return { kind: "no_match", text: "I don't have a clip for that one yet — but here are the walkthroughs I can show you right now:",
-      suggestions: ["How do I find my ring size?", "Where's my order?", "What's your return policy?"] };
+    return { kind: "no_match", text: "I don't have that in the demos. Try one of these:",
+      suggestions: ["How do I find my ring size?", "Where's my order?", "What can you show me?"] };
   }
   return { kind: "answer", parts: [
     { kind: "text", text: best.text },
-    { kind: "video", stepId: `${best.demo}:0`, demoId: best.demo, startMs: sec(best.clip[0]), endMs: sec(best.clip[1]),
-      caption: best.caption, mp4Url: VIDEO },
+    ...best.refs.map(([d, i]) => stepPart(d, i, origin)),
   ] };
 }
 
@@ -101,6 +124,17 @@ async function serveFile(req, res, file) {
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const origin = `http://${req.headers.host}`;
+  const abs = (p) => (typeof p === "string" && p.startsWith("/") ? origin + p : p);
+
+  // CORS — lets the widget demo page (:9000) use this server as its backend.
+  res.setHeader("access-control-allow-origin", "*");
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, { "access-control-allow-methods": "GET,POST,OPTIONS",
+      "access-control-allow-headers": "content-type" });
+    res.end();
+    return;
+  }
 
   if (req.method === "POST" && url.pathname === "/chat") {
     let body = "";
@@ -111,15 +145,27 @@ createServer(async (req, res) => {
       // small delay so the typing indicator is visible
       setTimeout(() => {
         res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify(answer(message)));
+        res.end(JSON.stringify(answer(message, origin)));
       }, 550);
     });
     return;
   }
 
+  if (url.pathname.startsWith("/widget-config/")) {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      widgetId: decodeURIComponent(url.pathname.split("/").pop() ?? "demo"),
+      name: "Aurelia", locale: "en",
+      suggestedQuestions: ["How do I find my ring size?", "Where's my order?", "Can I get it gift wrapped?"],
+      manifestUrl: abs("/manifest.json"),
+    }));
+    return;
+  }
+
   if (url.pathname === "/manifest.json") {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify(manifest));
+    res.end(JSON.stringify({ ...manifest, videoBaseUrl: abs("/assets"),
+      demos: demos.map((d) => ({ ...d, videoUrl: abs(d.videoUrl), posterUrl: abs(d.posterUrl) })) }));
     return;
   }
 

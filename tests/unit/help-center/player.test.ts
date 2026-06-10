@@ -14,6 +14,7 @@ const demo: ManifestDemo = {
   steps: [
     { stepId: "d:0:1", label: "Open the editor", startMs: 0 },
     { stepId: "d:0:2", label: "Click new note", startMs: 30000 },
+    { stepId: "d:0:3", label: "Type content", startMs: 60000 },
   ],
 };
 
@@ -75,34 +76,36 @@ describe("createPlayer", () => {
     expect(document.activeElement?.classList.contains("daymo-help-player-close")).toBe(true);
   });
 
-  it("clip cue waits for metadata, seeks, and auto-pauses at endMs", () => {
+  it("marks referenced steps with the 'referenced' class and cues to startMs", () => {
     const player = createPlayer(document, DEFAULT_STRINGS);
-    player.open(demo, { startMs: 30000, endMs: 40000, autoplay: true });
+    player.open(demo, { startMs: 30000, referencedStepIds: ["d:0:2", "d:0:3"] });
     const video = document.body.querySelector("video")!;
-    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
 
-    expect(video.currentTime).toBe(0); // metadata not loaded yet
+    // startMs seek should be deferred until metadata loads
+    expect(video.currentTime).toBe(0);
     setMetadataLoaded(video);
     expect(video.currentTime).toBe(30);
 
-    playTo(video, 35);
-    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
-    playTo(video, 40.1);
-    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalledTimes(1);
-    // one-shot: playing past it again does not pause again
-    playTo(video, 50);
-    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalledTimes(1);
+    const steps = document.body.querySelectorAll<HTMLButtonElement>(".daymo-help-step");
+    expect(steps).toHaveLength(3);
+    // steps[0] is "d:0:1" — not referenced
+    expect(steps[0].classList.contains("referenced")).toBe(false);
+    // steps[1] is "d:0:2" — referenced
+    expect(steps[1].classList.contains("referenced")).toBe(true);
+    // steps[2] is "d:0:3" — referenced
+    expect(steps[2].classList.contains("referenced")).toBe(true);
   });
 
-  it("a user seek clears the endMs stop; the programmatic cue seek does not", () => {
+  it("does not pause playback at the referenced range end (plays through)", () => {
     const player = createPlayer(document, DEFAULT_STRINGS);
-    player.open(demo, { startMs: 30000, endMs: 40000 });
+    player.open(demo, { startMs: 30000, referencedStepIds: ["d:0:2", "d:0:3"], autoplay: true });
     const video = document.body.querySelector("video")!;
-    setMetadataLoaded(video); // fires the programmatic cue seek (seeking event)
+    setMetadataLoaded(video);
 
-    // user drags the native scrubber
-    video.currentTime = 10;
-    playTo(video, 41);
+    // Play past the last referenced step (d:0:3 starts at 60s, demo ends at 90s)
+    playTo(video, 61);
+    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
+    playTo(video, 85);
     expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
   });
 
@@ -113,7 +116,7 @@ describe("createPlayer", () => {
     setMetadataLoaded(video);
 
     const steps = document.body.querySelectorAll<HTMLButtonElement>(".daymo-help-step");
-    expect(steps).toHaveLength(2);
+    expect(steps).toHaveLength(3);
     steps[1].click();
     expect(video.currentTime).toBe(30);
     playTo(video, 31);
@@ -121,27 +124,17 @@ describe("createPlayer", () => {
     expect(steps[0].classList.contains("active")).toBe(false);
   });
 
-  it("step click clears a pending endMs stop", () => {
-    const player = createPlayer(document, DEFAULT_STRINGS);
-    player.open(demo, { startMs: 0, endMs: 20000 });
-    const video = document.body.querySelector("video")!;
-    setMetadataLoaded(video);
-    document.body.querySelectorAll<HTMLButtonElement>(".daymo-help-step")[1].click();
-    playTo(video, 45);
-    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
-  });
-
   it("re-open before metadata loads cancels the previous pending cue seek", () => {
     const other: ManifestDemo = { ...demo, demoId: "e", title: "Other", videoUrl: "https://cdn/e.mp4" };
     const player = createPlayer(document, DEFAULT_STRINGS);
-    player.open(demo, { startMs: 30000, endMs: 40000 });
+    player.open(demo, { startMs: 30000 });
     player.open(other); // metadata for the first never loaded
     vi.mocked(HTMLMediaElement.prototype.pause).mockClear();
     const video = document.body.querySelector("video")!;
     setMetadataLoaded(video);
     expect(video.currentTime).toBe(0); // stale 30s seek must NOT fire
     playTo(video, 41);
-    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled(); // stale endMs gone too
+    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
   });
 
   it("Escape closes: pauses, unlocks scroll, restores focus to the opener", () => {

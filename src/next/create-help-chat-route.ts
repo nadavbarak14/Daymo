@@ -14,6 +14,8 @@ export interface CreateHelpChatRouteOpts extends IndexSourceOpts {
   embeddingModelId?: string;
   suggestedQuestions?: string[];
   defaultLocale?: string;
+  /** Lead text for canned no-match responses. Localize/brand it here. */
+  noMatchText?: string;
   rateLimitPerMinute?: number;
   maxBodyBytes?: number;
   onEvent?: (e: HelpChatEvent) => void;
@@ -47,6 +49,7 @@ export function createHelpChatRoute(opts: CreateHelpChatRouteOpts): Handler {
         ...deps,
         suggestedQuestions: opts.suggestedQuestions,
         defaultLocale: opts.defaultLocale,
+        noMatchText: opts.noMatchText,
         rateLimitPerMinute: opts.rateLimitPerMinute,
         maxBodyBytes: opts.maxBodyBytes,
         onEvent: opts.onEvent,
