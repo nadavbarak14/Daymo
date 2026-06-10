@@ -411,6 +411,17 @@ function resolveLocale(input) {
 
 // src/mount.ts
 var CHAT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+var HELP_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+var PLAY_SVG2 = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+var BOOK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+var LIFE_RING_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="9.17" y1="14.83" x2="4.93" y2="19.07"/></svg>`;
+var BUBBLE_ICONS = {
+  chat: CHAT_SVG,
+  help: HELP_SVG,
+  play: PLAY_SVG2,
+  book: BOOK_SVG,
+  "life-ring": LIFE_RING_SVG
+};
 var CLOSE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 var SEND_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>`;
 var SPARK_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z"/></svg>`;
@@ -443,6 +454,9 @@ async function mount(opts) {
     host.style.setProperty("--dw-accent", config.brandColor);
     host.style.setProperty("--dw-bubble-bg", config.brandColor);
   }
+  if (config?.bubbleColor) {
+    host.style.setProperty("--dw-bubble-bg", config.bubbleColor);
+  }
   let demos = /* @__PURE__ */ new Map();
   const manifestUrl = opts.manifestUrl ?? config?.manifestUrl;
   if (manifestUrl) {
@@ -454,7 +468,8 @@ async function mount(opts) {
   const bubble = document.createElement("button");
   bubble.className = "dw-bubble";
   bubble.setAttribute("aria-label", strings.open);
-  bubble.innerHTML = `${CHAT_SVG}<span class="dw-bubble-dot"></span>`;
+  const bubbleIcon = BUBBLE_ICONS[config?.bubbleIcon ?? "chat"] ?? CHAT_SVG;
+  bubble.innerHTML = `${bubbleIcon}<span class="dw-bubble-dot"></span>`;
   shadow.appendChild(bubble);
   let panel = null;
   let thread = null;

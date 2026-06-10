@@ -220,6 +220,10 @@
   backdrop-filter: blur(10px);
 }
 .daymo-help-topbar-menu { display: none; }
+/* When the sidebar is collapsed on desktop its in-panel toggle is clipped to
+   zero width, so surface the topbar toggle as the way back in. (On mobile the
+   media query below shows this menu unconditionally as the drawer trigger.) */
+.daymo-help[data-sidebar="closed"] .daymo-help-topbar-menu { display: grid; }
 .daymo-help-topbar-back {
   display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
   height: 34px; padding: 0 13px; border-radius: 9px;
